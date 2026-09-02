@@ -181,7 +181,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: 'claude-haiku-4-5', max_tokens: 800, system: \"You score job fit 0-100 against the master CV. Non-negotiables: years of experience, core tech stack, required languages. Reply with ONLY a JSON object, no markdown fences. Keys: job_title (string), company (string), skills (string, comma-separated), location (string), fit_score (integer 0-100), rationale (string, exactly 2 sentences).\", messages: [{ role: 'user', content: $json.haiku_user }] }) }}",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-haiku-4-5', max_tokens: 800, system: \"You score job fit 0-100 against the master CV. Non-negotiables: years of experience, core tech stack, required languages. Reply with ONLY a JSON object, no markdown fences. Keys: job_title (string), company (string), skills (string, comma-separated), location (string), fit_score (integer 0-100), rationale (string, exactly 2 sentences), gaps (array of 0 to 5 short strings: JD requirements not evidenced in the Master CV).\", messages: [{ role: 'user', content: $json.haiku_user }] }) }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -202,7 +202,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const item = $input.item.json;\nconst text = (item.content && item.content[0] && item.content[0].text) || item.content || '';\nconst match = String(text).match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('Haiku did not return JSON');\nconst parsed = JSON.parse(match[0]);\nconst prev = $('Flatten CV').first().json;\nreturn { json: {\n  url: prev.url,\n  clean_md: prev.clean_md,\n  cv_md: prev.cv_md,\n  job_title: parsed.job_title || 'Untitled role',\n  company: parsed.company || '',\n  skills: parsed.skills || '',\n  location: parsed.location || '',\n  fit_score: Number(parsed.fit_score),\n  rationale: parsed.rationale || ''\n} };\n"
+        "jsCode": "const item = $input.item.json;\nconst text = (item.content && item.content[0] && item.content[0].text) || item.content || '';\nconst match = String(text).match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('Haiku did not return JSON');\nconst parsed = JSON.parse(match[0]);\nfunction gapsText(g) {\n  if (g == null || g === '') return '';\n  const arr = Array.isArray(g) ? g : String(g).split(/\\n|;/);\n  return arr.map(function (x) { return String(x).replace(/^[-*]\\s*/, '').trim(); })\n    .filter(Boolean)\n    .slice(0, 5)\n    .map(function (x) { return '- ' + x; })\n    .join('\\n');\n}\nconst prev = $('Flatten CV').first().json;\nreturn { json: {\n  url: prev.url,\n  clean_md: prev.clean_md,\n  cv_md: prev.cv_md,\n  job_title: parsed.job_title || 'Untitled role',\n  company: parsed.company || '',\n  skills: parsed.skills || '',\n  location: parsed.location || '',\n  fit_score: Number(parsed.fit_score),\n  rationale: parsed.rationale || '',\n  gaps: gapsText(parsed.gaps)\n} };"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -289,7 +289,15 @@
           ]
         },
         "blockUi": {
-          "blockValues": []
+          "blockValues": [
+            {
+              "type": "heading_2",
+              "textContent": "Gaps"
+            },
+            {
+              "textContent": "={{ $json.gaps || 'none' }}"
+            }
+          ]
         },
         "options": {}
       },
@@ -352,7 +360,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const j = $input.item.json;\nconst sonnet_user = [\n  'STYLE & LEARNINGS:\\n' + (j.style_rules || ''),\n  'MASTER CV:\\n' + (j.cv_md || ''),\n  'JOB DESCRIPTION:\\n' + (j.clean_md || '')\n].join('\\n\\n');\nreturn { json: Object.assign({}, j, { sonnet_user: sonnet_user }) };\n"
+        "jsCode": "const j = $input.item.json;\nconst jd = String(j.clean_md || '').slice(0, 8000);\nconst sonnet_user = [\n  'STYLE & LEARNINGS:\\n' + (j.style_rules || ''),\n  'MASTER CV:\\n' + (j.cv_md || ''),\n  'GAPS (JD vs Master CV):\\n' + (j.gaps || 'none'),\n  'JOB DESCRIPTION:\\n' + jd\n].join('\\n\\n');\nreturn { json: Object.assign({}, j, { sonnet_user: sonnet_user }) };\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -384,7 +392,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 8000, thinking: { type: 'disabled' }, system: \"You write application assets. Follow the Style & Learnings rules exactly. Do not invent employers, dates, or metrics that are not in the Master CV. Reply with ONLY a JSON object, no markdown fences. Keys: cv_bullets (array of 3 to 5 strings mapped to JD keywords), cover_letter (string, exactly 3 paragraphs separated by blank lines), flashcards (object with keys technical and behavioral, each an array of 5 objects with question and answer), dossier (string: business model, product, why this role), salary_range (string: numbers from the JD, or a range), salary_flag (string: exactly 'extracted' if the JD listed pay, otherwise 'UNVERIFIED Estimate').\", messages: [{ role: 'user', content: $json.sonnet_user }] }) }}",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 8000, thinking: { type: 'disabled' }, system: \"You write application assets. Follow the Style & Learnings rules exactly. Do not invent employers, dates, or metrics that are not in the Master CV. GAPS lists JD requirements missing from the Master CV; do not invent experience to fill them. Reply with ONLY a JSON object, no markdown fences. Keys: cv_bullets (array of 3 to 5 strings mapped to JD keywords), cover_letter (string, exactly 3 paragraphs separated by blank lines), flashcards (object with keys technical and behavioral, each an array of 5 objects with question and answer), dossier (string: business model, product, why this role), salary_range (string: numbers from the JD, or a range), salary_flag (string: exactly 'extracted' if the JD listed pay, otherwise 'UNVERIFIED Estimate').\", messages: [{ role: 'user', content: $json.sonnet_user }] }) }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -405,7 +413,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "function cap(s) {\n  s = String(s || '');\n  return s.length <= 1900 ? s : s.slice(0, 1899) + '\\u2026';\n}\nfunction asText(value) {\n  if (value == null) return '';\n  if (typeof value === 'string') return value;\n  if (Array.isArray(value)) {\n    return value.map(function (x) {\n      if (typeof x === 'string') return '- ' + x;\n      const q = x.question || x.q || '';\n      const a = x.answer || x.a || '';\n      return 'Q: ' + q + '\\nA: ' + a;\n    }).join('\\n\\n');\n  }\n  if (typeof value === 'object') {\n    const parts = [];\n    Object.keys(value).forEach(function (k) {\n      parts.push('## ' + k);\n      parts.push(asText(value[k]));\n    });\n    return parts.join('\\n\\n');\n  }\n  return String(value);\n}\nconst item = $input.item.json;\nconst content = item.content;\nconst textBlock = Array.isArray(content) ? content.find(function (b) { return b && b.type === 'text' && b.text; }) : null;\nconst text = (textBlock && textBlock.text) || '';\nconst match = String(text).match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('Sonnet did not return JSON');\nconst parsed = JSON.parse(match[0]);\nconst prev = $('Flatten Style').first().json;\nconst flag = parsed.salary_flag === 'extracted' ? 'extracted' : 'UNVERIFIED Estimate';\nreturn { json: {\n  url: prev.url,\n  job_title: prev.job_title,\n  company: prev.company,\n  skills: prev.skills,\n  location: prev.location,\n  fit_score: prev.fit_score,\n  rationale: prev.rationale,\n  cv_bullets: cap(asText(parsed.cv_bullets)),\n  cover_letter: cap(asText(parsed.cover_letter)),\n  flashcards: cap(asText(parsed.flashcards)),\n  dossier: cap(asText(parsed.dossier)),\n  salary_range: parsed.salary_range || 'UNVERIFIED Estimate',\n  salary_flag: flag\n} };\n"
+        "jsCode": "function cap(s) {\n  s = String(s || '');\n  return s.length <= 1900 ? s : s.slice(0, 1899) + '\\u2026';\n}\nfunction asText(value) {\n  if (value == null) return '';\n  if (typeof value === 'string') return value;\n  if (Array.isArray(value)) {\n    return value.map(function (x) {\n      if (typeof x === 'string') return '- ' + x;\n      const q = x.question || x.q || '';\n      const a = x.answer || x.a || '';\n      return 'Q: ' + q + '\\nA: ' + a;\n    }).join('\\n\\n');\n  }\n  if (typeof value === 'object') {\n    const parts = [];\n    Object.keys(value).forEach(function (k) {\n      parts.push('## ' + k);\n      parts.push(asText(value[k]));\n    });\n    return parts.join('\\n\\n');\n  }\n  return String(value);\n}\nconst item = $input.item.json;\nconst content = item.content;\nconst textBlock = Array.isArray(content) ? content.find(function (b) { return b && b.type === 'text' && b.text; }) : null;\nconst text = (textBlock && textBlock.text) || '';\nconst match = String(text).match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('Sonnet did not return JSON');\nconst parsed = JSON.parse(match[0]);\nconst prev = $('Flatten Style').first().json;\nconst flag = parsed.salary_flag === 'extracted' ? 'extracted' : 'UNVERIFIED Estimate';\nreturn { json: {\n  url: prev.url,\n  job_title: prev.job_title,\n  company: prev.company,\n  skills: prev.skills,\n  location: prev.location,\n  fit_score: prev.fit_score,\n  rationale: prev.rationale,\n  gaps: prev.gaps || '',\n  cv_bullets: cap(asText(parsed.cv_bullets)),\n  cover_letter: cap(asText(parsed.cover_letter)),\n  flashcards: cap(asText(parsed.flashcards)),\n  dossier: cap(asText(parsed.dossier)),\n  salary_range: parsed.salary_range || 'UNVERIFIED Estimate',\n  salary_flag: flag\n} };\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -497,6 +505,12 @@
               "name": "salary_flag",
               "value": "={{ $json.salary_flag }}",
               "type": "string"
+            },
+            {
+              "id": "t14",
+              "name": "gaps",
+              "value": "={{ $json.gaps }}",
+              "type": "string"
             }
           ]
         },
@@ -563,6 +577,13 @@
         },
         "blockUi": {
           "blockValues": [
+            {
+              "type": "heading_2",
+              "textContent": "Gaps"
+            },
+            {
+              "textContent": "={{ $json.gaps || 'none' }}"
+            },
             {
               "type": "heading_2",
               "textContent": "Tailored CV bullets"
@@ -853,10 +874,11 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "83970bf7-3857-4691-987f-9aedf0dae75f",
+  "versionId": "dc57ae6f-d69b-40b3-8994-d5477cc01a04",
   "meta": {
     "templateCredsSetupCompleted": true
   },
+  "nodeGroups": [],
   "id": "VZH4LpQ6MVi8FvEW",
   "tags": []
 }
