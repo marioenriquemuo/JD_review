@@ -1,0 +1,51 @@
+flowchart TB
+ subgraph Browser["Browser"]
+        B("Bookmarklet Payload")
+        A["LinkedIn / JD Page"]
+  end
+ subgraph n8n_Engine["n8n Workflow - Token Optimized"]
+        C{"Webhook Node"}
+        D["Python Code Node: Clean HTML to MD"]
+        D1{"n8n Notion Node: <br> Search Job URL"}
+        D2{"If Node: <br> Is Duplicate?"}
+        D3["End Workflow / Log Duplicate"]
+        E["Claude Haiku: <br> Tier 1 Triage"]
+        F{"If Node: <br> Fit Score &gt;= 70%?"}
+        G@{ label: "Notion Node: <br> Log 'Skipped'" }
+        H["Claude Sonnet: <br> Asset Generation"]
+        H1("Tailored CV Bullets")
+        H2("Custom Cover Letter")
+        H3("Interview Q&A")
+        H4("Company Dossier")
+        I["Combine Payload Node"]
+  end
+ subgraph External_Context["Context & Memory"]
+        N9["Master CV"]
+        N10["Notion: Curated Style & Learnings Doc"]
+  end
+ subgraph Output["Output"]
+        J{"Notion API Node"}
+        K["Notion: Applications DB"]
+  end
+    A -- Click Bookmarklet --> B
+    B --> C
+    C --> D
+    D --> D1
+    D1 --> D2
+    D2 -- YES --> D3
+    D2 -- NO --> E
+    E --> F
+    F -- NO --> G
+    F -- YES --> H
+    H -.-> H1 & H2 & H3 & H4
+    H1 --> I
+    H2 --> I
+    H3 --> I
+    H4 --> I
+    N9 --> H
+    N10 -- Injected Rules --> H
+    I --> J
+    J --> K
+    N9 --> E
+
+    G@{ shape: rect}

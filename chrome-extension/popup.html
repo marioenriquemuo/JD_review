@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>JD Flow</title>
+    <style>
+      body {
+        font: 13px/1.4 system-ui, sans-serif;
+        margin: 0;
+        width: 280px;
+        padding: 12px;
+      }
+      button {
+        width: 100%;
+        padding: 8px;
+        font: inherit;
+        cursor: pointer;
+      }
+      #status {
+        margin-top: 8px;
+        color: #333;
+        white-space: pre-wrap;
+      }
+      a {
+        display: inline-block;
+        margin-top: 8px;
+        color: #06c;
+      }
+    </style>
+  </head>
+  <body>
+    <button id="send" type="button">Send job to n8n</button>
+    <div id="status"></div>
+    <a href="options.html" target="_blank">Webhook options</a>
+    <script src="popup.js"></script>
+  </body>
+</html>

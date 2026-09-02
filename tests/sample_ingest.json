@@ -1,0 +1,4 @@
+{
+  "url": "https://example.com/jobs/senior-python",
+  "html": "<!doctype html><html><head><style>.x{color:red}</style></head><body><nav>Ignore this nav</nav><header>Site chrome</header><h1>Senior Python Engineer</h1><p>We need <b>Python</b>, SQL, and 5 years of experience. Remote.</p><script>alert('ignore')</script><footer>Copyright</footer></body></html>"
+}
