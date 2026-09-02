@@ -384,7 +384,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 4000, system: \"You write application assets. Follow the Style & Learnings rules exactly. Do not invent employers, dates, or metrics that are not in the Master CV. Reply with ONLY a JSON object, no markdown fences. Keys: cv_bullets (array of 3 to 5 strings mapped to JD keywords), cover_letter (string, exactly 3 paragraphs separated by blank lines), flashcards (object with keys technical and behavioral, each an array of 5 objects with question and answer), dossier (string: business model, product, why this role), salary_range (string: numbers from the JD, or a range), salary_flag (string: exactly 'extracted' if the JD listed pay, otherwise 'UNVERIFIED Estimate').\", messages: [{ role: 'user', content: $json.sonnet_user }] }) }}",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 8000, thinking: { type: 'disabled' }, system: \"You write application assets. Follow the Style & Learnings rules exactly. Do not invent employers, dates, or metrics that are not in the Master CV. Reply with ONLY a JSON object, no markdown fences. Keys: cv_bullets (array of 3 to 5 strings mapped to JD keywords), cover_letter (string, exactly 3 paragraphs separated by blank lines), flashcards (object with keys technical and behavioral, each an array of 5 objects with question and answer), dossier (string: business model, product, why this role), salary_range (string: numbers from the JD, or a range), salary_flag (string: exactly 'extracted' if the JD listed pay, otherwise 'UNVERIFIED Estimate').\", messages: [{ role: 'user', content: $json.sonnet_user }] }) }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -405,7 +405,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "function cap(s) {\n  s = String(s || '');\n  return s.length <= 1900 ? s : s.slice(0, 1899) + '\\u2026';\n}\nfunction asText(value) {\n  if (value == null) return '';\n  if (typeof value === 'string') return value;\n  if (Array.isArray(value)) {\n    return value.map(function (x) {\n      if (typeof x === 'string') return '- ' + x;\n      const q = x.question || x.q || '';\n      const a = x.answer || x.a || '';\n      return 'Q: ' + q + '\\nA: ' + a;\n    }).join('\\n\\n');\n  }\n  if (typeof value === 'object') {\n    const parts = [];\n    Object.keys(value).forEach(function (k) {\n      parts.push('## ' + k);\n      parts.push(asText(value[k]));\n    });\n    return parts.join('\\n\\n');\n  }\n  return String(value);\n}\nconst item = $input.item.json;\nconst text = (item.content && item.content[0] && item.content[0].text) || '';\nconst match = String(text).match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('Sonnet did not return JSON');\nconst parsed = JSON.parse(match[0]);\nconst prev = $('Flatten Style').first().json;\nconst flag = parsed.salary_flag === 'extracted' ? 'extracted' : 'UNVERIFIED Estimate';\nreturn { json: {\n  url: prev.url,\n  job_title: prev.job_title,\n  company: prev.company,\n  skills: prev.skills,\n  location: prev.location,\n  fit_score: prev.fit_score,\n  rationale: prev.rationale,\n  cv_bullets: cap(asText(parsed.cv_bullets)),\n  cover_letter: cap(asText(parsed.cover_letter)),\n  flashcards: cap(asText(parsed.flashcards)),\n  dossier: cap(asText(parsed.dossier)),\n  salary_range: parsed.salary_range || 'UNVERIFIED Estimate',\n  salary_flag: flag\n} };\n"
+        "jsCode": "function cap(s) {\n  s = String(s || '');\n  return s.length <= 1900 ? s : s.slice(0, 1899) + '\\u2026';\n}\nfunction asText(value) {\n  if (value == null) return '';\n  if (typeof value === 'string') return value;\n  if (Array.isArray(value)) {\n    return value.map(function (x) {\n      if (typeof x === 'string') return '- ' + x;\n      const q = x.question || x.q || '';\n      const a = x.answer || x.a || '';\n      return 'Q: ' + q + '\\nA: ' + a;\n    }).join('\\n\\n');\n  }\n  if (typeof value === 'object') {\n    const parts = [];\n    Object.keys(value).forEach(function (k) {\n      parts.push('## ' + k);\n      parts.push(asText(value[k]));\n    });\n    return parts.join('\\n\\n');\n  }\n  return String(value);\n}\nconst item = $input.item.json;\nconst content = item.content;\nconst textBlock = Array.isArray(content) ? content.find(function (b) { return b && b.type === 'text' && b.text; }) : null;\nconst text = (textBlock && textBlock.text) || '';\nconst match = String(text).match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('Sonnet did not return JSON');\nconst parsed = JSON.parse(match[0]);\nconst prev = $('Flatten Style').first().json;\nconst flag = parsed.salary_flag === 'extracted' ? 'extracted' : 'UNVERIFIED Estimate';\nreturn { json: {\n  url: prev.url,\n  job_title: prev.job_title,\n  company: prev.company,\n  skills: prev.skills,\n  location: prev.location,\n  fit_score: prev.fit_score,\n  rationale: prev.rationale,\n  cv_bullets: cap(asText(parsed.cv_bullets)),\n  cover_letter: cap(asText(parsed.cover_letter)),\n  flashcards: cap(asText(parsed.flashcards)),\n  dossier: cap(asText(parsed.dossier)),\n  salary_range: parsed.salary_range || 'UNVERIFIED Estimate',\n  salary_flag: flag\n} };\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -644,16 +644,7 @@
       "name": "Sticky Note1"
     }
   ],
-  "pinData": {
-    "Webhook1": [
-      {
-        "json": {
-          "url": "https://example.com/jobs/senior-python",
-          "html": "<html><body><nav>Ignore this nav</nav><h1>Senior Python Engineer</h1><p>Python, SQL, 5 years. Remote.</p><script>alert(1)</script></body></html>"
-        }
-      }
-    ]
-  },
+  "pinData": {},
   "connections": {
     "Parse Clean MD": {
       "main": [
@@ -862,12 +853,10 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "6b2a7b26-c451-40e2-adb2-43b9089c65b9",
+  "versionId": "83970bf7-3857-4691-987f-9aedf0dae75f",
   "meta": {
-    "templateCredsSetupCompleted": true,
-    "instanceId": "4ccd0a9cb2155c0559189c33f175f3723a4f386c4b9bf5bb0b3339b69669ba7b"
+    "templateCredsSetupCompleted": true
   },
-  "nodeGroups": [],
   "id": "VZH4LpQ6MVi8FvEW",
   "tags": []
 }
