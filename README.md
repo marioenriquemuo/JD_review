@@ -1,51 +1,56 @@
 # Automated Job Analysis & Asset Engine
 
-Manual ingest of a job posting via a Chrome extension. n8n deduplicates against Notion for $0, triages with Claude Haiku, and only then spends Sonnet tokens on CV bullets, a cover letter, and salary.
+Manual ingest of a job posting via a Chrome extension. n8n deduplicates against Notion for $0, triages with Claude Haiku, runs a **Phase 1 semantic gap audit**, then **pauses** for your Candidate notes. When you set Status to **Proceed Phase 2**, Sonnet writes a **full** tailored LaTeX CV and cover letter.
 
-API keys and Notion tokens are **not** in this repo. Import [`JD Flow.json`](JD Flow.json) into n8n and attach credentials locally.
+API keys, Notion tokens, and Notion page/DB IDs are **not** stored in the workflow export (except the Applications DB id on the Notion Trigger). They live in gitignored [`secrets/notion_ids.json`](secrets/notion_ids.json) and load at runtime via SSH (**Load Secret IDs**). Import [`JD Flow.json`](JD Flow.json) and attach **Notion account** + **SSH localhost** locally.
 
-Source graph: [`mearmaid.txt`](mearmaid.txt). Importable workflow: [`JD Flow.json`](JD Flow.json). Setup click-path: [`docs/SETUP.md`](docs/SETUP.md). ELI5 walkthrough: [`docs/ELI5.md`](docs/ELI5.md).
+Source graph: [`mearmaid.txt`](mearmaid.txt). Setup: [`docs/SETUP.md`](docs/SETUP.md). ELI5: [`docs/ELI5.md`](docs/ELI5.md).
 
 ## Architecture principles
 
 - **Zero-risk ingest.** You click the extension on a JD tab. Nothing crawls the open web.
-- **Deterministic dedup.** Notion is queried by `Job URL` before any LLM call. Duplicates stop the workflow and do **not** create a second row.
+- **Secrets outside the canvas.** Notion IDs and the Anthropic `x-api-key` are read from `secrets/notion_ids.json` on each run.
+- **Deterministic dedup.** Notion is queried by `Job URL` before any LLM call.
 - **Two-tier LLM routing.** Haiku scores fit. Sonnet runs only when `fit_score >= 70`.
-- **Feedback injection.** Distilled style rules from a Notion page go into the Sonnet prompt. Raw application logs and the full writing CSV do not.
+- **Honest feedback loop.** Phase 1 audits gaps and asks questions; Phase 2/3 use only your CV + Candidate notes (no invented metrics).
+- **Full LaTeX, not patches.** Complete compilable `.tex` files go to Downloads; Notion columns hold a 1,900-char preview (Notion property cap).
 
 ## Flow
 
 ```text
 Chrome extension (URL + HTML)
-  → n8n Webhook POST /webhook/job-ingest
-  → Code node HTML → Markdown
+  → n8n Webhook POST /webhook/job-ingest  (waits; responseNode)
+  → Pack Ingest / Parse Clean MD
+  → SSH Load Secret IDs
   → Notion Applications DB lookup by Job URL
-       duplicate → stop ($0)
+       duplicate → Respond { status: duplicate }  ($0)
        new      → Get Master CV page
-  → Claude Haiku triage (JSON: title, company, skills, location, fit_score, rationale)
-       fit < 70  → Notion row Status=Skipped  (~$0.004)
-       fit >= 70 → Get Style & Learnings
-  → Claude Sonnet (one JSON: bullets, letter, salary)
-  → Claude Sonnet LaTeX (line-range patches on numbered master .tex)
-  → assemble_tex.py writes complete .tex copies to ~/Downloads
-  → Notion row Status=Ready to Apply  (~$0.045 total)
-```
+  → Claude Haiku triage
+       fit < 70  → Notion Skipped → Respond { status: skipped }
+       fit >= 70 → Style & Learnings + master_cv.tex
+  → Claude Sonnet Phase 1 (semantic gap audit + questions)
+  → Notion row Status=Needs Context (Candidate notes seeded with questions)
+  → Persist secrets/runs/{page_id}.json
+  → Respond { status: needs_context }
 
-The mermaid H1–H2 boxes are fields from **one** Sonnet response, not two model calls. LaTeX columns are a **second** Sonnet call that maps bullets/letter onto line ranges in the local master `.tex` — not another mermaid model box. Complete files go to `/home/mario/Downloads/{company}_{job_title}_CV.tex` and `_CoverLetter.tex` (collision suffix `_2`, `_3`). The master in `secrets/` is never overwritten.
+You: fill **Candidate Answers** → extension **Continue Phase 2**
+  → POST /webhook/job-resume (same Job URL)
+  → Status=Generating
+  → Claude Sonnet Phase 2 (full CV .tex) → Phase 3 (full letter .tex)
+  → assemble_tex.py --write-full → ~/Downloads
+  → Notion Status=Ready to Apply + LaTex CV / LaTex Cover Letter previews
+  → popup: ready_to_apply + file paths
+```
 
 ## Models and unit economics
 
-Claude 3.5 Haiku is retired on the Claude API. This project uses the current cheap/fast and high-reasoning pair:
-
-| Stage | When | Model | Est. tokens | Est. cost |
-| --- | --- | --- | --- | --- |
-| Dedup | Every run | Python + Notion | 0 LLM | $0.000 |
-| Triage fail | New JD, fit &lt; 70 | `claude-haiku-4-5` | ~2,500 in / 300 out | ~$0.004 |
-| Assets | fit &gt;= 70 | `claude-sonnet-5` | ~3,500 in / 2,000 out | ~$0.027 |
-| LaTeX | after assets | `claude-sonnet-5` | ~800 in / 1,200 out | ~$0.014 |
-| Full pass | Qualified JD | Haiku + two Sonnets | — | **~$0.045** |
-
-Prices from [Anthropic API pricing](https://platform.claude.com/docs/en/about-claude/pricing) (Haiku 4.5 $1/$5 per MTok, Sonnet 5 $2/$10 per MTok). Recalculate if you change models.
+| Stage | When | Model | Est. cost |
+| --- | --- | --- | --- |
+| Dedup | Every run | Notion | $0 |
+| Triage fail | fit &lt; 70 | `claude-haiku-4-5` | ~$0.004 |
+| Phase 1 audit | fit ≥ 70 | `claude-sonnet-5` | ~$0.03 |
+| Phase 2+3 | After Proceed Phase 2 | `claude-sonnet-5` ×2 | ~$0.06–0.10 |
+| Full pass | Qualified + resume | Haiku + 3 Sonnets | **~$0.10–0.14** |
 
 ## Notion
 
@@ -61,48 +66,39 @@ Title property: **Job Title**.
 | Location | rich_text | Location / remote |
 | Skills | rich_text | Comma-separated |
 | Fit Score | number | 0–100 |
-| Status | select | `Skipped`, `Ready to Apply` |
+| Status | select | `Skipped`, `Needs Context`, `Generating`, `Proceed Phase 2`, `Ready to Apply` |
 | Rationale | rich_text | Two-sentence Haiku reason |
 | Salary Range | rich_text | Number range or estimate |
 | Salary Flag | select | `extracted`, `UNVERIFIED Estimate` |
-| LaTex CV | rich_text | Line-range fragment (also assembled into a full Downloads `.tex`) |
-| LaTex Cover Letter | rich_text | Letter body fragment (also assembled into a full Downloads `.tex`) |
+| Candidate notes | rich_text | Phase 1 questions (seeded) |
+| Candidate Answers | rich_text | Your answers to those questions |
+| LaTex CV | rich_text | Preview ≤1900 chars (full file in Downloads) |
+| LaTex Cover Letter | rich_text | Preview ≤1900 chars |
 
-Long assets (CV bullets, cover letter) are written into the **page body**, not properties — Notion property values cap at 2,000 characters. **LaTex CV** and **LaTex Cover Letter** stay as fragments (capped ~1,900 chars). Full compileable files are written locally, not into Notion.
+### Context pages / local secrets
 
-`Status=Duplicate` is not written. A hit on `Job URL` ends the execution; n8n’s execution log is the duplicate record.
-
-### Context pages
-
-| Page | Injected into | Content |
-| --- | --- | --- |
-| Master CV | Haiku (first ~2,500 chars) and Sonnet (full) | Distilled Markdown from your LaTeX CV |
-| Style & Learnings | Sonnet only | 10–20 rules distilled from past writing |
-
-Do not paste the raw `.tex` or writing CSV into these pages. Generate drafts with [`scripts/distill_cv.py`](scripts/distill_cv.py).
-
-The compile source is a **local** file, not Notion:
-
-| Path | Role |
+| Path / page | Role |
 | --- | --- |
-| `secrets/master_cv.tex` (gitignored) | Read-only master CV. Copy your original `.tex` here once. |
-| `secrets/master_letter.tex` (optional) | Letter template. Wrap the body in `% LETTER_BODY` … `% END_LETTER_BODY`. If missing, the letter is wrapped in `\documentclass{article}`. |
+| Notion Master CV | Distilled Markdown for Haiku |
+| Notion Style & Learnings | Tone rules for Sonnet |
+| `secrets/master_cv.tex` | Full LaTeX master for Phase 1–2 |
+| `secrets/storytelling.md` | Phase 3 letter structure |
+| `secrets/runs/{page_id}.json` | Phase 1 state for resume |
+| `secrets/notion_ids.json` | DB/page IDs + `anthropic_api_key` |
 
 ## Repo layout
 
 | Path | What |
 | --- | --- |
 | [`JD Flow.json`](JD Flow.json) | n8n workflow export |
-| [`chrome-extension/`](chrome-extension/) | Unpacked MV3 extension |
-| [`scripts/clean_html.py`](scripts/clean_html.py) | HTML → Markdown (called by n8n) |
-| [`scripts/distill_cv.py`](scripts/distill_cv.py) | One-time LaTeX + CSV → Notion drafts |
-| [`scripts/assemble_tex.py`](scripts/assemble_tex.py) | Number master lines; splice Sonnet patches; write Downloads `.tex` |
-| [`docs/SETUP.md`](docs/SETUP.md) | n8n, Python, Notion, Claude Console, Chrome |
-| [`tests/sample_ingest.json`](tests/sample_ingest.json) | Smoke-test payload for `clean_html.py` |
+| [`scripts/assemble_tex.py`](scripts/assemble_tex.py) | `--write-full` / patch / `--number` |
+| [`scripts/persist_run.py`](scripts/persist_run.py) | Save/load Phase 1 run JSON |
+| [`scripts/load_secret_ids.py`](scripts/load_secret_ids.py) | Print IDs + Claude key |
+| [`chrome-extension/`](chrome-extension/) | MV3 extension (popup shows skip / needs_context) |
 
-## Assumptions that affect cost or quality
+## Assumptions
 
-- Extension sends **HTML**, not `innerText`, so BeautifulSoup actually reduces tokens.
-- Master CV and style rules are static Notion pages you maintain. The workflow does not learn from Skipped rows automatically.
-- Fit threshold is hard-coded at 70 in the n8n IF node.
-- Webhook responds immediately with `{ "status": "accepted" }`. Duplicate vs skip vs ready is visible in n8n executions and Notion, not in the extension popup.
+- Extension waits for Phase 1 (tens of seconds). Popup shows `Scoring…` then the real status.
+- Empty Candidate Answers + Proceed Phase 2 still generates files from the master CV only (no invented facts).
+- Phase 2 starts from the extension **Continue Phase 2** button (not a Notion poll).
+- Fit threshold is hard-coded at 70.

@@ -7,7 +7,7 @@
       body {
         font: 13px/1.4 system-ui, sans-serif;
         margin: 0;
-        width: 280px;
+        width: 300px;
         padding: 12px;
       }
       button {
@@ -15,6 +15,9 @@
         padding: 8px;
         font: inherit;
         cursor: pointer;
+      }
+      button + button {
+        margin-top: 8px;
       }
       #status {
         margin-top: 8px;
@@ -30,6 +33,7 @@
   </head>
   <body>
     <button id="send" type="button">Send job to n8n</button>
+    <button id="resume" type="button">Continue Phase 2</button>
     <div id="status"></div>
     <a href="options.html" target="_blank">Webhook options</a>
     <script src="popup.js"></script>

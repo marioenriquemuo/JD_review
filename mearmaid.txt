@@ -1,47 +1,79 @@
 flowchart TB
  subgraph Browser["Browser"]
-        B("Bookmarklet Payload")
         A["LinkedIn / JD Page"]
+        B["Chrome extension<br/>URL + HTML"]
   end
- subgraph n8n_Engine["n8n Workflow - Token Optimized"]
-        C{"Webhook Node"}
-        D["Python Code Node: Clean HTML to MD"]
-        D1{"n8n Notion Node: <br> Search Job URL"}
-        D2{"If Node: <br> Is Duplicate?"}
-        D3["End Workflow / Log Duplicate"]
-        E["Claude Haiku: <br> Tier 1 Triage"]
-        F{"If Node: <br> Fit Score &gt;= 70%?"}
-        G@{ label: "Notion Node: <br> Log 'Skipped'" }
-        H["Claude Sonnet: <br> Asset Generation"]
-        H1("Tailored CV Bullets")
-        H2("Custom Cover Letter")
-        I["Combine Payload Node"]
+ subgraph n8n_Ingest["n8n Ingest - Phase 1"]
+        C["Webhook<br/>POST /webhook/job-ingest<br/>responseNode"]
+        P["Pack Ingest / Parse Clean MD"]
+        S["SSH: Load Secret IDs"]
+        D1["Notion: Search Job URL"]
+        D2{"Is Duplicate?"}
+        RD["Respond duplicate"]
+        M["Notion: Get Master CV"]
+        E["Claude Haiku<br/>Tier 1 Triage"]
+        F{"Fit Score >= 70%?"}
+        G["Notion: Log Skipped"]
+        RS["Respond skipped"]
+        STY["Notion: Get Style Learnings"]
+        RT["SSH: Read master_cv.tex"]
+        P1["Claude Sonnet<br/>Phase 1 audit"]
+        NC["Notion: Needs Context<br/>+ Candidate notes questions"]
+        PR["SSH: Persist run JSON"]
+        RN["Respond needs_context"]
   end
- subgraph External_Context["Context & Memory"]
-        N9["Master CV"]
-        N10["Notion: Curated Style & Learnings Doc"]
+ subgraph n8n_Resume["n8n Resume - Phase 2/3"]
+        T["Webhook /job-resume<br/>extension Continue Phase 2"]
+        GEN["Set Status Generating"]
+        LR["Load run JSON + storytelling"]
+        P2["Claude Sonnet<br/>Phase 2 full CV .tex"]
+        P3["Claude Sonnet<br/>Phase 3 full letter .tex"]
+        W["SSH: assemble_tex --write-full"]
+        U["Notion: Ready to Apply<br/>LaTex CV + Cover Letter"]
+  end
+ subgraph Secrets["Local secrets/ gitignored"]
+        SID["notion_ids.json"]
+        TEX["master_cv.tex"]
+        STORY["storytelling.md"]
+        RUNS["runs/{page_id}.json"]
   end
  subgraph Output["Output"]
-        J{"Notion API Node"}
         K["Notion: Applications DB"]
+        DL["~/Downloads<br/>company_job_CV.tex<br/>_CoverLetter.tex"]
   end
-    A -- Click Bookmarklet --> B
+    A -- Click extension --> B
     B --> C
-    C --> D
-    D --> D1
+    C --> P
+    P --> S
+    SID --> S
+    S --> D1
     D1 --> D2
-    D2 -- YES --> D3
-    D2 -- NO --> E
+    D2 -- YES --> RD
+    D2 -- NO --> M
+    M --> E
     E --> F
     F -- NO --> G
-    F -- YES --> H
-    H -.-> H1 & H2
-    H1 --> I
-    H2 --> I
-    N9 --> H
-    N10 -- Injected Rules --> H
-    I --> J
-    J --> K
-    N9 --> E
-
-    G@{ shape: rect}
+    G --> RS
+    RS --> B
+    F -- YES --> STY
+    STY --> RT
+    TEX --> RT
+    RT --> P1
+    P1 --> NC
+    NC --> PR
+    PR --> RUNS
+    PR --> RN
+    RN --> B
+    NC --> K
+    user["You fill Candidate Answers<br/>click Continue Phase 2"] --> T
+    T --> GEN
+    GEN --> LR
+    RUNS --> LR
+    STORY --> LR
+    LR --> P2
+    P2 --> P3
+    P3 --> W
+    TEX --> W
+    W --> DL
+    W --> U
+    U --> K

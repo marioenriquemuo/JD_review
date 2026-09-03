@@ -35,7 +35,7 @@ mkdir -p "$PROJECT/secrets"
 cp /path/to/cv.tex "$PROJECT/secrets/master_cv.tex"
 ```
 
-Optional: `"$PROJECT/secrets/master_letter.tex"` with `% LETTER_BODY` … `% END_LETTER_BODY`. After a qualified JD, complete files land in `/home/mario/Downloads/{company}_{job_title}_CV.tex` and `_CoverLetter.tex`.
+Also keep `"$PROJECT/secrets/storytelling.md"` (Phase 3 letter structure). After **Proceed Phase 2**, complete files land in `/home/mario/Downloads/{company}_{job_title}_CV.tex` and `_CoverLetter.tex`.
 
 ---
 
@@ -46,13 +46,7 @@ Optional: `"$PROJECT/secrets/master_letter.tex"` with `% LETTER_BODY` … `% END
 3. **Settings → limits** (or Plans & Billing): set a monthly spend cap.
 4. Confirm models `claude-haiku-4-5` and `claude-sonnet-5` are available on your account.
 
-In n8n: **Credentials → Header Auth**
-
-- Name: `Anthropic API`
-- Header name: `x-api-key`
-- Header value: the key
-
-The workflow also sends `anthropic-version: 2023-06-01` as a request header (not part of this credential).
+Put the key in `$PROJECT/secrets/notion_ids.json` as `anthropic_api_key`. Claude HTTP nodes read it via **Load Secret IDs** (no Header Auth credential required).
 
 ---
 
@@ -60,17 +54,19 @@ The workflow also sends `anthropic-version: 2023-06-01` as a request header (not
 
 1. [notion.so/my-integrations](https://www.notion.so/my-integrations) → **New integration** (internal). Copy the token.
 2. Create database **Applications** with the properties in [README.md](../README.md) (title = Job Title).
-3. Create two empty pages: **Master CV**, **Style & Learnings**. Paste the distilled Markdown.
-4. Share the database and both pages with the integration (**Connect to**).
-5. Copy IDs from the URLs:
+3. **Status** select must include exactly: `Skipped`, `Needs Context`, `Generating`, `Proceed Phase 2`, `Ready to Apply`.
+4. Add **Candidate notes** (Text / rich_text) if missing.
+5. Create two empty pages: **Master CV**, **Style & Learnings**. Paste the distilled Markdown.
+6. Share the database and both pages with the integration (**Connect to**).
+7. Copy IDs from the URLs:
    - Database: `https://notion.so/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx?v=...` → 32 hex chars (optionally insert dashes as `8-4-4-4-12`).
    - Page: the 32 hex chars after the page title slug.
 
 In n8n: **Credentials → Notion API** → Internal integration token.
 
-Put IDs and the Claude key in `$PROJECT/secrets/notion_ids.json` (`applications_db_id`, `master_cv_page_id`, `style_learnings_page_id`, `anthropic_api_key`). The workflow loads them at runtime via SSH (**Load Secret IDs**) — do not paste into nodes.
+Put IDs and the Claude key in `$PROJECT/secrets/notion_ids.json` (`applications_db_id`, `master_cv_page_id`, `style_learnings_page_id`, `anthropic_api_key`). The workflow loads them at runtime via SSH (**Load Secret IDs**).
 
-Select the Notion credential on every Notion node. Select **SSH localhost** on **Load Secret IDs**, **Read Master Tex**, and **Write Tex Files**. Claude nodes read `x-api-key` from the secrets file.
+Select the Notion credential on every Notion node (including **Notion Resume Trigger**). Select **SSH localhost** on Load Secret IDs / Read Master Tex / Persist Run State / Write Full Tex / Read Storytelling.
 
 ---
 
@@ -101,19 +97,20 @@ curl -sS -X POST http://localhost:5678/webhook-test/job-ingest \
 
 Expect `{ "status": "accepted" }` immediately. Then open **Executions**:
 
-- First run: Haiku (and maybe Sonnet). Notion **Skipped** or **Ready to Apply**.
-- Second run with the same `url`: stops at **Stop Duplicate**, no LLM.
+- First run: popup shows `skipped` or `needs_context` (not instant `accepted`). Notion **Skipped** or **Needs Context**.
+- Same `url` again: popup `Already filed. No new row.`
+- After Candidate notes + Status **Proceed Phase 2**: within ~1 minute, Downloads `.tex` files and Notion **Ready to Apply**.
 
 ---
 
 ## 5. Chrome extension
 
-1. Chrome → `chrome://extensions` → **Developer mode** → **Load unpacked** → select `$PROJECT/chrome-extension`.
+1. Chrome → `chrome://extensions` → **Developer mode** → **Load unpacked** → select `$PROJECT/chrome-extension` (reload if already loaded).
 2. Extension **Details → Extension options**. Set webhook URL:
    - Active workflow: `http://localhost:5678/webhook/job-ingest`
    - Testing in editor: `http://localhost:5678/webhook-test/job-ingest`
 3. Open a job posting → click the extension → **Send job to n8n**.
-4. Popup shows `accepted` if the webhook responded. Check n8n **Executions** for duplicate / skip / ready.
+4. Popup shows `Scoring…` then `Skipped…` / `Already filed…` / `Needs Context…`.
 
 To allow a non-localhost n8n URL, add it to `host_permissions` in [`chrome-extension/manifest.json`](../chrome-extension/manifest.json) and reload the extension.
 
@@ -121,10 +118,11 @@ To allow a non-localhost n8n URL, add it to `host_permissions` in [`chrome-exten
 
 ## Checklist
 
-- [ ] `clean_html.py` smoke test prints Markdown without nav/script
-- [ ] `secrets/master_cv.tex` copied from your original CV (not in git)
+- [ ] `secrets/master_cv.tex` + `secrets/storytelling.md` present
 - [ ] `anthropic_api_key` in `secrets/notion_ids.json`; spend cap set in Anthropic console
+- [ ] Applications DB Status options include Needs Context / Proceed Phase 2 / Generating
+- [ ] **Candidate notes** property exists
 - [ ] Applications DB + two pages shared with the integration
-- [ ] `secrets/notion_ids.json` filled; SSH Load Secret IDs works
-- [ ] Webhook URL in the extension matches active vs test
-- [ ] Duplicate curl does not call Haiku
+- [ ] Import latest `JD Flow.json`; Notion + SSH credentials attached
+- [ ] Workflow **Active**; extension uses `/webhook/job-ingest`
+- [ ] Reload Chrome extension so popup status messages update

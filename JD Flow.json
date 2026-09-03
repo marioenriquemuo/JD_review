@@ -3,31 +3,81 @@
   "nodes": [
     {
       "parameters": {
-        "mode": "runOnceForEachItem",
-        "jsCode": "const j = $input.item.json;\nconst src = (j.body && (j.body.url || j.body.html)) ? j.body : j;\nconst url = src.url || '';\nconst html = src.html || src.content || '';\nreturn { json: { url: url, html: html } };"
+        "httpMethod": "POST",
+        "path": "job-ingest",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1100,
+        0
+      ],
+      "id": "866afc30-915d-4721-bfa7-1957a961871b",
+      "name": "Webhook Ingest",
+      "webhookId": "e85b00be-aff1-49bb-aacd-dede3a7082e0"
+    },
+    {
+      "parameters": {
+        "jsCode": "const j = $input.item.json;\nconst src = (j.body && (j.body.url || j.body.html)) ? j.body : j;\nconst url = src.url || '';\nconst html = src.html || src.content || '';\nreturn { json: { url: url, html: html } };",
+        "mode": "runOnceForEachItem"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -624,
-        -64
+        -860,
+        0
       ],
-      "id": "a1c91e2d-cb64-41ed-a418-1d0f8ce6c32b",
+      "id": "aea7c1f2-42ef-4efc-88fa-bd58129d294f",
       "name": "Pack Ingest"
     },
     {
       "parameters": {
-        "mode": "runOnceForEachItem",
-        "jsCode": "const DROP = ['script','style','svg','nav','footer','header','noscript','iframe','form','button'];\nfunction dropBlocks(html) {\n  let s = String(html || '');\n  for (let i = 0; i < DROP.length; i++) {\n    const t = DROP[i];\n    s = s.replace(new RegExp('<' + t + '\\\\b[\\\\s\\\\S]*?<\\\\/' + t + '>', 'gi'), '');\n    s = s.replace(new RegExp('<' + t + '\\\\b[^>]*\\\\/?>', 'gi'), '');\n  }\n  return s;\n}\nfunction htmlToMd(html) {\n  let s = dropBlocks(html);\n  s = s.replace(/<br\\s*\\/?>/gi, '\\n');\n  s = s.replace(/<\\/p>/gi, '\\n\\n');\n  s = s.replace(/<\\/div>/gi, '\\n');\n  s = s.replace(/<\\/li>/gi, '\\n');\n  s = s.replace(/<h1[^>]*>/gi, '\\n# ');\n  s = s.replace(/<\\/h1>/gi, '\\n');\n  s = s.replace(/<h2[^>]*>/gi, '\\n## ');\n  s = s.replace(/<\\/h2>/gi, '\\n');\n  s = s.replace(/<h3[^>]*>/gi, '\\n### ');\n  s = s.replace(/<\\/h3>/gi, '\\n');\n  s = s.replace(/<(strong|b)[^>]*>/gi, '**');\n  s = s.replace(/<\\/(strong|b)>/gi, '**');\n  s = s.replace(/<(em|i)[^>]*>/gi, '*');\n  s = s.replace(/<\\/(em|i)>/gi, '*');\n  s = s.replace(/<li[^>]*>/gi, '- ');\n  s = s.replace(/<[^>]+>/g, '');\n  s = s.replace(/&nbsp;/g, ' ');\n  s = s.replace(/&amp;/g, '&');\n  s = s.replace(/&lt;/g, '<');\n  s = s.replace(/&gt;/g, '>');\n  s = s.replace(/&quot;/g, '\"');\n  s = s.replace(/&#39;/g, \"'\");\n  s = s.replace(/[ \\t]+\\n/g, '\\n');\n  s = s.replace(/\\n{3,}/g, '\\n\\n');\n  return s.trim();\n}\nconst j = $input.item.json;\nreturn { json: { url: j.url || '', clean_md: htmlToMd(j.html || j.content || '') } };"
+        "jsCode": "const DROP = ['script','style','svg','nav','footer','header','noscript','iframe','form','button'];\nfunction dropBlocks(html) {\n  let s = String(html || '');\n  for (let i = 0; i < DROP.length; i++) {\n    const t = DROP[i];\n    s = s.replace(new RegExp('<' + t + '\\\\b[\\\\s\\\\S]*?<\\\\/' + t + '>', 'gi'), '');\n    s = s.replace(new RegExp('<' + t + '\\\\b[^>]*\\\\/?>', 'gi'), '');\n  }\n  return s;\n}\nfunction htmlToMd(html) {\n  let s = dropBlocks(html);\n  s = s.replace(/<br\\s*\\/?>/gi, '\\n');\n  s = s.replace(/<\\/p>/gi, '\\n\\n');\n  s = s.replace(/<\\/div>/gi, '\\n');\n  s = s.replace(/<\\/li>/gi, '\\n');\n  s = s.replace(/<h1[^>]*>/gi, '\\n# ');\n  s = s.replace(/<\\/h1>/gi, '\\n');\n  s = s.replace(/<h2[^>]*>/gi, '\\n## ');\n  s = s.replace(/<\\/h2>/gi, '\\n');\n  s = s.replace(/<h3[^>]*>/gi, '\\n### ');\n  s = s.replace(/<\\/h3>/gi, '\\n');\n  s = s.replace(/<(strong|b)[^>]*>/gi, '**');\n  s = s.replace(/<\\/(strong|b)>/gi, '**');\n  s = s.replace(/<(em|i)[^>]*>/gi, '*');\n  s = s.replace(/<\\/(em|i)>/gi, '*');\n  s = s.replace(/<li[^>]*>/gi, '- ');\n  s = s.replace(/<[^>]+>/g, '');\n  s = s.replace(/&nbsp;/g, ' ');\n  s = s.replace(/&amp;/g, '&');\n  s = s.replace(/&lt;/g, '<');\n  s = s.replace(/&gt;/g, '>');\n  s = s.replace(/&quot;/g, '\"');\n  s = s.replace(/&#39;/g, \"'\");\n  s = s.replace(/[ \\t]+\\n/g, '\\n');\n  s = s.replace(/\\n{3,}/g, '\\n\\n');\n  return s.trim();\n}\nconst j = $input.item.json;\nreturn { json: { url: j.url || '', clean_md: htmlToMd(j.html || j.content || '') } };",
+        "mode": "runOnceForEachItem"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -320,
-        -64
+        -620,
+        0
       ],
-      "id": "747a421f-c03c-4804-8d1f-f054470d67f3",
+      "id": "f121e0e6-3e52-42c4-9f9d-eab316931394",
       "name": "Parse Clean MD"
+    },
+    {
+      "parameters": {
+        "command": "'/home/mario/Documents/n8n/Nuevo trabajo/.venv/bin/python' '/home/mario/Documents/n8n/Nuevo trabajo/scripts/load_secret_ids.py' '/home/mario/Documents/n8n/Nuevo trabajo/secrets/notion_ids.json'"
+      },
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        -380,
+        0
+      ],
+      "id": "1fc2aaea-5aa3-454a-93cd-51f7f7ce51af",
+      "name": "Load Secret IDs",
+      "credentials": {
+        "sshPassword": {
+          "id": "nM6jdLaHV8O6GLPF",
+          "name": "SSH localhost"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const ingest = $('Parse Clean MD').item.json;\nconst raw = String($json.stdout || $json.data || '').trim();\nconst match = raw.match(/\\{[\\s\\S]*\\}/);\nif (!match) {\n  throw new Error('load_secret_ids.py returned no JSON. stdout=' + raw.slice(0, 200));\n}\nconst ids = JSON.parse(match[0]);\nif (!ids.applications_db_id || !ids.master_cv_page_id || !ids.style_learnings_page_id || !ids.anthropic_api_key) {\n  throw new Error('Secret IDs missing required fields');\n}\nreturn { json: Object.assign({}, ingest, ids) };",
+        "mode": "runOnceForEachItem"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -140,
+        0
+      ],
+      "id": "a4ba0687-e0d6-4fd6-914d-88b934adb450",
+      "name": "Secret IDs"
     },
     {
       "parameters": {
@@ -47,10 +97,10 @@
       "type": "n8n-nodes-base.notion",
       "typeVersion": 2.2,
       "position": [
-        96,
-        -64
+        100,
+        0
       ],
-      "id": "86156f87-4e19-4682-8198-69d128b45001",
+      "id": "5926962f-aa65-476d-80e9-945b0c8d438e",
       "name": "Search Job URL",
       "alwaysOutputData": true,
       "credentials": {
@@ -71,7 +121,7 @@
           },
           "conditions": [
             {
-              "id": "dup-id-present",
+              "id": "dup",
               "leftValue": "={{ $json.id }}",
               "rightValue": "",
               "operator": {
@@ -88,22 +138,26 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        336,
-        -64
+        340,
+        0
       ],
-      "id": "227c9116-fa2d-48f9-afeb-7b40c644736d",
+      "id": "ef5643b0-0a89-4a50-81bb-7ca3acc44895",
       "name": "Is Duplicate?"
     },
     {
-      "parameters": {},
-      "type": "n8n-nodes-base.noOp",
-      "typeVersion": 1,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
       "position": [
-        576,
-        -272
+        580,
+        -220
       ],
-      "id": "a05f7ba4-377c-4579-b00f-0787622e21c5",
-      "name": "Stop Duplicate"
+      "id": "47494cef-4b03-4eab-b760-3e03064d7774",
+      "name": "Respond Duplicate"
     },
     {
       "parameters": {
@@ -120,10 +174,10 @@
       "type": "n8n-nodes-base.notion",
       "typeVersion": 2.2,
       "position": [
-        576,
-        -64
+        580,
+        0
       ],
-      "id": "c75c2d85-da46-4f47-a350-a8210277748a",
+      "id": "fb6ca921-27f1-48e7-a464-833def6a595a",
       "name": "Get Master CV",
       "alwaysOutputData": true,
       "credentials": {
@@ -140,24 +194,24 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        816,
-        -64
+        820,
+        0
       ],
-      "id": "0b559fee-1f59-444e-a8f3-b5b2748d3453",
+      "id": "1e79d1eb-2bc8-4cca-9838-bfa429d9c76c",
       "name": "Flatten CV"
     },
     {
       "parameters": {
-        "mode": "runOnceForEachItem",
-        "jsCode": "const j = $input.item.json;\nconst cvSummary = String(j.cv_md || '').slice(0, 2500);\nconst jd = String(j.clean_md || '').slice(0, 8000);\nconst haiku_user = 'MASTER CV SUMMARY:\\n' + cvSummary + '\\n\\nJOB DESCRIPTION:\\n' + jd;\nreturn { json: Object.assign({}, j, { haiku_user: haiku_user }) };\n"
+        "jsCode": "const j = $input.item.json;\nconst cvSummary = String(j.cv_md || '').slice(0, 2500);\nconst jd = String(j.clean_md || '').slice(0, 8000);\nconst haiku_user = 'MASTER CV SUMMARY:\\n' + cvSummary + '\\n\\nJOB DESCRIPTION:\\n' + jd;\nreturn { json: Object.assign({}, j, { haiku_user: haiku_user }) };\n",
+        "mode": "runOnceForEachItem"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1056,
-        -64
+        1060,
+        0
       ],
-      "id": "82f31931-37ee-4530-8f60-61071db800f6",
+      "id": "090f82f7-86cb-49fe-bc9e-d0703e2e8406",
       "name": "Build Haiku Prompt"
     },
     {
@@ -190,24 +244,23 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1296,
-        -64
+        1300,
+        0
       ],
-      "id": "928e3f2e-39bc-49d8-9e08-57adc4880853",
+      "id": "f51f4ddf-877a-47bc-918b-cb683023ea00",
       "name": "Haiku Triage"
     },
     {
       "parameters": {
-        "mode": "runOnceForEachItem",
         "jsCode": "const item = $input.item.json;\nconst text = (item.content && item.content[0] && item.content[0].text) || item.content || '';\nconst match = String(text).match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('Haiku did not return JSON');\nconst parsed = JSON.parse(match[0]);\nfunction gapsText(g) {\n  if (g == null || g === '') return '';\n  const arr = Array.isArray(g) ? g : String(g).split(/\\n|;/);\n  return arr.map(function (x) { return String(x).replace(/^[-*]\\s*/, '').trim(); })\n    .filter(Boolean)\n    .slice(0, 5)\n    .map(function (x) { return '- ' + x; })\n    .join('\\n');\n}\nconst prev = $('Flatten CV').first().json;\nreturn { json: {\n  url: prev.url,\n  clean_md: prev.clean_md,\n  cv_md: prev.cv_md,\n  job_title: parsed.job_title || 'Untitled role',\n  company: parsed.company || '',\n  skills: parsed.skills || '',\n  location: parsed.location || '',\n  fit_score: Number(parsed.fit_score),\n  rationale: parsed.rationale || '',\n  gaps: gapsText(parsed.gaps)\n} };"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1536,
-        -64
+        1540,
+        0
       ],
-      "id": "5aee1282-ad21-4541-9127-05afa1756a19",
+      "id": "d7f8ec1d-ff0a-4d8d-8149-aa392474097b",
       "name": "Parse Triage"
     },
     {
@@ -221,7 +274,7 @@
           },
           "conditions": [
             {
-              "id": "fit-gte-70",
+              "id": "fit",
               "leftValue": "={{ $json.fit_score }}",
               "rightValue": 70,
               "operator": {
@@ -237,10 +290,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1776,
-        -64
+        1780,
+        0
       ],
-      "id": "b3e079d4-0a8b-4f0c-9822-dffe4628b6ed",
+      "id": "665b4f76-807f-43a2-982b-3be97eaff030",
       "name": "Fit Score >= 70%?"
     },
     {
@@ -285,18 +338,15 @@
             }
           ]
         },
-        "blockUi": {
-          "blockValues": []
-        },
         "options": {}
       },
       "type": "n8n-nodes-base.notion",
       "typeVersion": 2.2,
       "position": [
-        2000,
-        192
+        2020,
+        -220
       ],
-      "id": "d35ba11a-0c2d-4b71-afc0-1db7fce9d574",
+      "id": "42773423-fd86-487c-9868-5cbcc717c63f",
       "name": "Log Skipped",
       "credentials": {
         "notionApi": {
@@ -304,6 +354,34 @@
           "name": "Notion account"
         }
       }
+    },
+    {
+      "parameters": {
+        "jsCode": "const j = $('Parse Triage').first().json;\nreturn { json: { status: 'skipped', fit_score: j.fit_score, rationale: j.rationale || '', company: j.company || '', job_title: j.job_title || '' } };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2260,
+        -220
+      ],
+      "id": "058a1df5-ffbd-4019-aaa7-b26a24260807",
+      "name": "Pack Skip Response"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2500,
+        -220
+      ],
+      "id": "8be89047-f11a-40f3-868e-9837fdc25b08",
+      "name": "Respond Skipped"
     },
     {
       "parameters": {
@@ -320,10 +398,10 @@
       "type": "n8n-nodes-base.notion",
       "typeVersion": 2.2,
       "position": [
-        2016,
-        -64
+        2020,
+        0
       ],
-      "id": "82cf3f7f-e2cf-4733-b734-157928f6d166",
+      "id": "a9020963-8e3c-4211-96a8-58ff398eb2b7",
       "name": "Get Style Learnings",
       "alwaysOutputData": true,
       "credentials": {
@@ -340,25 +418,43 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2256,
-        -64
+        2260,
+        0
       ],
-      "id": "392df2aa-7a9b-4ca0-9c3a-4b467626f876",
+      "id": "db35d552-1bbe-4e89-9088-045adbe9ea1b",
       "name": "Flatten Style"
     },
     {
       "parameters": {
-        "mode": "runOnceForEachItem",
-        "jsCode": "const j = $input.item.json;\nconst sonnet_user = [\n  'STYLE & LEARNINGS:\\n' + (j.style_rules || ''),\n  'MASTER CV:\\n' + (j.cv_md || ''),\n  'JOB DESCRIPTION:\\n' + (j.clean_md || '')\n].join('\\n\\n');\nreturn { json: Object.assign({}, j, { sonnet_user: sonnet_user }) };\n"
+        "command": "cat '/home/mario/Documents/n8n/Nuevo trabajo/secrets/master_cv.tex'"
+      },
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        2500,
+        0
+      ],
+      "id": "7977aa0c-81f1-42b0-ae12-70b1faa41e41",
+      "name": "Read Master Tex",
+      "credentials": {
+        "sshPassword": {
+          "id": "nM6jdLaHV8O6GLPF",
+          "name": "SSH localhost"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const style = $('Flatten Style').first().json;\nconst master = String($json.stdout || $json.data || '');\nconst phase1_user = [\n  'MASTER LATEX CV:',\n  master,\n  '',\n  'JOB DESCRIPTION:',\n  style.clean_md || '',\n  '',\n  'STYLE & LEARNINGS (tone only; do not invent facts):',\n  style.style_rules || ''\n].join('\\n');\nreturn { json: Object.assign({}, style, { master_tex: master, phase1_user: phase1_user }) };"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2496,
-        -64
+        2740,
+        0
       ],
-      "id": "9379ff9a-afe2-48e5-8406-8a5ab8007d21",
-      "name": "Build Sonnet Prompt"
+      "id": "1117c0ec-4947-48a8-b7ac-55a85fffe502",
+      "name": "Build Phase 1 Prompt"
     },
     {
       "parameters": {
@@ -384,144 +480,30 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 8000, thinking: { type: 'disabled' }, system: \"You write application assets. Follow the Style & Learnings rules exactly. Do not invent employers, dates, or metrics that are not in the Master CV. GAPS lists JD requirements missing from the Master CV; do not invent experience to fill them. Reply with ONLY a JSON object, no markdown fences. Keys: cv_bullets (array of 3 to 5 strings mapped to JD keywords), cover_letter (string, exactly 3 paragraphs separated by blank lines), salary_range (string: numbers from the JD, or a range), salary_flag (string: exactly 'extracted' if the JD listed pay, otherwise 'UNVERIFIED Estimate').\", messages: [{ role: 'user', content: $json.sonnet_user }] }) }}",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 8000, thinking: { type: 'disabled' }, system: \"You are an Executive Career Strategist and Expert ATS Auditor. PHASE 1 ONLY: Semantic Gap Analysis. Do not rewrite the CV. Do not write a cover letter. No arbitrary percentage scores. Conduct a rigorous Semantic Gap Analysis. Do not invent employers, dates, metrics, or skills absent from the MASTER LATEX CV. Reply with ONLY a JSON object, no markdown fences. Keys: critical_missing_keywords (array of strings: hard skills/software/methodologies in the JD but absent in the CV), impact_alignment (array of strings: places the CV lists tasks instead of quantifiable outcomes), strategic_positioning (string: how narrative aligns with seniority/scope of the role), questions (array of 3 to 8 short strings: concrete questions to ask the candidate so gaps can be filled honestly), salary_range (string: numbers from the JD, or a market range estimate), salary_flag (string: exactly 'extracted' if the JD listed pay, otherwise 'UNVERIFIED Estimate').\", messages: [{ role: 'user', content: $json.phase1_user }] }) }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2736,
-        -64
+        2980,
+        0
       ],
-      "id": "a1415189-c0e4-42b3-9c0b-1ad082f60c83",
-      "name": "Sonnet Assets"
+      "id": "85ec6d92-cca0-45c9-b5f1-e51805b8538e",
+      "name": "Sonnet Phase 1"
     },
     {
       "parameters": {
-        "mode": "runOnceForEachItem",
-        "jsCode": "function cap(s) {\n  s = String(s || '');\n  return s.length <= 1900 ? s : s.slice(0, 1899) + '\\u2026';\n}\nfunction asText(value) {\n  if (value == null) return '';\n  if (typeof value === 'string') return value;\n  if (Array.isArray(value)) {\n    return value.map(function (x) { return '- ' + x; }).join('\\n\\n');\n  }\n  return String(value);\n}\nfunction repairJson(s) {\n  let out = '';\n  let inString = false;\n  let escaped = false;\n  for (let i = 0; i < s.length; i++) {\n    const c = s[i];\n    const code = s.charCodeAt(i);\n    if (!inString) {\n      if (c === '\"') inString = true;\n      out += c;\n      continue;\n    }\n    if (escaped) {\n      out += c;\n      escaped = false;\n      continue;\n    }\n    if (c === '\\\\') {\n      out += c;\n      escaped = true;\n      continue;\n    }\n    if (c === '\"') {\n      out += c;\n      inString = false;\n      continue;\n    }\n    if (code < 32) {\n      if (c === '\\n') out += '\\\\n';\n      else if (c === '\\r') out += '\\\\r';\n      else if (c === '\\t') out += '\\\\t';\n      else out += '\\\\u' + ('0000' + code.toString(16)).slice(-4);\n      continue;\n    }\n    out += c;\n  }\n  return out;\n}\nconst item = $input.item.json;\nconst content = item.content;\nconst textBlock = Array.isArray(content) ? content.find(function (b) { return b && b.type === 'text' && b.text; }) : null;\nconst text = (textBlock && textBlock.text) || '';\nconst match = String(text).match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('Sonnet did not return JSON');\nconst parsed = JSON.parse(repairJson(match[0]));\nconst prev = $('Flatten Style').first().json;\nconst flag = parsed.salary_flag === 'extracted' ? 'extracted' : 'UNVERIFIED Estimate';\nreturn { json: {\n  url: prev.url,\n  cv_md: prev.cv_md || '',\n  job_title: prev.job_title,\n  company: prev.company,\n  skills: prev.skills,\n  location: prev.location,\n  fit_score: prev.fit_score,\n  rationale: prev.rationale,\n  gaps: prev.gaps || '',\n  cv_bullets: cap(asText(parsed.cv_bullets)),\n  cover_letter: cap(asText(parsed.cover_letter)),\n  salary_range: parsed.salary_range || 'UNVERIFIED Estimate',\n  salary_flag: flag\n} };"
+        "jsCode": "function repairJson(s) {\n  let out = '';\n  let inString = false;\n  let escaped = false;\n  for (let i = 0; i < s.length; i++) {\n    const c = s[i];\n    const code = s.charCodeAt(i);\n    if (!inString) {\n      if (c === '\"') inString = true;\n      out += c;\n      continue;\n    }\n    if (escaped) {\n      out += c;\n      escaped = false;\n      continue;\n    }\n    if (c === '\\\\') {\n      out += c;\n      escaped = true;\n      continue;\n    }\n    if (c === '\"') {\n      out += c;\n      inString = false;\n      continue;\n    }\n    if (code < 32) {\n      if (c === '\\n') out += '\\\\n';\n      else if (c === '\\r') out += '\\\\r';\n      else if (c === '\\t') out += '\\\\t';\n      else out += '\\\\u' + ('0000' + code.toString(16)).slice(-4);\n      continue;\n    }\n    out += c;\n  }\n  return out;\n}\nfunction asList(v) {\n  if (Array.isArray(v)) return v.map(function (x) { return String(x); }).filter(Boolean);\n  if (v == null || v === '') return [];\n  return [String(v)];\n}\nfunction cap(s) {\n  s = String(s || '');\n  return s.length <= 1900 ? s : s.slice(0, 1899) + '\\u2026';\n}\nconst item = $input.item.json;\nconst content = item.content;\nconst textBlock = Array.isArray(content) ? content.find(function (b) { return b && b.type === 'text' && b.text; }) : null;\nconst text = (textBlock && textBlock.text) || '';\nconst match = String(text).match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('Sonnet Phase 1 did not return JSON');\nconst parsed = JSON.parse(repairJson(match[0]));\nconst prev = $('Build Phase 1 Prompt').first().json;\nconst questions = asList(parsed.questions);\nconst keywords = asList(parsed.critical_missing_keywords);\nconst impact = asList(parsed.impact_alignment);\nconst positioning = String(parsed.strategic_positioning || '');\nconst audit_md = [\n  '## Critical Missing Keywords',\n  keywords.length ? keywords.map(function (k) { return '- ' + k; }).join('\\n') : '- none',\n  '',\n  '## Impact Alignment',\n  impact.length ? impact.map(function (k) { return '- ' + k; }).join('\\n') : '- none',\n  '',\n  '## Strategic Positioning',\n  positioning,\n  '',\n  '## Questions for you',\n  questions.length ? questions.map(function (k, i) { return (i + 1) + '. ' + k; }).join('\\n') : '- none',\n  '',\n  'Write answers in Candidate Answers. Then set Status to Proceed Phase 2. Empty answers still proceed using only the master CV (nothing invented).'\n].join('\\n');\nconst body_keywords = cap(keywords.length ? keywords.map(function (k) { return '- ' + k; }).join('\\n') : '- none');\nconst body_impact = cap(impact.length ? impact.map(function (k) { return '- ' + k; }).join('\\n') : '- none');\nconst body_positioning = cap(positioning || '- none');\nconst body_questions = cap(questions.length ? questions.map(function (k, i) { return (i + 1) + '. ' + k; }).join('\\n') : '- none');\nconst body_footer = 'Write answers in Candidate Answers. Then set Status to Proceed Phase 2. Empty answers still proceed using only the master CV (nothing invented).';\nconst candidate_notes_seed = (function () {\n  var s = questions.map(function (q, i) { return (i + 1) + '. ' + q; }).join('\\n');\n  return cap(s);\n})();\nreturn { json: Object.assign({}, prev, {\n  critical_missing_keywords: keywords,\n  impact_alignment: impact,\n  strategic_positioning: positioning,\n  questions: questions,\n  salary_range: cap(parsed.salary_range || ''),\n  salary_flag: String(parsed.salary_flag || 'UNVERIFIED Estimate'),\n  audit_md: audit_md,\n  body_keywords: body_keywords,\n  body_impact: body_impact,\n  body_positioning: body_positioning,\n  body_questions: body_questions,\n  body_footer: body_footer,\n  candidate_notes_seed: candidate_notes_seed\n}) };\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2976,
-        -64
+        3220,
+        0
       ],
-      "id": "c05aeb0b-d590-4c1a-98ce-fa2b4c2af6a1",
-      "name": "Parse Assets"
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "t1",
-              "name": "job_title",
-              "value": "={{ $json.job_title }}",
-              "type": "string"
-            },
-            {
-              "id": "t2",
-              "name": "url",
-              "value": "={{ $json.url }}",
-              "type": "string"
-            },
-            {
-              "id": "t3",
-              "name": "company",
-              "value": "={{ $json.company }}",
-              "type": "string"
-            },
-            {
-              "id": "t4",
-              "name": "location",
-              "value": "={{ $json.location }}",
-              "type": "string"
-            },
-            {
-              "id": "t5",
-              "name": "skills",
-              "value": "={{ $json.skills }}",
-              "type": "string"
-            },
-            {
-              "id": "t6",
-              "name": "fit_score",
-              "value": "={{ $json.fit_score }}",
-              "type": "number"
-            },
-            {
-              "id": "t7",
-              "name": "rationale",
-              "value": "={{ $json.rationale }}",
-              "type": "string"
-            },
-            {
-              "id": "t8",
-              "name": "cv_bullets",
-              "value": "={{ $json.cv_bullets }}",
-              "type": "string"
-            },
-            {
-              "id": "t9",
-              "name": "cover_letter",
-              "value": "={{ $json.cover_letter }}",
-              "type": "string"
-            },
-            {
-              "id": "t12",
-              "name": "salary_range",
-              "value": "={{ $json.salary_range }}",
-              "type": "string"
-            },
-            {
-              "id": "t13",
-              "name": "salary_flag",
-              "value": "={{ $json.salary_flag }}",
-              "type": "string"
-            },
-            {
-              "id": "58f2c29e-ab3f-41d7-beaa-b32f5d2187d7",
-              "name": "latex_cv",
-              "value": "={{ $json.latex_cv }}",
-              "type": "string"
-            },
-            {
-              "id": "c79f4047-1efb-4b9a-b1f0-355601dd3a94",
-              "name": "latex_cover_letter",
-              "value": "={{ $json.latex_cover_letter }}",
-              "type": "string"
-            },
-            {
-              "id": "8f8b23b6-d910-4a4f-8fd7-df50f0d4f3fd",
-              "name": "latex_patch_map",
-              "value": "={{ $json.latex_patch_map }}",
-              "type": "string"
-            },
-            {
-              "id": "ac2c79d3-e5e3-427b-8d55-8e05c88630d3",
-              "name": "cv_path",
-              "value": "={{ $json.cv_path }}",
-              "type": "string"
-            },
-            {
-              "id": "5b88a902-252b-4658-bf05-b9a334bdad32",
-              "name": "letter_path",
-              "value": "={{ $json.letter_path }}",
-              "type": "string"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        3216,
-        -64
-      ],
-      "id": "739ab385-dadf-47b7-b256-abdcd1711755",
-      "name": "Assemble Payload"
+      "id": "0cc82d6f-356a-49e6-b6d4-a9e7674a09c6",
+      "name": "Parse Phase 1"
     },
     {
       "parameters": {
@@ -557,7 +539,7 @@
             },
             {
               "key": "Status|select",
-              "selectValue": "Ready to Apply"
+              "selectValue": "Needs Context"
             },
             {
               "key": "Rationale|rich_text",
@@ -572,12 +554,8 @@
               "selectValue": "={{ $json.salary_flag }}"
             },
             {
-              "key": "LaTex CV|rich_text",
-              "textContent": "= {{ $json.latex_cv }}"
-            },
-            {
-              "key": "LaTex Cover Letter|rich_text",
-              "textContent": "={{ $json.latex_cover_letter }}"
+              "key": "Candidate notes|rich_text",
+              "textContent": "={{ $json.candidate_notes_seed }}"
             }
           ]
         },
@@ -585,31 +563,34 @@
           "blockValues": [
             {
               "type": "heading_2",
-              "textContent": "Where to update the master CV"
+              "textContent": "Critical Missing Keywords"
             },
             {
-              "textContent": "={{ $json.latex_patch_map }}"
-            },
-            {
-              "type": "heading_2",
-              "textContent": "Gaps"
-            },
-            {
-              "textContent": "={{ $json.gaps || 'none' }}"
+              "textContent": "={{ $json.body_keywords }}"
             },
             {
               "type": "heading_2",
-              "textContent": "Tailored CV bullets"
+              "textContent": "Impact Alignment"
             },
             {
-              "textContent": "={{ $json.cv_bullets }}"
+              "textContent": "={{ $json.body_impact }}"
             },
             {
               "type": "heading_2",
-              "textContent": "Cover letter"
+              "textContent": "Strategic Positioning"
             },
             {
-              "textContent": "={{ $json.cover_letter }}"
+              "textContent": "={{ $json.body_positioning }}"
+            },
+            {
+              "type": "heading_2",
+              "textContent": "Questions for you"
+            },
+            {
+              "textContent": "={{ $json.body_questions }}"
+            },
+            {
+              "textContent": "={{ $json.body_footer }}"
             }
           ]
         },
@@ -618,11 +599,11 @@
       "type": "n8n-nodes-base.notion",
       "typeVersion": 2.2,
       "position": [
-        3456,
-        -64
+        3460,
+        0
       ],
-      "id": "da0fd424-f308-4e96-9c4c-81a96e730d8d",
-      "name": "Create Application",
+      "id": "4fe6cfd0-814c-44b6-b7c3-63a13e7975a6",
+      "name": "Create Needs Context",
       "credentials": {
         "notionApi": {
           "id": "PVbozrs4FE83DBwK",
@@ -632,49 +613,208 @@
     },
     {
       "parameters": {
-        "httpMethod": "POST",
-        "path": "job-ingest",
-        "options": {
-          "responseData": "{ \"status\": \"accepted\" }"
-        }
-      },
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 2.1,
-      "position": [
-        -864,
-        -64
-      ],
-      "id": "866afc30-915d-4721-bfa7-1957a961871b",
-      "name": "Webhook1",
-      "webhookId": "e85b00be-aff1-49bb-aacd-dede3a7082e0"
-    },
-    {
-      "parameters": {
-        "content": "# JD Flow\n\nIDs + Claude key load at runtime from `secrets/notion_ids.json` via **Load Secret IDs** (SSH Command).\n\nAttach credentials:\n- **Notion account** on every Notion node\n- **SSH localhost** on Load Secret IDs / Read Master Tex / Write Tex Files\n\nClaude nodes use `x-api-key` from the secrets file (no Header Auth credential needed).\n\nThen set Active.\n\nSee docs/SETUP.md",
-        "height": 420,
-        "width": 360
-      },
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        -1264,
-        -224
-      ],
-      "id": "79d64ea3-a406-4f74-a9c9-c70a90c09300",
-      "name": "Sticky Note1"
-    },
-    {
-      "parameters": {
-        "jsCode": "const j = $input.item.json;\nlet numbered = '(empty Master CV)';\ntry {\n  const readOut = $('Read Master Tex').first().json;\n  const stdout = String(readOut.stdout || '');\n  if (stdout.trim()) numbered = stdout.trim();\n} catch (e) {\n  const cv = String(j.cv_md || '');\n  if (cv.trim()) {\n    const lines = cv.split(/\\r?\\n/).slice(0, 350);\n    const width = Math.max(3, String(lines.length).length);\n    numbered = lines.map(function (line, i) {\n      const n = String(i + 1);\n      return 'L' + Array(width - n.length + 1).join('0') + n + ': ' + line;\n    }).join('\\n') || '(empty Master CV)';\n  }\n}\nconst latex_user = [\n  'Numbered MASTER CV lines (1-based). Patch by start_line/end_line inclusive.',\n  'Put each tailored bullet on the closest EXISTING job/employer/role lines.',\n  'Do not invent jobs. Group bullets for the same role into one patch.',\n  'Empty MASTER listing: return latex_cv_patches as [].',\n  '',\n  'MASTER CV LINES:',\n  numbered,\n  '',\n  'CV BULLETS:',\n  j.cv_bullets || '',\n  '',\n  'COVER LETTER:',\n  j.cover_letter || ''\n].join('\\n');\nreturn { json: Object.assign({}, j, { latex_user: latex_user }) };"
+        "jsCode": "const audit = $('Parse Phase 1').first().json;\nconst page = $json;\nconst page_id = String(page.id || page.pageId || '').replace(/-/g, '').toLowerCase();\nif (!/^[0-9a-f]{32}$/.test(page_id)) {\n  throw new Error('Create Needs Context returned no usable page id: ' + String(page.id || page.pageId || ''));\n}\nconst run = {\n  page_id: page_id,\n  url: audit.url,\n  clean_md: audit.clean_md,\n  company: audit.company,\n  job_title: audit.job_title,\n  location: audit.location,\n  skills: audit.skills,\n  fit_score: audit.fit_score,\n  rationale: audit.rationale,\n  gaps: audit.gaps,\n  salary_range: audit.salary_range,\n  salary_flag: audit.salary_flag,\n  critical_missing_keywords: audit.critical_missing_keywords,\n  impact_alignment: audit.impact_alignment,\n  strategic_positioning: audit.strategic_positioning,\n  questions: audit.questions,\n  audit_md: audit.audit_md,\n  style_rules: audit.style_rules\n};\nreturn { json: Object.assign({}, audit, {\n  page_id: page_id,\n  run_b64: Buffer.from(JSON.stringify(run), 'utf8').toString('base64')\n}) };\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2272,
-        416
+        3700,
+        0
       ],
-      "id": "f12adf6f-4932-4e6c-b65f-a36cc8bb6239",
-      "name": "Build Latex Prompt"
+      "id": "ab3f1d1a-7aef-4a61-b80a-bc4e198f0773",
+      "name": "Pack Run State"
+    },
+    {
+      "parameters": {
+        "command": "={{ 'echo ' + JSON.stringify($json.run_b64) + \" | base64 -d | '/home/mario/Documents/n8n/Nuevo trabajo/.venv/bin/python' '/home/mario/Documents/n8n/Nuevo trabajo/scripts/persist_run.py' --runs-dir '/home/mario/Documents/n8n/Nuevo trabajo/secrets/runs' --write\" }}"
+      },
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        3940,
+        0
+      ],
+      "id": "b263eb30-07ed-4dcb-a70f-140103ef057a",
+      "name": "Persist Run State",
+      "credentials": {
+        "sshPassword": {
+          "id": "nM6jdLaHV8O6GLPF",
+          "name": "SSH localhost"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const j = $('Pack Run State').first().json;\nreturn { json: {\n  status: 'needs_context',\n  fit_score: j.fit_score,\n  company: j.company || '',\n  job_title: j.job_title || '',\n  page_id: j.page_id,\n  url: j.url || ''\n} };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4180,
+        0
+      ],
+      "id": "a1942815-8619-4d72-8fb2-b8d50970eef3",
+      "name": "Pack Needs Context Response"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        4420,
+        0
+      ],
+      "id": "2b03c08e-d5f2-46fb-89c2-c112dbe1c8f0",
+      "name": "Respond Needs Context"
+    },
+    {
+      "parameters": {
+        "jsCode": "function propText(page, name) {\n  const props = page.properties || page;\n  const p = props[name];\n  if (p == null) return '';\n  if (typeof p === 'string') return p;\n  if (p.select && p.select.name) return p.select.name;\n  if (typeof p.select === 'string') return p.select;\n  if (p.status && p.status.name) return p.status.name;\n  if (Array.isArray(p.rich_text)) return p.rich_text.map(function (t) { return t.plain_text || ''; }).join('');\n  if (Array.isArray(p.title)) return p.title.map(function (t) { return t.plain_text || ''; }).join('');\n  if (p.number != null) return String(p.number);\n  if (p.url) return p.url;\n  if (p.name) return String(p.name);\n  if (p.plain_text) return String(p.plain_text);\n  return '';\n}\nfunction pageIdOf(page) {\n  let id = page.id || page.pageId || page.page_id || '';\n  if (!id && page.raw_page) id = page.raw_page.id || '';\n  return String(id || '').replace(/-/g, '').toLowerCase();\n}\nconst page = $input.item.json;\nlet status = propText(page, 'Status');\nif (!status && typeof page.Status === 'string') status = page.Status;\nstatus = String(status || '').trim();\nconst answers = (propText(page, 'Candidate Answers') || propText(page, 'Candidate answers') || '').trim();\nconst notes = propText(page, 'Candidate notes').trim();\nconst page_id = pageIdOf(page);\nif (!/^[0-9a-f]{32}$/.test(page_id)) {\n  throw new Error('Resume page has no id. Keys=' + Object.keys(page).slice(0, 20).join(','));\n}\nreturn { json: {\n  page_id: page_id,\n  status: status,\n  candidate_answers: answers,\n  candidate_notes: notes,\n  raw_page: page\n} };\n",
+        "mode": "runOnceForEachItem"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        580,
+        400
+      ],
+      "id": "7cf8b990-55b2-4e90-905a-0fc4bcaec62c",
+      "name": "Extract Resume Page"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $json.page_id }}",
+          "mode": "id"
+        },
+        "simple": false,
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Status|select",
+              "selectValue": "Generating"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        580,
+        520
+      ],
+      "id": "52a999e2-4333-4fa2-8ed7-28d4bfaf2ad5",
+      "name": "Set Generating",
+      "credentials": {
+        "notionApi": {
+          "id": "PVbozrs4FE83DBwK",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "'/home/mario/Documents/n8n/Nuevo trabajo/.venv/bin/python' '/home/mario/Documents/n8n/Nuevo trabajo/scripts/load_secret_ids.py' '/home/mario/Documents/n8n/Nuevo trabajo/secrets/notion_ids.json'"
+      },
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        -620,
+        520
+      ],
+      "id": "2bda5f53-86d5-4624-a022-279ecb05f7d5",
+      "name": "Load Secret IDs Resume",
+      "credentials": {
+        "sshPassword": {
+          "id": "nM6jdLaHV8O6GLPF",
+          "name": "SSH localhost"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const prev = $('Extract Resume Page').first().json;\nconst ids = $('Resume Secrets').first().json;\nreturn { json: Object.assign({}, prev, {\n  url: ids.url,\n  anthropic_api_key: ids.anthropic_api_key,\n  applications_db_id: ids.applications_db_id,\n  master_cv_page_id: ids.master_cv_page_id,\n  style_learnings_page_id: ids.style_learnings_page_id\n}) };\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        820,
+        520
+      ],
+      "id": "de4da6c2-9421-4bd8-afff-baadc0fa316d",
+      "name": "Resume Context"
+    },
+    {
+      "parameters": {
+        "command": "={{ \"'/home/mario/Documents/n8n/Nuevo trabajo/.venv/bin/python' '/home/mario/Documents/n8n/Nuevo trabajo/scripts/persist_run.py' --runs-dir '/home/mario/Documents/n8n/Nuevo trabajo/secrets/runs' --read --page-id \" + String($json.page_id || '').replace(/-/g, '').toLowerCase() }}"
+      },
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        1060,
+        520
+      ],
+      "id": "cacea12b-1cf8-4f78-8364-89ec039297d0",
+      "name": "Load Run State",
+      "credentials": {
+        "sshPassword": {
+          "id": "nM6jdLaHV8O6GLPF",
+          "name": "SSH localhost"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const prev = $('Resume Context').first().json;\nconst rawOut = String($json.stdout || $json.data || '').trim();\nconst rawErr = String($json.stderr || '');\nconst match = rawOut.match(/\\{[\\s\\S]*\\}/);\nif (!match) {\n  throw new Error('persist_run.py read failed. page_id=' + (prev.page_id || '') + ' stderr=' + rawErr.slice(0, 300) + ' stdout=' + rawOut.slice(0, 200));\n}\nconst run = JSON.parse(match[0]);\nif (run.error) throw new Error(run.error);\nconst answers = String(prev.candidate_answers || '').trim();\nconst notes = String(prev.candidate_notes || '').trim();\nreturn { json: Object.assign({}, run, {\n  page_id: prev.page_id,\n  candidate_answers: answers,\n  candidate_notes: notes,\n  candidate_context: answers || notes || '',\n  anthropic_api_key: prev.anthropic_api_key,\n  applications_db_id: prev.applications_db_id,\n  master_cv_page_id: prev.master_cv_page_id,\n  style_learnings_page_id: prev.style_learnings_page_id\n}) };\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        580,
+        520
+      ],
+      "id": "59c45fd0-afb7-45cf-a3b3-b1a48c4ddf20",
+      "name": "Merge Run State"
+    },
+    {
+      "parameters": {
+        "command": "cat '/home/mario/Documents/n8n/Nuevo trabajo/secrets/storytelling.md'"
+      },
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        820,
+        520
+      ],
+      "id": "cf717d15-c499-4650-a3e0-b0e639b16919",
+      "name": "Read Storytelling",
+      "credentials": {
+        "sshPassword": {
+          "id": "nM6jdLaHV8O6GLPF",
+          "name": "SSH localhost"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const run = $('Merge Run State').first().json;\nconst masterNode = $('Read Master Tex Resume').first().json;\nconst master = String(masterNode.stdout || masterNode.data || '');\nconst story = String($json.stdout || $json.data || '');\nconst audit = [\n  'Critical missing keywords: ' + (run.critical_missing_keywords || []).join('; '),\n  'Impact alignment: ' + (run.impact_alignment || []).join('; '),\n  'Strategic positioning: ' + (run.strategic_positioning || ''),\n  'Questions asked: ' + (run.questions || []).join('; ')\n].join('\\n');\nconst phase2_user = [\n  'MASTER LATEX CV (keep the same communication style):',\n  master,\n  '',\n  'JOB DESCRIPTION:',\n  run.clean_md || '',\n  '',\n  'PHASE 1 AUDIT:',\n  audit,\n  '',\n  'CANDIDATE ANSWERS (answers; may be empty):',\n  run.candidate_context || '(none)',\n  '',\n  'STYLE & LEARNINGS:',\n  run.style_rules || ''\n].join('\\n');\nreturn { json: Object.assign({}, run, {\n  master_tex: master,\n  storytelling: story,\n  phase2_user: phase2_user\n}) };\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1060,
+        520
+      ],
+      "id": "946aeb6b-be34-4e8f-b947-1e3434e3f1c0",
+      "name": "Build Phase 2 Prompt"
     },
     {
       "parameters": {
@@ -694,129 +834,522 @@
             },
             {
               "name": "x-api-key",
-              "value": "={{ $('Secret IDs').item.json.anthropic_api_key }}"
+              "value": "={{ $json.anthropic_api_key }}"
             }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 4000, thinking: { type: 'disabled' }, system: \"You map approved CV bullets and a cover letter onto numbered MASTER CV lines. Same facts only. Do not invent employers, dates, metrics, roles, or sections. Do not emit \\\\documentclass or \\\\begin{document}. Reply with ONLY a JSON object, no markdown fences. Keys: latex_cv_patches (array of 1 to 4 objects with start_line, end_line, latex), latex_cover_letter (object with latex). start_line and end_line are inclusive 1-based integers from the numbered listing and must exist. latex: fragment only (\\\\item lines or a short itemize); escape %, &, $, #, _. latex_cover_letter.latex is body text only (three paragraphs). If MASTER CV LINES is empty, latex_cv_patches must be [].\", messages: [{ role: 'user', content: $json.latex_user }] }) }}",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 16000, thinking: { type: 'disabled' }, system: \"You are an Executive Career Strategist. PHASE 2: Update the LaTeX resume. Integrate Candidate notes and Phase 1 audit findings into the existing CV. Elevate phrasing to director-level leadership and quantifiable impact; maintain the same communication style. Do not lie. Do not include anything the candidate has not explicitly said. Only use the MASTER LATEX CV and Candidate notes. Output ONLY a JSON object, no markdown fences. Keys: cv_tex (string: the FULL compilable LaTeX document including \\\\\\\\documentclass and \\\\\\\\begin{document}). Ensure no syntax errors; escape LaTeX special characters ($, &, %, #, _). If Candidate notes are empty, rewrite/reorder using only facts already in the master CV to better match the JD keywords that are already evidenced \\u2014 never invent.\", messages: [{ role: 'user', content: $json.phase2_user }] }) }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2512,
-        416
+        1300,
+        520
       ],
-      "id": "9f025360-f78d-4b1e-927e-278d219d53a1",
-      "name": "Sonnet LaTeX"
+      "id": "08549ec5-9aa5-4b78-812e-169f7d3228ee",
+      "name": "Sonnet Phase 2"
     },
     {
       "parameters": {
-        "jsCode": "function cap(s) {\n  s = String(s || '');\n  return s.length <= 1900 ? s : s.slice(0, 1899) + '\\u2026';\n}\nfunction repairJson(s) {\n  let out = '';\n  let inString = false;\n  let escaped = false;\n  for (let i = 0; i < s.length; i++) {\n    const c = s[i];\n    const code = s.charCodeAt(i);\n    if (!inString) {\n      if (c === '\"') inString = true;\n      out += c;\n      continue;\n    }\n    if (escaped) {\n      out += c;\n      escaped = false;\n      continue;\n    }\n    if (c === '\\\\') {\n      out += c;\n      escaped = true;\n      continue;\n    }\n    if (c === '\"') {\n      out += c;\n      inString = false;\n      continue;\n    }\n    if (code < 32) {\n      if (c === '\\n') out += '\\\\n';\n      else if (c === '\\r') out += '\\\\r';\n      else if (c === '\\t') out += '\\\\t';\n      else out += '\\\\u' + ('0000' + code.toString(16)).slice(-4);\n      continue;\n    }\n    out += c;\n  }\n  return out;\n}\nfunction asPatch(p) {\n  if (p == null) return { start_line: 0, end_line: 0, latex: '' };\n  if (typeof p === 'string') return { start_line: 0, end_line: 0, latex: p };\n  return {\n    start_line: Number(p.start_line) || 0,\n    end_line: Number(p.end_line) || 0,\n    latex: String(p.latex || '')\n  };\n}\nfunction block(p) {\n  p = asPatch(p);\n  return [\n    '% LINES: ' + p.start_line + '-' + p.end_line,\n    p.latex\n  ].join('\\n');\n}\nconst item = $input.item.json;\nconst content = item.content;\nconst textBlock = Array.isArray(content) ? content.find(function (b) { return b && b.type === 'text' && b.text; }) : null;\nconst text = (textBlock && textBlock.text) || '';\nconst match = String(text).match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('Sonnet LaTeX did not return JSON');\nconst parsed = JSON.parse(repairJson(match[0]));\nconst prev = $('Parse Assets').first().json;\nconst patches = Array.isArray(parsed.latex_cv_patches) ? parsed.latex_cv_patches.map(asPatch) : (parsed.latex_cv ? [asPatch(parsed.latex_cv)] : []);\nconst letterObj = parsed.latex_cover_letter;\nconst letterLatex = (letterObj && typeof letterObj === 'object') ? String(letterObj.latex || '') : String(letterObj || '');\nconst mapLines = patches.map(function (p, i) {\n  p = asPatch(p);\n  return (i + 1) + '. CV L' + p.start_line + '\\u2013L' + p.end_line + ' \\u2014 replaced';\n});\nmapLines.push('Letter \\u2014 body');\nreturn { json: Object.assign({}, prev, {\n  latex_cv: cap(patches.map(block).join('\\n\\n')),\n  latex_cover_letter: cap(letterLatex),\n  latex_cover_letter_body: letterLatex,\n  latex_cv_patches: patches,\n  latex_patch_map: cap(mapLines.join('\\n'))\n}) };"
+        "jsCode": "function repairJson(s) {\n  let out = '';\n  let inString = false;\n  let escaped = false;\n  for (let i = 0; i < s.length; i++) {\n    const c = s[i];\n    const code = s.charCodeAt(i);\n    if (!inString) {\n      if (c === '\"') inString = true;\n      out += c;\n      continue;\n    }\n    if (escaped) {\n      out += c;\n      escaped = false;\n      continue;\n    }\n    if (c === '\\\\') {\n      out += c;\n      escaped = true;\n      continue;\n    }\n    if (c === '\"') {\n      out += c;\n      inString = false;\n      continue;\n    }\n    if (code < 32) {\n      if (c === '\\n') out += '\\\\n';\n      else if (c === '\\r') out += '\\\\r';\n      else if (c === '\\t') out += '\\\\t';\n      else out += '\\\\u' + ('0000' + code.toString(16)).slice(-4);\n      continue;\n    }\n    out += c;\n  }\n  return out;\n}\nconst item = $input.item.json;\nconst content = item.content;\nconst textBlock = Array.isArray(content) ? content.find(function (b) { return b && b.type === 'text' && b.text; }) : null;\nconst text = (textBlock && textBlock.text) || '';\nconst match = String(text).match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('Sonnet Phase 2 did not return JSON');\nconst parsed = JSON.parse(repairJson(match[0]));\nconst prev = $('Build Phase 2 Prompt').first().json;\nconst cv_tex = String(parsed.cv_tex || '');\nif (!cv_tex.includes('\\\\documentclass') && !cv_tex.includes('documentclass')) {\n  throw new Error('Phase 2 cv_tex missing documentclass');\n}\nconst phase3_user = [\n  'UPDATED LATEX CV:',\n  cv_tex,\n  '',\n  'JOB DESCRIPTION:',\n  prev.clean_md || '',\n  '',\n  'STORYTELLING / STRUCTURE GUIDELINES:',\n  prev.storytelling || '',\n  '',\n  'COMPANY:',\n  prev.company || '',\n  'ROLE:',\n  prev.job_title || '',\n  'LOCATION:',\n  prev.location || ''\n].join('\\n');\nreturn { json: Object.assign({}, prev, { cv_tex: cv_tex, phase3_user: phase3_user }) };"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2752,
-        416
+        1540,
+        520
       ],
-      "id": "ce901269-882e-42ac-958c-61621b3d2222",
-      "name": "Parse Latex"
+      "id": "3e451490-3c1f-40bc-b226-842970e062ee",
+      "name": "Parse Phase 2"
     },
     {
       "parameters": {
-        "command": "'/home/mario/Documents/n8n/Nuevo trabajo/.venv/bin/python' '/home/mario/Documents/n8n/Nuevo trabajo/scripts/assemble_tex.py' --number --master '/home/mario/Documents/n8n/Nuevo trabajo/secrets/master_cv.tex'"
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-api-key",
+              "value": "={{ $json.anthropic_api_key }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 8000, thinking: { type: 'disabled' }, system: \"You are an Executive Career Strategist. PHASE 3: Draft a highly targeted cover letter in LaTeX. Cross-reference the updated CV, the Job Description, and the storytelling guidelines. Maintain a professional, authoritative, concise tone. Use storytelling structure; do not list traits. Do not invent employers, dates, metrics, or skills. Address the real company and role from the inputs \\u2014 never keep a previous company's header. Output ONLY a JSON object, no markdown fences. Keys: letter_tex (string: FULL compilable LaTeX including \\\\\\\\documentclass and \\\\\\\\begin{document}). Escape LaTeX special characters ($, &, %, #, _).\", messages: [{ role: 'user', content: $json.phase3_user }] }) }}",
+        "options": {}
       },
-      "type": "n8n-nodes-base.ssh",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
-        2272,
-        208
+        1780,
+        520
       ],
-      "id": "6b50eb19-6fcd-42b2-b065-c6f71f91ec0b",
-      "name": "Read Master Tex",
-      "credentials": {
-        "sshPassword": {
-          "id": "nM6jdLaHV8O6GLPF",
-          "name": "SSH localhost"
-        }
-      }
+      "id": "9494705a-85b1-4ada-a714-6788224c0969",
+      "name": "Sonnet Phase 3"
     },
     {
       "parameters": {
-        "command": "echo '{{ Buffer.from(JSON.stringify({ latex_cv_patches: $json.latex_cv_patches || [], latex_cover_letter: { latex: $json.latex_cover_letter_body || $json.latex_cover_letter || \"\" }, company: $json.company || \"\", job_title: $json.job_title || \"\" }), \"utf8\").toString(\"base64\") }}' | base64 -d | '/home/mario/Documents/n8n/Nuevo trabajo/.venv/bin/python' '/home/mario/Documents/n8n/Nuevo trabajo/scripts/assemble_tex.py' --master '/home/mario/Documents/n8n/Nuevo trabajo/secrets/master_cv.tex' --letter '/home/mario/Documents/n8n/Nuevo trabajo/secrets/master_letter.tex' --out-dir '/home/mario/Downloads'"
-      },
-      "type": "n8n-nodes-base.ssh",
-      "typeVersion": 1,
-      "position": [
-        2992,
-        416
-      ],
-      "id": "02ebb56c-9925-439b-a943-839f0d19b8be",
-      "name": "Write Tex Files",
-      "credentials": {
-        "sshPassword": {
-          "id": "nM6jdLaHV8O6GLPF",
-          "name": "SSH localhost"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "jsCode": "const j = $input.item.json;\nconst stdout = String(j.stdout || j.data || '');\nconst stderr = String(j.stderr || '');\nconst match = String(stdout).match(/\\{[\\s\\S]*\\}/);\nif (!match) {\n  throw new Error('assemble_tex.py returned no JSON. stdout=' + stdout.slice(0, 180) + ' stderr=' + stderr.slice(0, 400));\n}\nconst parsed = JSON.parse(match[0]);\nif (parsed.error) throw new Error(parsed.error);\nconst prev = $('Parse Latex').first().json;\nconst map = [prev.latex_patch_map || '', 'CV file: ' + parsed.cv_path, 'Letter file: ' + parsed.letter_path].filter(Boolean).join('\\n');\nreturn { json: Object.assign({}, prev, {\n  cv_path: parsed.cv_path,\n  letter_path: parsed.letter_path,\n  latex_patch_map: map\n}) };"
+        "jsCode": "function repairJson(s) {\n  let out = '';\n  let inString = false;\n  let escaped = false;\n  for (let i = 0; i < s.length; i++) {\n    const c = s[i];\n    const code = s.charCodeAt(i);\n    if (!inString) {\n      if (c === '\"') inString = true;\n      out += c;\n      continue;\n    }\n    if (escaped) {\n      out += c;\n      escaped = false;\n      continue;\n    }\n    if (c === '\\\\') {\n      out += c;\n      escaped = true;\n      continue;\n    }\n    if (c === '\"') {\n      out += c;\n      inString = false;\n      continue;\n    }\n    if (code < 32) {\n      if (c === '\\n') out += '\\\\n';\n      else if (c === '\\r') out += '\\\\r';\n      else if (c === '\\t') out += '\\\\t';\n      else out += '\\\\u' + ('0000' + code.toString(16)).slice(-4);\n      continue;\n    }\n    out += c;\n  }\n  return out;\n}\nfunction cap(s) {\n  s = String(s || '');\n  return s.length <= 1900 ? s : s.slice(0, 1899) + '\\u2026';\n}\nconst item = $input.item.json;\nconst content = item.content;\nconst textBlock = Array.isArray(content) ? content.find(function (b) { return b && b.type === 'text' && b.text; }) : null;\nconst text = (textBlock && textBlock.text) || '';\nconst match = String(text).match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('Sonnet Phase 3 did not return JSON');\nconst parsed = JSON.parse(repairJson(match[0]));\nconst prev = $('Parse Phase 2').first().json;\nconst cv_tex = String(prev.cv_tex || '');\nconst letter_tex = String(parsed.letter_tex || '');\nif (!cv_tex.trim()) throw new Error('Phase 2 cv_tex missing before write');\nif (!letter_tex.includes('\\\\documentclass') && !letter_tex.includes('documentclass')) {\n  throw new Error('Phase 3 letter_tex missing documentclass');\n}\nconst payload = {\n  cv_tex: cv_tex,\n  letter_tex: letter_tex,\n  company: prev.company || '',\n  job_title: prev.job_title || ''\n};\nconst write_b64 = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64');\nif (!write_b64) throw new Error('write_b64 encoding failed');\nreturn { json: Object.assign({}, prev, {\n  letter_tex: letter_tex,\n  latex_cv: cap(cv_tex),\n  latex_cover_letter: cap(letter_tex),\n  write_b64: write_b64\n}) };\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3216,
-        416
+        2020,
+        520
       ],
-      "id": "a8dba2c2-8292-43d8-9764-2c656404f301",
-      "name": "Parse Write Output"
+      "id": "ad1c3fc9-a305-4711-9944-a2f70adbb652",
+      "name": "Parse Phase 3"
     },
     {
       "parameters": {
-        "command": "'/home/mario/Documents/n8n/Nuevo trabajo/.venv/bin/python' '/home/mario/Documents/n8n/Nuevo trabajo/scripts/load_secret_ids.py' '/home/mario/Documents/n8n/Nuevo trabajo/secrets/notion_ids.json'"
+        "command": "={{ 'printf %s ' + JSON.stringify($json.write_b64) + \" | base64 -d | '/home/mario/Documents/n8n/Nuevo trabajo/.venv/bin/python' '/home/mario/Documents/n8n/Nuevo trabajo/scripts/assemble_tex.py' --write-full --master '/home/mario/Documents/n8n/Nuevo trabajo/secrets/master_cv.tex' --letter '/home/mario/Documents/n8n/Nuevo trabajo/secrets/master_letter.tex' --out-dir '/home/mario/Downloads'\" }}"
       },
       "type": "n8n-nodes-base.ssh",
       "typeVersion": 1,
       "position": [
-        -80,
-        -64
+        2260,
+        520
       ],
-      "id": "ec7048ff-55f8-4083-a6e8-ee92b891b4d6",
-      "name": "Load Secret IDs",
+      "id": "111f6b15-1b97-44fe-8d03-14271d186709",
+      "name": "Write Full Tex",
       "credentials": {
         "sshPassword": {
           "id": "nM6jdLaHV8O6GLPF",
           "name": "SSH localhost"
         }
       }
+    },
+    {
+      "parameters": {
+        "jsCode": "function cap(s) {\n  s = String(s || '');\n  return s.length <= 1900 ? s : s.slice(0, 1899) + '\\u2026';\n}\nconst j = $input.item.json;\nconst stdout = String(j.stdout || j.data || '');\nconst stderr = String(j.stderr || '');\nconst match = String(stdout).match(/\\{[\\s\\S]*\\}/);\nif (!match) {\n  throw new Error('assemble_tex --write-full returned no JSON. stdout=' + stdout.slice(0, 200) + ' stderr=' + stderr.slice(0, 300));\n}\nconst parsed = JSON.parse(match[0]);\nif (parsed.error) throw new Error(parsed.error + (stderr ? ' | stderr=' + stderr.slice(0, 200) : ''));\nconst prev = $('Parse Phase 3').first().json;\nif (!String(prev.cv_tex || '').trim()) throw new Error('Parse Phase 3 cv_tex empty after write');\nconst paths = 'CV file: ' + parsed.cv_path + '\\nLetter file: ' + parsed.letter_path;\nreturn { json: Object.assign({}, prev, {\n  cv_path: parsed.cv_path,\n  letter_path: parsed.letter_path,\n  paths_md: paths,\n  latex_cv: cap(prev.cv_tex),\n  latex_cover_letter: cap(prev.letter_tex)\n}) };\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2500,
+        520
+      ],
+      "id": "9d5bbf0e-5883-4269-9dce-7c4aa26f4c21",
+      "name": "Parse Write Full"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $json.page_id }}",
+          "mode": "id"
+        },
+        "simple": false,
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Status|select",
+              "selectValue": "Ready to Apply"
+            },
+            {
+              "key": "LaTex CV|rich_text",
+              "textContent": "={{ $json.latex_cv }}"
+            },
+            {
+              "key": "LaTex Cover Letter|rich_text",
+              "textContent": "={{ $json.latex_cover_letter }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        2740,
+        520
+      ],
+      "id": "502bf949-86eb-4a1f-a8cc-c1de4087241f",
+      "name": "Update Ready to Apply",
+      "credentials": {
+        "notionApi": {
+          "id": "PVbozrs4FE83DBwK",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "block",
+        "operation": "append",
+        "blockId": {
+          "__rl": true,
+          "value": "={{ $('Parse Write Full').item.json.page_id }}",
+          "mode": "id"
+        },
+        "blockUi": {
+          "blockValues": [
+            {
+              "type": "heading_2",
+              "textContent": "Generated files"
+            },
+            {
+              "textContent": "={{ $('Parse Write Full').item.json.paths_md }}"
+            },
+            {
+              "type": "heading_2",
+              "textContent": "LaTeX CV preview (Notion caps at ~2000 chars; full file in Downloads)"
+            },
+            {
+              "textContent": "={{ $('Parse Write Full').item.json.latex_cv }}"
+            },
+            {
+              "type": "heading_2",
+              "textContent": "LaTeX Cover Letter preview"
+            },
+            {
+              "textContent": "={{ $('Parse Write Full').item.json.latex_cover_letter }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        2980,
+        520
+      ],
+      "id": "e0e32c50-564a-452e-85da-9fe4d485ed98",
+      "name": "Append Tex Preview",
+      "credentials": {
+        "notionApi": {
+          "id": "PVbozrs4FE83DBwK",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "# JD Flow (Phase 1\u20133)\n\n**Ingest:** POST /webhook/job-ingest \u2192 Needs Context\n**Resume:** Extension **Continue Phase 2** \u2192 POST /webhook/job-resume\n  (looks up Job URL, reads Candidate Answers, writes CV/letter)\n\nNotion: Candidate notes = questions; Candidate Answers = your replies.\nNo Notion Trigger \u2014 button starts Phase 2 immediately.\n",
+        "height": 460,
+        "width": 380
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1500,
+        -80
+      ],
+      "id": "276e25c0-a52b-4984-8d5c-f9f3e3be4d15",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "command": "cat '/home/mario/Documents/n8n/Nuevo trabajo/secrets/master_cv.tex'"
+      },
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        700,
+        520
+      ],
+      "id": "9daedfc0-ffb1-4928-8142-621a2dad333e",
+      "name": "Read Master Tex Resume",
+      "credentials": {
+        "sshPassword": {
+          "id": "nM6jdLaHV8O6GLPF",
+          "name": "SSH localhost"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "job-resume",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1100,
+        520
+      ],
+      "id": "d8aa3c1a-0539-4e01-beb9-75673b382997",
+      "name": "Webhook Resume",
+      "webhookId": "dc8f49cd-1720-4acd-aba3-b075e2ad6702"
     },
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const ingest = $('Parse Clean MD').item.json;\nconst raw = String($json.stdout || $json.data || '').trim();\nconst match = raw.match(/\\{[\\s\\S]*\\}/);\nif (!match) {\n  throw new Error('load_secret_ids.py returned no JSON. stdout=' + raw.slice(0, 200));\n}\nconst ids = JSON.parse(match[0]);\nif (!ids.applications_db_id || !ids.master_cv_page_id || !ids.style_learnings_page_id || !ids.anthropic_api_key) {\n  throw new Error('Secret IDs missing required fields');\n}\nreturn { json: Object.assign({}, ingest, ids) };"
+        "jsCode": "const j = $input.item.json;\nconst src = (j.body && (j.body.url || j.body.page_id)) ? j.body : j;\nconst url = String(src.url || '').trim();\nconst page_id = String(src.page_id || '').replace(/-/g, '').toLowerCase().trim();\nif (!page_id && !url) throw new Error('job-resume requires page_id or url');\nreturn { json: { url: url, page_id: page_id, resume_by: page_id ? 'page_id' : 'url' } };\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        16,
-        -64
+        -860,
+        520
       ],
-      "id": "42486094-930a-42a3-bbce-dbd203ad765c",
-      "name": "Secret IDs"
+      "id": "3640446f-acab-47f6-9ac5-dccab5b284e3",
+      "name": "Pack Resume"
+    },
+    {
+      "parameters": {
+        "jsCode": "const ingest = $('Pack Resume').first().json;\nconst raw = String($json.stdout || $json.data || '').trim();\nconst match = raw.match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('load_secret_ids.py returned no JSON');\nconst ids = JSON.parse(match[0]);\nreturn { json: Object.assign({}, ingest, ids) };\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -380,
+        520
+      ],
+      "id": "c6b4e85c-3fa1-4153-b608-94214d431dec",
+      "name": "Resume Secrets"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "={{ $('Resume Secrets').item.json.applications_db_id }}",
+          "mode": "id"
+        },
+        "returnAll": "={{ false }}",
+        "limit": "={{ 1 }}",
+        "filterType": "json",
+        "filterJson": "={{ JSON.stringify({ property: 'Job URL', url: { equals: $json.url } }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        100,
+        560
+      ],
+      "id": "0fbeea9a-cbcf-4e5a-bc12-1c07c0b53d9c",
+      "name": "Search Resume Job URL",
+      "alwaysOutputData": true,
+      "credentials": {
+        "notionApi": {
+          "id": "PVbozrs4FE83DBwK",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "has-app",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        340,
+        560
+      ],
+      "id": "e07cc2e9-2b2a-4a6e-99c4-d3657f141b96",
+      "name": "Has Application?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'not_found', message: 'No Notion row for this Job URL. Open the original job tab, or Send job once so Continue can use the saved page.' }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        580,
+        680
+      ],
+      "id": "58309fcc-fb56-40bd-92ac-69a10502036a",
+      "name": "Respond Resume Not Found"
+    },
+    {
+      "parameters": {
+        "jsCode": "const prev = $('Parse Write Full').first().json;\nreturn { json: {\n  status: 'ready_to_apply',\n  company: prev.company || '',\n  job_title: prev.job_title || '',\n  cv_path: prev.cv_path || '',\n  letter_path: prev.letter_path || ''\n} };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3220,
+        520
+      ],
+      "id": "93b9dcee-67a0-4362-aa78-65c7cc53882b",
+      "name": "Pack Resume Ready"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3460,
+        520
+      ],
+      "id": "0c266544-ee52-42ca-b242-559b91c6b9ee",
+      "name": "Respond Resume Ready"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "has-pid",
+              "leftValue": "={{ $json.page_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -140,
+        400
+      ],
+      "id": "d01ca0f6-b6d5-4d13-932b-a5d5a49f1ea0",
+      "name": "Has Page Id?"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "get",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $json.page_id }}",
+          "mode": "id"
+        },
+        "simple": false
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        100,
+        320
+      ],
+      "id": "6ec081be-c200-4e41-8455-b7da688e3e67",
+      "name": "Get Resume Page By Id",
+      "credentials": {
+        "notionApi": {
+          "id": "PVbozrs4FE83DBwK",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const page = $json;\nconst page_id = String(page.id || page.pageId || '').replace(/-/g, '').toLowerCase();\nconst url = $('Secret IDs').first().json.url || '';\nreturn { json: {\n  status: 'duplicate',\n  page_id: page_id,\n  url: url,\n  message: 'Already filed. Click Continue Phase 2 to generate from Candidate Answers.'\n} };\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        580,
+        -272
+      ],
+      "id": "c9b66e64-cc20-4f45-91e9-04bc8f411fb4",
+      "name": "Pack Duplicate Response"
     }
   ],
   "pinData": {},
   "connections": {
+    "Webhook Ingest": {
+      "main": [
+        [
+          {
+            "node": "Pack Ingest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pack Ingest": {
+      "main": [
+        [
+          {
+            "node": "Parse Clean MD",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Parse Clean MD": {
       "main": [
         [
           {
             "node": "Load Secret IDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Secret IDs": {
+      "main": [
+        [
+          {
+            "node": "Secret IDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Secret IDs": {
+      "main": [
+        [
+          {
+            "node": "Search Job URL",
             "type": "main",
             "index": 0
           }
@@ -838,7 +1371,7 @@
       "main": [
         [
           {
-            "node": "Stop Duplicate",
+            "node": "Pack Duplicate Response",
             "type": "main",
             "index": 0
           }
@@ -925,6 +1458,28 @@
         ]
       ]
     },
+    "Log Skipped": {
+      "main": [
+        [
+          {
+            "node": "Pack Skip Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pack Skip Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Skipped",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Get Style Learnings": {
       "main": [
         [
@@ -940,106 +1495,7 @@
       "main": [
         [
           {
-            "node": "Build Sonnet Prompt",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Build Sonnet Prompt": {
-      "main": [
-        [
-          {
-            "node": "Sonnet Assets",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Sonnet Assets": {
-      "main": [
-        [
-          {
-            "node": "Parse Assets",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Parse Assets": {
-      "main": [
-        [
-          {
             "node": "Read Master Tex",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Assemble Payload": {
-      "main": [
-        [
-          {
-            "node": "Create Application",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Webhook1": {
-      "main": [
-        [
-          {
-            "node": "Pack Ingest",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Pack Ingest": {
-      "main": [
-        [
-          {
-            "node": "Parse Clean MD",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Build Latex Prompt": {
-      "main": [
-        [
-          {
-            "node": "Sonnet LaTeX",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Sonnet LaTeX": {
-      "main": [
-        [
-          {
-            "node": "Parse Latex",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Parse Latex": {
-      "main": [
-        [
-          {
-            "node": "Write Tex Files",
             "type": "main",
             "index": 0
           }
@@ -1050,51 +1506,384 @@
       "main": [
         [
           {
-            "node": "Build Latex Prompt",
+            "node": "Build Phase 1 Prompt",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Write Tex Files": {
+    "Build Phase 1 Prompt": {
       "main": [
         [
           {
-            "node": "Parse Write Output",
+            "node": "Sonnet Phase 1",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Parse Write Output": {
+    "Sonnet Phase 1": {
       "main": [
         [
           {
-            "node": "Assemble Payload",
+            "node": "Parse Phase 1",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Load Secret IDs": {
+    "Parse Phase 1": {
       "main": [
         [
           {
-            "node": "Secret IDs",
+            "node": "Create Needs Context",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Secret IDs": {
+    "Create Needs Context": {
       "main": [
         [
           {
-            "node": "Search Job URL",
+            "node": "Pack Run State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pack Run State": {
+      "main": [
+        [
+          {
+            "node": "Persist Run State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Persist Run State": {
+      "main": [
+        [
+          {
+            "node": "Pack Needs Context Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pack Needs Context Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Needs Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Resume Page": {
+      "main": [
+        [
+          {
+            "node": "Set Generating",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Generating": {
+      "main": [
+        [
+          {
+            "node": "Resume Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Secret IDs Resume": {
+      "main": [
+        [
+          {
+            "node": "Resume Secrets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Run State": {
+      "main": [
+        [
+          {
+            "node": "Merge Run State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Run State": {
+      "main": [
+        [
+          {
+            "node": "Read Master Tex Resume",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Storytelling": {
+      "main": [
+        [
+          {
+            "node": "Build Phase 2 Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Phase 2 Prompt": {
+      "main": [
+        [
+          {
+            "node": "Sonnet Phase 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sonnet Phase 2": {
+      "main": [
+        [
+          {
+            "node": "Parse Phase 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Phase 2": {
+      "main": [
+        [
+          {
+            "node": "Sonnet Phase 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sonnet Phase 3": {
+      "main": [
+        [
+          {
+            "node": "Parse Phase 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Phase 3": {
+      "main": [
+        [
+          {
+            "node": "Write Full Tex",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Full Tex": {
+      "main": [
+        [
+          {
+            "node": "Parse Write Full",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Write Full": {
+      "main": [
+        [
+          {
+            "node": "Update Ready to Apply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Ready to Apply": {
+      "main": [
+        [
+          {
+            "node": "Append Tex Preview",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Master Tex Resume": {
+      "main": [
+        [
+          {
+            "node": "Read Storytelling",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resume Context": {
+      "main": [
+        [
+          {
+            "node": "Load Run State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Resume": {
+      "main": [
+        [
+          {
+            "node": "Pack Resume",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pack Resume": {
+      "main": [
+        [
+          {
+            "node": "Load Secret IDs Resume",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resume Secrets": {
+      "main": [
+        [
+          {
+            "node": "Has Page Id?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Resume Job URL": {
+      "main": [
+        [
+          {
+            "node": "Has Application?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Application?": {
+      "main": [
+        [
+          {
+            "node": "Extract Resume Page",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Resume Not Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append Tex Preview": {
+      "main": [
+        [
+          {
+            "node": "Pack Resume Ready",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pack Resume Ready": {
+      "main": [
+        [
+          {
+            "node": "Respond Resume Ready",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Page Id?": {
+      "main": [
+        [
+          {
+            "node": "Get Resume Page By Id",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Search Resume Job URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Resume Page By Id": {
+      "main": [
+        [
+          {
+            "node": "Extract Resume Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pack Duplicate Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Duplicate",
             "type": "main",
             "index": 0
           }
@@ -1102,17 +1891,14 @@
       ]
     }
   },
-  "active": true,
+  "active": false,
   "settings": {
-    "executionOrder": "v1",
-    "binaryMode": "separate"
+    "executionOrder": "v1"
   },
-  "versionId": "747b92c9-640a-4a72-8f11-22456f53d749",
+  "versionId": "617d06cb-be49-4455-9321-58ce5ecf7c36",
   "meta": {
-    "templateCredsSetupCompleted": true,
-    "instanceId": "4ccd0a9cb2155c0559189c33f175f3723a4f386c4b9bf5bb0b3339b69669ba7b"
+    "instanceId": "jd-flow-local"
   },
-  "nodeGroups": [],
-  "id": "VZH4LpQ6MVi8FvEW",
+  "id": "jd-flow",
   "tags": []
 }

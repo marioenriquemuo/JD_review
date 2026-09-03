@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "JD Flow Ingest",
-  "version": "1.0.0",
+  "version": "1.1.1",
   "description": "Send the current job posting HTML to the local n8n JD Flow webhook.",
   "action": {
     "default_popup": "popup.html",
@@ -13,7 +13,11 @@
     }
   },
   "options_page": "options.html",
-  "permissions": ["activeTab", "storage", "scripting"],
+  "permissions": [
+    "activeTab",
+    "storage",
+    "scripting"
+  ],
   "host_permissions": [
     "http://localhost:5678/*",
     "http://127.0.0.1:5678/*"

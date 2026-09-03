@@ -1,16 +1,33 @@
 const DEFAULT_WEBHOOK = "http://localhost:5678/webhook/job-ingest";
 
 chrome.runtime.onMessage.addListener(function (message, _sender, sendResponse) {
-  if (!message || message.type !== "INGEST_TAB") {
-    return;
+  if (!message) return;
+  if (message.type === "INGEST_TAB") {
+    ingestActiveTab()
+      .then(sendResponse)
+      .catch(function (err) {
+        sendResponse({ ok: false, error: String(err && err.message ? err.message : err) });
+      });
+    return true;
   }
-  ingestActiveTab()
-    .then(sendResponse)
-    .catch(function (err) {
-      sendResponse({ ok: false, error: String(err && err.message ? err.message : err) });
-    });
-  return true;
+  if (message.type === "RESUME_TAB") {
+    resumeActiveTab()
+      .then(sendResponse)
+      .catch(function (err) {
+        sendResponse({ ok: false, error: String(err && err.message ? err.message : err) });
+      });
+    return true;
+  }
 });
+
+function resumeUrlFromIngest(ingestUrl) {
+  const url = String(ingestUrl || DEFAULT_WEBHOOK);
+  if (url.indexOf("job-ingest") !== -1) {
+    return url.split("job-ingest").join("job-resume");
+  }
+  if (url.endsWith("/")) return url + "job-resume";
+  return url.replace(/\/[^/]*$/, "/job-resume");
+}
 
 async function ingestActiveTab() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -29,12 +46,43 @@ async function ingestActiveTab() {
         return { url: location.href, html: document.body ? document.body.innerHTML : "" };
       }
     });
-    return postPayload(inline[0].result);
+    return postIngest(inline[0].result);
   }
-  return postPayload(payload);
+  return postIngest(payload);
 }
 
-async function postPayload(payload) {
+async function resumeActiveTab() {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const stored = await chrome.storage.sync.get({ webhookUrl: DEFAULT_WEBHOOK });
+  const local = await chrome.storage.local.get({ lastResume: null });
+  const last = local.lastResume || {};
+  const resumeUrl = resumeUrlFromIngest(stored.webhookUrl || DEFAULT_WEBHOOK);
+  const body = {
+    url: (tab && tab.url) || last.url || "",
+    page_id: last.page_id || ""
+  };
+  if (!body.page_id && !body.url) {
+    throw new Error("No saved application. Send the job first.");
+  }
+  const response = await fetch(resumeUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  const text = await response.text();
+  let parsed = text;
+  try {
+    parsed = JSON.parse(text);
+  } catch (e) {
+    parsed = { raw: text };
+  }
+  if (!response.ok) {
+    return { ok: false, error: "HTTP " + response.status, body: parsed };
+  }
+  return { ok: true, body: parsed };
+}
+
+async function postIngest(payload) {
   const stored = await chrome.storage.sync.get({ webhookUrl: DEFAULT_WEBHOOK });
   const webhookUrl = stored.webhookUrl || DEFAULT_WEBHOOK;
   const response = await fetch(webhookUrl, {

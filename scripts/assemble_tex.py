@@ -132,16 +132,62 @@ def _letter_body(payload):
     return str(letter)
 
 
+# --- Full write (Phase 2/3) ---
+
+def write_full(payload, out_dir, master_path="", letter_master=""):
+    cv_text = str(payload.get("cv_tex") or "")
+    letter_text = str(payload.get("letter_tex") or "")
+    if not cv_text.strip():
+        raise ValueError("cv_tex is empty")
+    if not letter_text.strip():
+        raise ValueError("letter_tex is empty")
+    os.makedirs(out_dir, exist_ok=True)
+    company = slug(payload.get("company"))
+    title = slug(payload.get("job_title"))
+    cv_path = unique_path(out_dir, "%s_%s_CV.tex" % (company, title))
+    letter_path = unique_path(
+        out_dir, "%s_%s_CoverLetter.tex" % (company, title)
+    )
+    _write(cv_path, cv_text if cv_text.endswith("\n") else cv_text + "\n", master_path)
+    _write(
+        letter_path,
+        letter_text if letter_text.endswith("\n") else letter_text + "\n",
+        letter_master,
+    )
+    return {"cv_path": cv_path, "letter_path": letter_path}
+
+
 # --- CLI ---
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--master", required=True, help="Read-only master CV .tex")
+    parser.add_argument("--master", default="", help="Read-only master CV .tex")
     parser.add_argument("--letter", default="", help="Optional master letter .tex")
     parser.add_argument("--out-dir", default="", help="Write copies here (apply mode)")
     parser.add_argument("--number", action="store_true", help="Print numbered lines")
+    parser.add_argument(
+        "--write-full",
+        action="store_true",
+        help="Write complete cv_tex + letter_tex from stdin JSON",
+    )
     parser.add_argument("--cap", type=int, default=350, help="Max lines for --number")
     args = parser.parse_args()
+
+    if args.write_full:
+        if not args.out_dir:
+            raise SystemExit("--write-full needs --out-dir")
+        try:
+            raw = sys.stdin.read()
+            payload = json.loads(raw) if raw.strip() else {}
+            result = write_full(payload, args.out_dir, args.master, args.letter)
+            sys.stdout.write(json.dumps(result) + "\n")
+        except Exception as exc:
+            sys.stdout.write(json.dumps({"error": str(exc)}) + "\n")
+            raise SystemExit(1)
+        return
+
+    if not args.master:
+        raise SystemExit("--master is required unless --write-full")
 
     with open(args.master, "r") as handle:
         master = handle.read()

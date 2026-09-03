@@ -17,17 +17,17 @@ You do **not** need to install n8n again.
 Imagine a post office:
 
 1. **Chrome extension** = you drop a letter (the job page) in the slot.
-2. **n8n webhook** = the slot. It says “got it” right away.
-3. **Python script** = a clerk who throws away ads, menus, and scripts, and keeps the job text.
+2. **n8n webhook** = the slot. It **waits** for scoring, then tells the popup skipped / duplicate / needs context.
+3. **Parse Clean MD** = throws away ads/menus and keeps the job text.
 4. **Notion search** = “Did we already file this exact job URL?” If yes, stop. Costs nothing.
-5. **Haiku** = a cheap intern who scores fit 0–100.
-6. **If score &lt; 70** = file as **Skipped**. Stop.
-7. **If score ≥ 70** = read your CV style notes, then **Sonnet** writes bullets, letter, salary.
-8. A **second small Sonnet** call maps those bullets onto **line numbers** in your local master `.tex`.
-9. Python copies the master, replaces those lines, and drops two full `.tex` files in **Downloads**.
-10. **Notion** = the filing cabinet. New page: **Ready to Apply**, plus columns **LaTex CV** and **LaTex Cover Letter**.
+5. **Haiku** = cheap intern who scores fit 0–100.
+6. **If score &lt; 70** = **Skipped**. Popup says skipped.
+7. **If score ≥ 70** = **Sonnet Phase 1** audits gaps and asks you questions → Notion **Needs Context**.
+8. **You** fill **Candidate notes**, set Status to **Proceed Phase 2**.
+9. **Sonnet Phase 2** writes a full tailored CV `.tex`; **Phase 3** writes the cover letter `.tex`.
+10. Files land in **Downloads**. Notion becomes **Ready to Apply** with LaTeX previews in the columns.
 
-You click. n8n thinks. Downloads gets files. Notion stores.
+You click → Notion asks questions → you answer → Downloads gets real tailored `.tex` files.
 
 ---
 
