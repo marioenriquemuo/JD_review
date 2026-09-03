@@ -26,11 +26,12 @@ Chrome extension (URL + HTML)
        fit < 70  → Notion row Status=Skipped  (~$0.004)
        fit >= 70 → Get Style & Learnings
   → Claude Sonnet (one JSON: bullets, letter, salary)
-  → Claude Sonnet LaTeX (fragments from those bullets/letter only)
+  → Claude Sonnet LaTeX (line-range patches on numbered master .tex)
+  → assemble_tex.py writes complete .tex copies to ~/Downloads
   → Notion row Status=Ready to Apply  (~$0.045 total)
 ```
 
-The mermaid H1–H2 boxes are fields from **one** Sonnet response, not two model calls. LaTeX columns are a **second** Sonnet call that only translates those bullets/letter — not another mermaid model box.
+The mermaid H1–H2 boxes are fields from **one** Sonnet response, not two model calls. LaTeX columns are a **second** Sonnet call that maps bullets/letter onto line ranges in the local master `.tex` — not another mermaid model box. Complete files go to `/home/mario/Downloads/{company}_{job_title}_CV.tex` and `_CoverLetter.tex` (collision suffix `_2`, `_3`). The master in `secrets/` is never overwritten.
 
 ## Models and unit economics
 
@@ -64,10 +65,10 @@ Title property: **Job Title**.
 | Rationale | rich_text | Two-sentence Haiku reason |
 | Salary Range | rich_text | Number range or estimate |
 | Salary Flag | select | `extracted`, `UNVERIFIED Estimate` |
-| LaTex CV | rich_text | LaTeX fragment of CV sections to paste into the master `.tex` |
-| LaTex Cover Letter | rich_text | LaTeX fragment of the letter body to paste into the master letter |
+| LaTex CV | rich_text | Line-range fragment (also assembled into a full Downloads `.tex`) |
+| LaTex Cover Letter | rich_text | Letter body fragment (also assembled into a full Downloads `.tex`) |
 
-Long assets (CV bullets, cover letter) are written into the **page body**, not properties — Notion property values cap at 2,000 characters. **LaTex CV** and **LaTex Cover Letter** are section fragments (capped ~1,900 chars), not a full `\documentclass` dump.
+Long assets (CV bullets, cover letter) are written into the **page body**, not properties — Notion property values cap at 2,000 characters. **LaTex CV** and **LaTex Cover Letter** stay as fragments (capped ~1,900 chars). Full compileable files are written locally, not into Notion.
 
 `Status=Duplicate` is not written. A hit on `Job URL` ends the execution; n8n’s execution log is the duplicate record.
 
@@ -80,6 +81,13 @@ Long assets (CV bullets, cover letter) are written into the **page body**, not p
 
 Do not paste the raw `.tex` or writing CSV into these pages. Generate drafts with [`scripts/distill_cv.py`](scripts/distill_cv.py).
 
+The compile source is a **local** file, not Notion:
+
+| Path | Role |
+| --- | --- |
+| `secrets/master_cv.tex` (gitignored) | Read-only master CV. Copy your original `.tex` here once. |
+| `secrets/master_letter.tex` (optional) | Letter template. Wrap the body in `% LETTER_BODY` … `% END_LETTER_BODY`. If missing, the letter is wrapped in `\documentclass{article}`. |
+
 ## Repo layout
 
 | Path | What |
@@ -88,6 +96,7 @@ Do not paste the raw `.tex` or writing CSV into these pages. Generate drafts wit
 | [`chrome-extension/`](chrome-extension/) | Unpacked MV3 extension |
 | [`scripts/clean_html.py`](scripts/clean_html.py) | HTML → Markdown (called by n8n) |
 | [`scripts/distill_cv.py`](scripts/distill_cv.py) | One-time LaTeX + CSV → Notion drafts |
+| [`scripts/assemble_tex.py`](scripts/assemble_tex.py) | Number master lines; splice Sonnet patches; write Downloads `.tex` |
 | [`docs/SETUP.md`](docs/SETUP.md) | n8n, Python, Notion, Claude Console, Chrome |
 | [`tests/sample_ingest.json`](tests/sample_ingest.json) | Smoke-test payload for `clean_html.py` |
 

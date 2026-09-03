@@ -28,6 +28,15 @@ Optional CV distill (your files, not in git):
 
 Paste `/tmp/jd-distill/master_cv.md` into the Notion **Master CV** page and `/tmp/jd-distill/style_learnings.md` into **Style & Learnings**. Edit before use.
 
+Copy the original `.tex` locally (gitignored). Notion stays Markdown-only:
+
+```bash
+mkdir -p "$PROJECT/secrets"
+cp /path/to/cv.tex "$PROJECT/secrets/master_cv.tex"
+```
+
+Optional: `"$PROJECT/secrets/master_letter.tex"` with `% LETTER_BODY` … `% END_LETTER_BODY`. After a qualified JD, complete files land in `/home/mario/Downloads/{company}_{job_title}_CV.tex` and `_CoverLetter.tex`.
+
 ---
 
 ## 2. Claude Console
@@ -117,6 +126,7 @@ To allow a non-localhost n8n URL, add it to `host_permissions` in [`chrome-exten
 ## Checklist
 
 - [ ] `clean_html.py` smoke test prints Markdown without nav/script
+- [ ] `secrets/master_cv.tex` copied from your original CV (not in git)
 - [ ] Claude key in n8n Header Auth; spend cap set
 - [ ] Applications DB + two pages shared with the integration
 - [ ] Three Notion IDs pasted into the workflow

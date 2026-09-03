@@ -497,6 +497,18 @@
               "name": "latex_patch_map",
               "value": "={{ $json.latex_patch_map }}",
               "type": "string"
+            },
+            {
+              "id": "9dfb93e7-6474-4573-a7bc-e6671c430ca2",
+              "name": "cv_path",
+              "value": "={{ $json.cv_path }}",
+              "type": "string"
+            },
+            {
+              "id": "d13dbb2b-15ec-4099-80d5-f0d09d8e5c9b",
+              "name": "letter_path",
+              "value": "={{ $json.letter_path }}",
+              "type": "string"
             }
           ]
         },
@@ -505,7 +517,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        3216,
+        4176,
         -64
       ],
       "id": "739ab385-dadf-47b7-b256-abdcd1711755",
@@ -606,7 +618,7 @@
       "type": "n8n-nodes-base.notion",
       "typeVersion": 2.2,
       "position": [
-        3456,
+        4416,
         -64
       ],
       "id": "da0fd424-f308-4e96-9c4c-81a96e730d8d",
@@ -652,7 +664,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const j = $input.item.json;\nlet cv = String(j.cv_md || '');\nif (!cv) {\n  try { cv = String($('Flatten CV').first().json.cv_md || ''); } catch (e) {}\n}\nif (!cv) {\n  try { cv = String($('Flatten Style').first().json.cv_md || ''); } catch (e) {}\n}\nconst latex_user = [\n  'Put each tailored bullet under the closest EXISTING job/employer/role in MASTER CV TEXT.',\n  'Do not invent jobs. Do not skip a bullet because its topic is not a heading name.',\n  'Group bullets that belong to the same role into one patch.',\n  'NO MATCH only if MASTER CV TEXT is empty.',\n  '',\n  'MASTER CV TEXT:',\n  cv.slice(0, 2500) || '(empty Master CV)',\n  '',\n  'CV BULLETS:',\n  j.cv_bullets || '',\n  '',\n  'COVER LETTER:',\n  j.cover_letter || ''\n].join('\\n');\nreturn { json: Object.assign({}, j, { latex_user: latex_user }) };"
+        "jsCode": "const j = $input.item.json;\nlet numbered = '(empty Master CV)';\ntry {\n  const readOut = $('Read Master Tex').first().json;\n  const stdout = String(readOut.stdout || '');\n  if (stdout.trim()) numbered = stdout.trim();\n} catch (e) {\n  const cv = String(j.cv_md || '');\n  if (cv.trim()) {\n    const lines = cv.split(/\\r?\\n/).slice(0, 350);\n    const width = Math.max(3, String(lines.length).length);\n    numbered = lines.map(function (line, i) {\n      const n = String(i + 1);\n      return 'L' + Array(width - n.length + 1).join('0') + n + ': ' + line;\n    }).join('\\n') || '(empty Master CV)';\n  }\n}\nconst latex_user = [\n  'Numbered MASTER CV lines (1-based). Patch by start_line/end_line inclusive.',\n  'Put each tailored bullet on the closest EXISTING job/employer/role lines.',\n  'Do not invent jobs. Group bullets for the same role into one patch.',\n  'Empty MASTER listing: return latex_cv_patches as [].',\n  '',\n  'MASTER CV LINES:',\n  numbered,\n  '',\n  'CV BULLETS:',\n  j.cv_bullets || '',\n  '',\n  'COVER LETTER:',\n  j.cover_letter || ''\n].join('\\n');\nreturn { json: Object.assign({}, j, { latex_user: latex_user }) };"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -684,7 +696,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 4000, thinking: { type: 'disabled' }, system: \"You map approved CV bullets and a cover letter onto the Master CV outline. Same facts only. Do not invent employers, dates, metrics, roles, or sections. Do not emit \\\\documentclass or \\\\begin{document}. Reply with ONLY a JSON object, no markdown fences. Keys: latex_cv_patches (array of 1 to 4 objects with where, action, latex), latex_cover_letter (object with where, action, latex). where: copy a path from MASTER CV OUTLINE, e.g. 'Experience > Data Engineer @ Acme Corp'. action: one line starting with Replace, Insert, or Add to, naming the exact itemize/paragraph. latex: fragment only (\\\\section / \\\\subsection / \\\\textbf / \\\\begin{itemize} / \\\\item); escape %, &, $, #, _. If a bullet has no matching heading, where must start with 'NO MATCH' and latex must be empty.\", messages: [{ role: 'user', content: $json.latex_user }] }) }}",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 4000, thinking: { type: 'disabled' }, system: \"You map approved CV bullets and a cover letter onto numbered MASTER CV lines. Same facts only. Do not invent employers, dates, metrics, roles, or sections. Do not emit \\\\documentclass or \\\\begin{document}. Reply with ONLY a JSON object, no markdown fences. Keys: latex_cv_patches (array of 1 to 4 objects with start_line, end_line, latex), latex_cover_letter (object with latex). start_line and end_line are inclusive 1-based integers from the numbered listing and must exist. latex: fragment only (\\\\item lines or a short itemize); escape %, &, $, #, _. latex_cover_letter.latex is body text only (three paragraphs). If MASTER CV LINES is empty, latex_cv_patches must be [].\", messages: [{ role: 'user', content: $json.latex_user }] }) }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -703,7 +715,7 @@
     },
     {
       "parameters": {
-        "jsCode": "function cap(s) {\n  s = String(s || '');\n  return s.length <= 1900 ? s : s.slice(0, 1899) + '\\u2026';\n}\nfunction asPatch(p) {\n  if (p == null) return { where: '', action: '', latex: '' };\n  if (typeof p === 'string') return { where: '', action: '', latex: p };\n  return {\n    where: String(p.where || ''),\n    action: String(p.action || ''),\n    latex: String(p.latex || '')\n  };\n}\nfunction block(p) {\n  p = asPatch(p);\n  return [\n    '% WHERE: ' + p.where,\n    '% ACTION: ' + p.action,\n    p.latex\n  ].join('\\n');\n}\nconst item = $input.item.json;\nconst content = item.content;\nconst textBlock = Array.isArray(content) ? content.find(function (b) { return b && b.type === 'text' && b.text; }) : null;\nconst text = (textBlock && textBlock.text) || '';\nconst match = String(text).match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('Sonnet LaTeX did not return JSON');\nconst parsed = JSON.parse(match[0]);\nconst prev = $('Parse Assets').first().json;\nconst patches = Array.isArray(parsed.latex_cv_patches) ? parsed.latex_cv_patches : (parsed.latex_cv ? [parsed.latex_cv] : []);\nconst letter = asPatch(parsed.latex_cover_letter);\nconst mapLines = patches.map(function (p, i) {\n  p = asPatch(p);\n  return (i + 1) + '. CV \u2192 ' + p.where + ' \u2014 ' + p.action;\n});\nmapLines.push('Letter \u2192 ' + letter.where + ' \u2014 ' + letter.action);\nreturn { json: Object.assign({}, prev, {\n  latex_cv: cap(patches.map(block).join('\\n\\n')),\n  latex_cover_letter: cap(block(letter)),\n  latex_patch_map: cap(mapLines.join('\\n'))\n}) };"
+        "jsCode": "function cap(s) {\n  s = String(s || '');\n  return s.length <= 1900 ? s : s.slice(0, 1899) + '\\u2026';\n}\nfunction repairJson(s) {\n  let out = '';\n  let inString = false;\n  let escaped = false;\n  for (let i = 0; i < s.length; i++) {\n    const c = s[i];\n    const code = s.charCodeAt(i);\n    if (!inString) {\n      if (c === '\"') inString = true;\n      out += c;\n      continue;\n    }\n    if (escaped) {\n      out += c;\n      escaped = false;\n      continue;\n    }\n    if (c === '\\\\') {\n      out += c;\n      escaped = true;\n      continue;\n    }\n    if (c === '\"') {\n      out += c;\n      inString = false;\n      continue;\n    }\n    if (code < 32) {\n      if (c === '\\n') out += '\\\\n';\n      else if (c === '\\r') out += '\\\\r';\n      else if (c === '\\t') out += '\\\\t';\n      else out += '\\\\u' + ('0000' + code.toString(16)).slice(-4);\n      continue;\n    }\n    out += c;\n  }\n  return out;\n}\nfunction asPatch(p) {\n  if (p == null) return { start_line: 0, end_line: 0, latex: '' };\n  if (typeof p === 'string') return { start_line: 0, end_line: 0, latex: p };\n  return {\n    start_line: Number(p.start_line) || 0,\n    end_line: Number(p.end_line) || 0,\n    latex: String(p.latex || '')\n  };\n}\nfunction block(p) {\n  p = asPatch(p);\n  return [\n    '% LINES: ' + p.start_line + '-' + p.end_line,\n    p.latex\n  ].join('\\n');\n}\nconst item = $input.item.json;\nconst content = item.content;\nconst textBlock = Array.isArray(content) ? content.find(function (b) { return b && b.type === 'text' && b.text; }) : null;\nconst text = (textBlock && textBlock.text) || '';\nconst match = String(text).match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('Sonnet LaTeX did not return JSON');\nconst parsed = JSON.parse(repairJson(match[0]));\nconst prev = $('Parse Assets').first().json;\nconst patches = Array.isArray(parsed.latex_cv_patches) ? parsed.latex_cv_patches.map(asPatch) : (parsed.latex_cv ? [asPatch(parsed.latex_cv)] : []);\nconst letterObj = parsed.latex_cover_letter;\nconst letterLatex = (letterObj && typeof letterObj === 'object') ? String(letterObj.latex || '') : String(letterObj || '');\nconst mapLines = patches.map(function (p, i) {\n  p = asPatch(p);\n  return (i + 1) + '. CV L' + p.start_line + '\\u2013L' + p.end_line + ' \\u2014 replaced';\n});\nmapLines.push('Letter \\u2014 body');\nreturn { json: Object.assign({}, prev, {\n  latex_cv: cap(patches.map(block).join('\\n\\n')),\n  latex_cover_letter: cap(letterLatex),\n  latex_cover_letter_body: letterLatex,\n  latex_cv_patches: patches,\n  latex_patch_map: cap(mapLines.join('\\n'))\n}) };"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -713,6 +725,58 @@
       ],
       "id": "ce901269-882e-42ac-958c-61621b3d2222",
       "name": "Parse Latex"
+    },
+    {
+      "parameters": {
+        "command": "={{ \"echo \" + Buffer.from(JSON.stringify({ latex_cv_patches: $json.latex_cv_patches || [], latex_cover_letter: { latex: $json.latex_cover_letter_body || $json.latex_cover_letter || '' }, company: $json.company || '', job_title: $json.job_title || '' }), 'utf8').toString('base64') + \" | base64 -d | '/home/mario/Documents/n8n/Nuevo trabajo/.venv/bin/python' '/home/mario/Documents/n8n/Nuevo trabajo/scripts/assemble_tex.py' --master '/home/mario/Documents/n8n/Nuevo trabajo/secrets/master_cv.tex' --letter '/home/mario/Documents/n8n/Nuevo trabajo/secrets/master_letter.tex' --out-dir '/home/mario/Downloads'\" }}",
+        "resource": "exec"
+      },
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        3696,
+        160
+      ],
+      "id": "b6ad1d3e-146b-470f-a19a-a7b52622c1cb",
+      "name": "Write Tex Files",
+      "credentials": {
+        "sshPassword": {
+          "name": "SSH localhost"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const j = $input.item.json;\nconst stdout = String(j.stdout || j.data || '');\nconst stderr = String(j.stderr || '');\nconst match = String(stdout).match(/\\{[\\s\\S]*\\}/);\nif (!match) {\n  throw new Error('assemble_tex.py returned no JSON. stdout=' + stdout.slice(0, 180) + ' stderr=' + stderr.slice(0, 400));\n}\nconst parsed = JSON.parse(match[0]);\nif (parsed.error) throw new Error(parsed.error);\nconst prev = $('Parse Latex').first().json;\nconst map = [prev.latex_patch_map || '', 'CV file: ' + parsed.cv_path, 'Letter file: ' + parsed.letter_path].filter(Boolean).join('\\n');\nreturn { json: Object.assign({}, prev, {\n  cv_path: parsed.cv_path,\n  letter_path: parsed.letter_path,\n  latex_patch_map: map\n}) };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3936,
+        160
+      ],
+      "id": "6d0479c7-0d30-4fd3-b7f0-7920e27813b3",
+      "name": "Parse Write Output"
+    },
+    {
+      "parameters": {
+        "command": "'/home/mario/Documents/n8n/Nuevo trabajo/.venv/bin/python' '/home/mario/Documents/n8n/Nuevo trabajo/scripts/assemble_tex.py' --number --master '/home/mario/Documents/n8n/Nuevo trabajo/secrets/master_cv.tex'",
+        "resource": "exec"
+      },
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        2720,
+        160
+      ],
+      "id": "29dc666b-8d15-4cee-867b-26434c553ff5",
+      "name": "Read Master Tex",
+      "credentials": {
+        "sshPassword": {
+          "name": "SSH localhost"
+        }
+      }
     }
   ],
   "pinData": {},
@@ -878,7 +942,7 @@
       "main": [
         [
           {
-            "node": "Build Latex Prompt",
+            "node": "Read Master Tex",
             "type": "main",
             "index": 0
           }
@@ -944,7 +1008,40 @@
       "main": [
         [
           {
+            "node": "Write Tex Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Tex Files": {
+      "main": [
+        [
+          {
+            "node": "Parse Write Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Write Output": {
+      "main": [
+        [
+          {
             "node": "Assemble Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Master Tex": {
+      "main": [
+        [
+          {
+            "node": "Build Latex Prompt",
             "type": "main",
             "index": 0
           }
