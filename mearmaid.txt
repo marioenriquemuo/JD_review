@@ -15,8 +15,6 @@ flowchart TB
         H["Claude Sonnet: <br> Asset Generation"]
         H1("Tailored CV Bullets")
         H2("Custom Cover Letter")
-        H3("Interview Q&A")
-        H4("Company Dossier")
         I["Combine Payload Node"]
   end
  subgraph External_Context["Context & Memory"]
@@ -37,11 +35,9 @@ flowchart TB
     E --> F
     F -- NO --> G
     F -- YES --> H
-    H -.-> H1 & H2 & H3 & H4
+    H -.-> H1 & H2
     H1 --> I
     H2 --> I
-    H3 --> I
-    H4 --> I
     N9 --> H
     N10 -- Injected Rules --> H
     I --> J

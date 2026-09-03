@@ -22,7 +22,7 @@ Imagine a post office:
 4. **Notion search** = “Did we already file this exact job URL?” If yes, stop. Costs nothing.
 5. **Haiku** = a cheap intern who scores fit 0–100.
 6. **If score &lt; 70** = file as **Skipped**. Stop.
-7. **If score ≥ 70** = read your CV style notes, then **Sonnet** writes bullets, letter, flashcards, dossier.
+7. **If score ≥ 70** = read your CV style notes, then **Sonnet** writes bullets, letter, salary.
 8. A **second small Sonnet** call turns those bullets/letter into LaTeX sections (not a full `.tex` file).
 9. **Notion** = the filing cabinet. New page: **Ready to Apply**, plus columns **LaTex CV** and **LaTex Cover Letter**.
 
@@ -112,7 +112,7 @@ Database title property name: **Job Title** (type **Title**).
 | LaTex CV | Text | LaTeX fragment to paste into the master CV |
 | LaTex Cover Letter | Text | LaTeX fragment to paste into the master letter |
 
-Long text (CV bullets, cover letter, flashcards, dossier) is **not** a property. The workflow writes those into the **page body**. **LaTex CV** / **LaTex Cover Letter** are properties (cap 2,000 characters) filled by a second Sonnet call from the parsed bullets/letter.
+Long text (CV bullets, cover letter) is **not** a property. The workflow writes those into the **page body**. **LaTex CV** / **LaTex Cover Letter** are properties (cap 2,000 characters) filled by a second Sonnet call from the parsed bullets/letter.
 
 ---
 
@@ -165,7 +165,7 @@ Read left to right.
 | Get Style Learnings | Downloads style rules (only if fit is high). |
 | Flatten Style | One `style_rules` string. |
 | Build Sonnet Prompt | JD + full CV + style. |
-| Sonnet Assets | Writes the application pack as JSON (mermaid H1–H4). |
+| Sonnet Assets | Writes the application pack as JSON (mermaid H1–H2). |
 | Parse Assets | Flattens JSON into text fields (capped ~1900 chars for Notion). |
 | Build Latex Prompt | Packs those bullets + letter only (no full JD). |
 | Sonnet LaTeX | Translates them into `latex_cv` / `latex_cover_letter` fragments. |
