@@ -35,7 +35,7 @@
         "operation": "getAll",
         "databaseId": {
           "__rl": true,
-          "value": "REPLACE_ME_APPLICATIONS_DB_ID",
+          "value": "={{ $('Secret IDs').item.json.applications_db_id }}",
           "mode": "id"
         },
         "returnAll": "={{ false }}",
@@ -55,6 +55,7 @@
       "alwaysOutputData": true,
       "credentials": {
         "notionApi": {
+          "id": "PVbozrs4FE83DBwK",
           "name": "Notion account"
         }
       }
@@ -110,7 +111,7 @@
         "operation": "getAll",
         "blockId": {
           "__rl": true,
-          "value": "REPLACE_ME_MASTER_CV_PAGE_ID",
+          "value": "={{ $('Secret IDs').item.json.master_cv_page_id }}",
           "mode": "id"
         },
         "returnAll": true,
@@ -127,6 +128,7 @@
       "alwaysOutputData": true,
       "credentials": {
         "notionApi": {
+          "id": "PVbozrs4FE83DBwK",
           "name": "Notion account"
         }
       }
@@ -162,8 +164,7 @@
       "parameters": {
         "method": "POST",
         "url": "https://api.anthropic.com/v1/messages",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
+        "authentication": "none",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -174,6 +175,10 @@
             {
               "name": "content-type",
               "value": "application/json"
+            },
+            {
+              "name": "x-api-key",
+              "value": "={{ $('Secret IDs').item.json.anthropic_api_key }}"
             }
           ]
         },
@@ -189,12 +194,7 @@
         -64
       ],
       "id": "928e3f2e-39bc-49d8-9e08-57adc4880853",
-      "name": "Haiku Triage",
-      "credentials": {
-        "httpHeaderAuth": {
-          "name": "JDClaude"
-        }
-      }
+      "name": "Haiku Triage"
     },
     {
       "parameters": {
@@ -248,7 +248,7 @@
         "resource": "databasePage",
         "databaseId": {
           "__rl": true,
-          "value": "REPLACE_ME_APPLICATIONS_DB_ID",
+          "value": "={{ $('Secret IDs').item.json.applications_db_id }}",
           "mode": "id"
         },
         "title": "={{ $json.job_title }}",
@@ -300,6 +300,7 @@
       "name": "Log Skipped",
       "credentials": {
         "notionApi": {
+          "id": "PVbozrs4FE83DBwK",
           "name": "Notion account"
         }
       }
@@ -310,7 +311,7 @@
         "operation": "getAll",
         "blockId": {
           "__rl": true,
-          "value": "REPLACE_ME_STYLE_PAGE_ID",
+          "value": "={{ $('Secret IDs').item.json.style_learnings_page_id }}",
           "mode": "id"
         },
         "returnAll": true,
@@ -327,6 +328,7 @@
       "alwaysOutputData": true,
       "credentials": {
         "notionApi": {
+          "id": "PVbozrs4FE83DBwK",
           "name": "Notion account"
         }
       }
@@ -362,8 +364,7 @@
       "parameters": {
         "method": "POST",
         "url": "https://api.anthropic.com/v1/messages",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
+        "authentication": "none",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -374,6 +375,10 @@
             {
               "name": "content-type",
               "value": "application/json"
+            },
+            {
+              "name": "x-api-key",
+              "value": "={{ $('Secret IDs').item.json.anthropic_api_key }}"
             }
           ]
         },
@@ -389,12 +394,7 @@
         -64
       ],
       "id": "a1415189-c0e4-42b3-9c0b-1ad082f60c83",
-      "name": "Sonnet Assets",
-      "credentials": {
-        "httpHeaderAuth": {
-          "name": "JDClaude"
-        }
-      }
+      "name": "Sonnet Assets"
     },
     {
       "parameters": {
@@ -499,13 +499,13 @@
               "type": "string"
             },
             {
-              "id": "9dfb93e7-6474-4573-a7bc-e6671c430ca2",
+              "id": "ac2c79d3-e5e3-427b-8d55-8e05c88630d3",
               "name": "cv_path",
               "value": "={{ $json.cv_path }}",
               "type": "string"
             },
             {
-              "id": "d13dbb2b-15ec-4099-80d5-f0d09d8e5c9b",
+              "id": "5b88a902-252b-4658-bf05-b9a334bdad32",
               "name": "letter_path",
               "value": "={{ $json.letter_path }}",
               "type": "string"
@@ -517,7 +517,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        4176,
+        3216,
         -64
       ],
       "id": "739ab385-dadf-47b7-b256-abdcd1711755",
@@ -528,7 +528,7 @@
         "resource": "databasePage",
         "databaseId": {
           "__rl": true,
-          "value": "REPLACE_ME_APPLICATIONS_DB_ID",
+          "value": "={{ $('Secret IDs').item.json.applications_db_id }}",
           "mode": "id"
         },
         "title": "={{ $json.job_title }}",
@@ -618,13 +618,14 @@
       "type": "n8n-nodes-base.notion",
       "typeVersion": 2.2,
       "position": [
-        4416,
+        3456,
         -64
       ],
       "id": "da0fd424-f308-4e96-9c4c-81a96e730d8d",
       "name": "Create Application",
       "credentials": {
         "notionApi": {
+          "id": "PVbozrs4FE83DBwK",
           "name": "Notion account"
         }
       }
@@ -645,11 +646,11 @@
       ],
       "id": "866afc30-915d-4721-bfa7-1957a961871b",
       "name": "Webhook1",
-      "webhookId": "REPLACE_ME_WEBHOOK_ID"
+      "webhookId": "e85b00be-aff1-49bb-aacd-dede3a7082e0"
     },
     {
       "parameters": {
-        "content": "# JD Flow\n\nReplace on all Notion nodes:\n- `REPLACE_ME_APPLICATIONS_DB_ID`\n- `REPLACE_ME_MASTER_CV_PAGE_ID`\n- `REPLACE_ME_STYLE_PAGE_ID`\n\nAttach **Notion account** and **Anthropic API** (Header Auth `x-api-key`).\nThen set Active.\n\nSee docs/SETUP.md",
+        "content": "# JD Flow\n\nIDs + Claude key load at runtime from `secrets/notion_ids.json` via **Load Secret IDs** (SSH Command).\n\nAttach credentials:\n- **Notion account** on every Notion node\n- **SSH localhost** on Load Secret IDs / Read Master Tex / Write Tex Files\n\nClaude nodes use `x-api-key` from the secrets file (no Header Auth credential needed).\n\nThen set Active.\n\nSee docs/SETUP.md",
         "height": 420,
         "width": 360
       },
@@ -669,8 +670,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2960,
-        160
+        2272,
+        416
       ],
       "id": "f12adf6f-4932-4e6c-b65f-a36cc8bb6239",
       "name": "Build Latex Prompt"
@@ -679,8 +680,7 @@
       "parameters": {
         "method": "POST",
         "url": "https://api.anthropic.com/v1/messages",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
+        "authentication": "none",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -691,6 +691,10 @@
             {
               "name": "content-type",
               "value": "application/json"
+            },
+            {
+              "name": "x-api-key",
+              "value": "={{ $('Secret IDs').item.json.anthropic_api_key }}"
             }
           ]
         },
@@ -702,16 +706,11 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        3232,
-        160
+        2512,
+        416
       ],
       "id": "9f025360-f78d-4b1e-927e-278d219d53a1",
-      "name": "Sonnet LaTeX",
-      "credentials": {
-        "httpHeaderAuth": {
-          "name": "JDClaude"
-        }
-      }
+      "name": "Sonnet LaTeX"
     },
     {
       "parameters": {
@@ -720,27 +719,78 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3456,
-        160
+        2752,
+        416
       ],
       "id": "ce901269-882e-42ac-958c-61621b3d2222",
       "name": "Parse Latex"
     },
     {
       "parameters": {
-        "command": "={{ \"echo \" + Buffer.from(JSON.stringify({ latex_cv_patches: $json.latex_cv_patches || [], latex_cover_letter: { latex: $json.latex_cover_letter_body || $json.latex_cover_letter || '' }, company: $json.company || '', job_title: $json.job_title || '' }), 'utf8').toString('base64') + \" | base64 -d | '/home/mario/Documents/n8n/Nuevo trabajo/.venv/bin/python' '/home/mario/Documents/n8n/Nuevo trabajo/scripts/assemble_tex.py' --master '/home/mario/Documents/n8n/Nuevo trabajo/secrets/master_cv.tex' --letter '/home/mario/Documents/n8n/Nuevo trabajo/secrets/master_letter.tex' --out-dir '/home/mario/Downloads'\" }}",
-        "resource": "exec"
+        "command": "'/home/mario/Documents/n8n/Nuevo trabajo/.venv/bin/python' '/home/mario/Documents/n8n/Nuevo trabajo/scripts/assemble_tex.py' --number --master '/home/mario/Documents/n8n/Nuevo trabajo/secrets/master_cv.tex'"
       },
       "type": "n8n-nodes-base.ssh",
       "typeVersion": 1,
       "position": [
-        3696,
-        160
+        2272,
+        208
       ],
-      "id": "b6ad1d3e-146b-470f-a19a-a7b52622c1cb",
+      "id": "6b50eb19-6fcd-42b2-b065-c6f71f91ec0b",
+      "name": "Read Master Tex",
+      "credentials": {
+        "sshPassword": {
+          "id": "nM6jdLaHV8O6GLPF",
+          "name": "SSH localhost"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "echo '{{ Buffer.from(JSON.stringify({ latex_cv_patches: $json.latex_cv_patches || [], latex_cover_letter: { latex: $json.latex_cover_letter_body || $json.latex_cover_letter || \"\" }, company: $json.company || \"\", job_title: $json.job_title || \"\" }), \"utf8\").toString(\"base64\") }}' | base64 -d | '/home/mario/Documents/n8n/Nuevo trabajo/.venv/bin/python' '/home/mario/Documents/n8n/Nuevo trabajo/scripts/assemble_tex.py' --master '/home/mario/Documents/n8n/Nuevo trabajo/secrets/master_cv.tex' --letter '/home/mario/Documents/n8n/Nuevo trabajo/secrets/master_letter.tex' --out-dir '/home/mario/Downloads'"
+      },
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        2992,
+        416
+      ],
+      "id": "02ebb56c-9925-439b-a943-839f0d19b8be",
       "name": "Write Tex Files",
       "credentials": {
         "sshPassword": {
+          "id": "nM6jdLaHV8O6GLPF",
+          "name": "SSH localhost"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const j = $input.item.json;\nconst stdout = String(j.stdout || j.data || '');\nconst stderr = String(j.stderr || '');\nconst match = String(stdout).match(/\\{[\\s\\S]*\\}/);\nif (!match) {\n  throw new Error('assemble_tex.py returned no JSON. stdout=' + stdout.slice(0, 180) + ' stderr=' + stderr.slice(0, 400));\n}\nconst parsed = JSON.parse(match[0]);\nif (parsed.error) throw new Error(parsed.error);\nconst prev = $('Parse Latex').first().json;\nconst map = [prev.latex_patch_map || '', 'CV file: ' + parsed.cv_path, 'Letter file: ' + parsed.letter_path].filter(Boolean).join('\\n');\nreturn { json: Object.assign({}, prev, {\n  cv_path: parsed.cv_path,\n  letter_path: parsed.letter_path,\n  latex_patch_map: map\n}) };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3216,
+        416
+      ],
+      "id": "a8dba2c2-8292-43d8-9764-2c656404f301",
+      "name": "Parse Write Output"
+    },
+    {
+      "parameters": {
+        "command": "'/home/mario/Documents/n8n/Nuevo trabajo/.venv/bin/python' '/home/mario/Documents/n8n/Nuevo trabajo/scripts/load_secret_ids.py' '/home/mario/Documents/n8n/Nuevo trabajo/secrets/notion_ids.json'"
+      },
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        -64
+      ],
+      "id": "ec7048ff-55f8-4083-a6e8-ee92b891b4d6",
+      "name": "Load Secret IDs",
+      "credentials": {
+        "sshPassword": {
+          "id": "nM6jdLaHV8O6GLPF",
           "name": "SSH localhost"
         }
       }
@@ -748,35 +798,16 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const j = $input.item.json;\nconst stdout = String(j.stdout || j.data || '');\nconst stderr = String(j.stderr || '');\nconst match = String(stdout).match(/\\{[\\s\\S]*\\}/);\nif (!match) {\n  throw new Error('assemble_tex.py returned no JSON. stdout=' + stdout.slice(0, 180) + ' stderr=' + stderr.slice(0, 400));\n}\nconst parsed = JSON.parse(match[0]);\nif (parsed.error) throw new Error(parsed.error);\nconst prev = $('Parse Latex').first().json;\nconst map = [prev.latex_patch_map || '', 'CV file: ' + parsed.cv_path, 'Letter file: ' + parsed.letter_path].filter(Boolean).join('\\n');\nreturn { json: Object.assign({}, prev, {\n  cv_path: parsed.cv_path,\n  letter_path: parsed.letter_path,\n  latex_patch_map: map\n}) };"
+        "jsCode": "const ingest = $('Parse Clean MD').item.json;\nconst raw = String($json.stdout || $json.data || '').trim();\nconst match = raw.match(/\\{[\\s\\S]*\\}/);\nif (!match) {\n  throw new Error('load_secret_ids.py returned no JSON. stdout=' + raw.slice(0, 200));\n}\nconst ids = JSON.parse(match[0]);\nif (!ids.applications_db_id || !ids.master_cv_page_id || !ids.style_learnings_page_id || !ids.anthropic_api_key) {\n  throw new Error('Secret IDs missing required fields');\n}\nreturn { json: Object.assign({}, ingest, ids) };"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3936,
-        160
+        16,
+        -64
       ],
-      "id": "6d0479c7-0d30-4fd3-b7f0-7920e27813b3",
-      "name": "Parse Write Output"
-    },
-    {
-      "parameters": {
-        "command": "'/home/mario/Documents/n8n/Nuevo trabajo/.venv/bin/python' '/home/mario/Documents/n8n/Nuevo trabajo/scripts/assemble_tex.py' --number --master '/home/mario/Documents/n8n/Nuevo trabajo/secrets/master_cv.tex'",
-        "resource": "exec"
-      },
-      "type": "n8n-nodes-base.ssh",
-      "typeVersion": 1,
-      "position": [
-        2720,
-        160
-      ],
-      "id": "29dc666b-8d15-4cee-867b-26434c553ff5",
-      "name": "Read Master Tex",
-      "credentials": {
-        "sshPassword": {
-          "name": "SSH localhost"
-        }
-      }
+      "id": "42486094-930a-42a3-bbce-dbd203ad765c",
+      "name": "Secret IDs"
     }
   ],
   "pinData": {},
@@ -785,7 +816,7 @@
       "main": [
         [
           {
-            "node": "Search Job URL",
+            "node": "Load Secret IDs",
             "type": "main",
             "index": 0
           }
@@ -1015,6 +1046,17 @@
         ]
       ]
     },
+    "Read Master Tex": {
+      "main": [
+        [
+          {
+            "node": "Build Latex Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Write Tex Files": {
       "main": [
         [
@@ -1037,11 +1079,22 @@
         ]
       ]
     },
-    "Read Master Tex": {
+    "Load Secret IDs": {
       "main": [
         [
           {
-            "node": "Build Latex Prompt",
+            "node": "Secret IDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Secret IDs": {
+      "main": [
+        [
+          {
+            "node": "Search Job URL",
             "type": "main",
             "index": 0
           }
@@ -1049,15 +1102,17 @@
       ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
+  "versionId": "747b92c9-640a-4a72-8f11-22456f53d749",
   "meta": {
-    "templateCredsSetupCompleted": true
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4ccd0a9cb2155c0559189c33f175f3723a4f386c4b9bf5bb0b3339b69669ba7b"
   },
   "nodeGroups": [],
-  "id": "REPLACE_ME_WORKFLOW_ID",
+  "id": "VZH4LpQ6MVi8FvEW",
   "tags": []
 }

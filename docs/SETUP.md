@@ -68,13 +68,9 @@ The workflow also sends `anthropic-version: 2023-06-01` as a request header (not
 
 In n8n: **Credentials → Notion API** → Internal integration token.
 
-Open **JD Flow** in n8n and replace the three placeholders on the Notion nodes / sticky note:
+Put IDs and the Claude key in `$PROJECT/secrets/notion_ids.json` (`applications_db_id`, `master_cv_page_id`, `style_learnings_page_id`, `anthropic_api_key`). The workflow loads them at runtime via SSH (**Load Secret IDs**) — do not paste into nodes.
 
-- `REPLACE_ME_APPLICATIONS_DB_ID`
-- `REPLACE_ME_MASTER_CV_PAGE_ID`
-- `REPLACE_ME_STYLE_PAGE_ID`
-
-Select the Notion credential on every Notion node. Select **Anthropic API** Header Auth on **Haiku Triage**, **Sonnet Assets**, and **Sonnet LaTeX**.
+Select the Notion credential on every Notion node. Select **SSH localhost** on **Load Secret IDs**, **Read Master Tex**, and **Write Tex Files**. Claude nodes read `x-api-key` from the secrets file.
 
 ---
 
@@ -89,9 +85,9 @@ Select the Notion credential on every Notion node. Select **Anthropic API** Head
 
 If n8n runs in Docker, mount `PROJECT` (including `.venv`) into the container or change the command. The n8n process user must be able to execute that venv Python.
 
-3. Attach credentials (step 2–3). Paste Notion IDs.
+3. Attach credentials (step 2–3). Confirm `secrets/notion_ids.json` exists (IDs load via SSH).
 4. **Webhook** node: production URL is `http://localhost:5678/webhook/job-ingest`. Inactive workflows use `http://localhost:5678/webhook-test/job-ingest` and require **Test workflow** in the editor.
-5. Save. Set **Active** only after credentials and IDs are set.
+5. Save. Set **Active** only after credentials and the secrets file are set.
 
 If Execute Command is blocked in your n8n install, swap **Clean HTML** for a Code node that shells out the same script, or enable the Python task runner and paste the body of `clean_html.py` (allowlist `bs4`, `html2text`, `re`, `json`, `argparse`, `sys`, `base64`). Prefer Execute Command on local n8n.
 
@@ -127,8 +123,8 @@ To allow a non-localhost n8n URL, add it to `host_permissions` in [`chrome-exten
 
 - [ ] `clean_html.py` smoke test prints Markdown without nav/script
 - [ ] `secrets/master_cv.tex` copied from your original CV (not in git)
-- [ ] Claude key in n8n Header Auth; spend cap set
+- [ ] `anthropic_api_key` in `secrets/notion_ids.json`; spend cap set in Anthropic console
 - [ ] Applications DB + two pages shared with the integration
-- [ ] Three Notion IDs pasted into the workflow
+- [ ] `secrets/notion_ids.json` filled; SSH Load Secret IDs works
 - [ ] Webhook URL in the extension matches active vs test
 - [ ] Duplicate curl does not call Haiku
