@@ -35,7 +35,7 @@
         "operation": "getAll",
         "databaseId": {
           "__rl": true,
-          "value": "3cfcf2debf3e80a29775cddd5bec9204?v=3cfcf2debf3e806791e5000cd53f652b",
+          "value": "REPLACE_ME_APPLICATIONS_DB_ID",
           "mode": "id"
         },
         "returnAll": "={{ false }}",
@@ -55,7 +55,6 @@
       "alwaysOutputData": true,
       "credentials": {
         "notionApi": {
-          "id": "PVbozrs4FE83DBwK",
           "name": "Notion account"
         }
       }
@@ -111,7 +110,7 @@
         "operation": "getAll",
         "blockId": {
           "__rl": true,
-          "value": "3cfcf2debf3e80bf8f12fd84e531357f",
+          "value": "REPLACE_ME_MASTER_CV_PAGE_ID",
           "mode": "id"
         },
         "returnAll": true,
@@ -128,14 +127,13 @@
       "alwaysOutputData": true,
       "credentials": {
         "notionApi": {
-          "id": "PVbozrs4FE83DBwK",
           "name": "Notion account"
         }
       }
     },
     {
       "parameters": {
-        "jsCode": "function blockText(j) {\n  if (!j) return '';\n  if (typeof j.content === 'string') return j.content;\n  if (typeof j.textContent === 'string') return j.textContent;\n  if (typeof j.plain_text === 'string') return j.plain_text;\n  const prefix = {\n    heading_1: '# ',\n    heading_2: '## ',\n    heading_3: '### ',\n    bulleted_list_item: '- ',\n    numbered_list_item: '- '\n  };\n  const keys = ['paragraph','heading_1','heading_2','heading_3','bulleted_list_item','numbered_list_item','quote','code','toggle','callout'];\n  for (const k of keys) {\n    const b = j[k];\n    if (b && Array.isArray(b.rich_text)) {\n      const t = b.rich_text.map(function (x) { return x.plain_text || ''; }).join('');\n      return (prefix[k] || '') + t;\n    }\n  }\n  if (Array.isArray(j.rich_text)) {\n    return j.rich_text.map(function (t) { return t.plain_text || ''; }).join('');\n  }\n  return '';\n}\nconst cv_md = $input.all().map(function (i) { return blockText(i.json); }).filter(Boolean).join('\\n');\nconst prev = $('Parse Clean MD').first().json;\nreturn [{ json: { url: prev.url, clean_md: prev.clean_md, cv_md: cv_md } }];\n"
+        "jsCode": "function blockText(j) {\n  if (!j) return '';\n  if (typeof j.content === 'string') return j.content;\n  if (typeof j.textContent === 'string') return j.textContent;\n  if (typeof j.plain_text === 'string') return j.plain_text;\n  const keys = ['paragraph','heading_1','heading_2','heading_3','bulleted_list_item','numbered_list_item','quote','code','toggle','callout'];\n  for (const k of keys) {\n    const b = j[k];\n    if (b && Array.isArray(b.rich_text)) {\n      return b.rich_text.map(function (t) { return t.plain_text || ''; }).join('');\n    }\n  }\n  if (Array.isArray(j.rich_text)) {\n    return j.rich_text.map(function (t) { return t.plain_text || ''; }).join('');\n  }\n  return '';\n}\nconst cv_md = $input.all().map(function (i) { return blockText(i.json); }).filter(Boolean).join('\\n');\nconst prev = $('Parse Clean MD').first().json;\nreturn [{ json: { url: prev.url, clean_md: prev.clean_md, cv_md: cv_md } }];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -181,7 +179,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: 'claude-haiku-4-5', max_tokens: 800, system: \"You score job fit 0-100 against the master CV. Non-negotiables: years of experience, core tech stack, required languages. Reply with ONLY a JSON object, no markdown fences. Keys: job_title (string), company (string), skills (string, comma-separated), location (string), fit_score (integer 0-100), rationale (string, exactly 2 sentences), gaps (array of 0 to 5 short strings: JD requirements not evidenced in the Master CV).\", messages: [{ role: 'user', content: $json.haiku_user }] }) }}",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-haiku-4-5', max_tokens: 8000, system: \"You score job fit 0-100 against the master CV. Non-negotiables: years of experience, core tech stack, required languages. Reply with ONLY a JSON object, no markdown fences. Keys: job_title (string), company (string), skills (string, comma-separated), location (string), fit_score (integer 0-100), rationale (string, exactly 2 sentences), gaps (array of 0 to 5 short strings: JD requirements not evidenced in the Master CV).\", messages: [{ role: 'user', content: $json.haiku_user }] }) }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -194,7 +192,6 @@
       "name": "Haiku Triage",
       "credentials": {
         "httpHeaderAuth": {
-          "id": "GLdlfmzAkKCgVcKm",
           "name": "JDClaude"
         }
       }
@@ -251,7 +248,7 @@
         "resource": "databasePage",
         "databaseId": {
           "__rl": true,
-          "value": "3cfcf2debf3e80a29775cddd5bec9204?v=3cfcf2debf3e806791e5000cd53f652b",
+          "value": "REPLACE_ME_APPLICATIONS_DB_ID",
           "mode": "id"
         },
         "title": "={{ $json.job_title }}",
@@ -289,15 +286,7 @@
           ]
         },
         "blockUi": {
-          "blockValues": [
-            {
-              "type": "heading_2",
-              "textContent": "Gaps"
-            },
-            {
-              "textContent": "={{ $json.gaps || 'none' }}"
-            }
-          ]
+          "blockValues": []
         },
         "options": {}
       },
@@ -311,7 +300,6 @@
       "name": "Log Skipped",
       "credentials": {
         "notionApi": {
-          "id": "PVbozrs4FE83DBwK",
           "name": "Notion account"
         }
       }
@@ -322,7 +310,7 @@
         "operation": "getAll",
         "blockId": {
           "__rl": true,
-          "value": "3cfcf2debf3e80dbaafcdd4e7a91bfd2",
+          "value": "REPLACE_ME_STYLE_PAGE_ID",
           "mode": "id"
         },
         "returnAll": true,
@@ -339,7 +327,6 @@
       "alwaysOutputData": true,
       "credentials": {
         "notionApi": {
-          "id": "PVbozrs4FE83DBwK",
           "name": "Notion account"
         }
       }
@@ -360,7 +347,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const j = $input.item.json;\nconst jd = String(j.clean_md || '').slice(0, 8000);\nconst sonnet_user = [\n  'STYLE & LEARNINGS:\\n' + (j.style_rules || ''),\n  'MASTER CV:\\n' + (j.cv_md || ''),\n  'GAPS (JD vs Master CV):\\n' + (j.gaps || 'none'),\n  'JOB DESCRIPTION:\\n' + jd\n].join('\\n\\n');\nreturn { json: Object.assign({}, j, { sonnet_user: sonnet_user }) };\n"
+        "jsCode": "const j = $input.item.json;\nconst sonnet_user = [\n  'STYLE & LEARNINGS:\\n' + (j.style_rules || ''),\n  'MASTER CV:\\n' + (j.cv_md || ''),\n  'JOB DESCRIPTION:\\n' + (j.clean_md || '')\n].join('\\n\\n');\nreturn { json: Object.assign({}, j, { sonnet_user: sonnet_user }) };\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -392,7 +379,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 8000, thinking: { type: 'disabled' }, system: \"You write application assets. Follow the Style & Learnings rules exactly. Do not invent employers, dates, or metrics that are not in the Master CV. GAPS lists JD requirements missing from the Master CV; do not invent experience to fill them. Reply with ONLY a JSON object, no markdown fences. Keys: cv_bullets (array of 3 to 5 strings mapped to JD keywords), cover_letter (string, exactly 3 paragraphs separated by blank lines), flashcards (object with keys technical and behavioral, each an array of 5 objects with question and answer), dossier (string: business model, product, why this role), salary_range (string: numbers from the JD, or a range), salary_flag (string: exactly 'extracted' if the JD listed pay, otherwise 'UNVERIFIED Estimate').\", messages: [{ role: 'user', content: $json.sonnet_user }] }) }}",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 8000, thinking: { type: 'disabled' }, system: \"You write application assets. Follow the Style & Learnings rules exactly. Do not invent employers, dates, or metrics that are not in the Master CV. GAPS lists JD requirements missing from the Master CV; do not invent experience to fill them. Reply with ONLY a JSON object, no markdown fences. Keys: cv_bullets (array of 3 to 5 strings mapped to JD keywords), cover_letter (string, exactly 3 paragraphs separated by blank lines), salary_range (string: numbers from the JD, or a range), salary_flag (string: exactly 'extracted' if the JD listed pay, otherwise 'UNVERIFIED Estimate').\", messages: [{ role: 'user', content: $json.sonnet_user }] }) }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -405,7 +392,6 @@
       "name": "Sonnet Assets",
       "credentials": {
         "httpHeaderAuth": {
-          "id": "GLdlfmzAkKCgVcKm",
           "name": "JDClaude"
         }
       }
@@ -413,7 +399,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "function cap(s) {\n  s = String(s || '');\n  return s.length <= 1900 ? s : s.slice(0, 1899) + '\\u2026';\n}\nfunction asText(value) {\n  if (value == null) return '';\n  if (typeof value === 'string') return value;\n  if (Array.isArray(value)) {\n    return value.map(function (x) {\n      if (typeof x === 'string') return '- ' + x;\n      const q = x.question || x.q || '';\n      const a = x.answer || x.a || '';\n      return 'Q: ' + q + '\\nA: ' + a;\n    }).join('\\n\\n');\n  }\n  if (typeof value === 'object') {\n    const parts = [];\n    Object.keys(value).forEach(function (k) {\n      parts.push('## ' + k);\n      parts.push(asText(value[k]));\n    });\n    return parts.join('\\n\\n');\n  }\n  return String(value);\n}\nconst item = $input.item.json;\nconst content = item.content;\nconst textBlock = Array.isArray(content) ? content.find(function (b) { return b && b.type === 'text' && b.text; }) : null;\nconst text = (textBlock && textBlock.text) || '';\nconst match = String(text).match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('Sonnet did not return JSON');\nconst parsed = JSON.parse(match[0]);\nconst prev = $('Flatten Style').first().json;\nconst flag = parsed.salary_flag === 'extracted' ? 'extracted' : 'UNVERIFIED Estimate';\nreturn { json: {\n  url: prev.url,\n  cv_md: prev.cv_md || '',\n  job_title: prev.job_title,\n  company: prev.company,\n  skills: prev.skills,\n  location: prev.location,\n  fit_score: prev.fit_score,\n  rationale: prev.rationale,\n  gaps: prev.gaps || '',\n  cv_bullets: cap(asText(parsed.cv_bullets)),\n  cover_letter: cap(asText(parsed.cover_letter)),\n  flashcards: cap(asText(parsed.flashcards)),\n  dossier: cap(asText(parsed.dossier)),\n  salary_range: parsed.salary_range || 'UNVERIFIED Estimate',\n  salary_flag: flag\n} };\n"
+        "jsCode": "function cap(s) {\n  s = String(s || '');\n  return s.length <= 1900 ? s : s.slice(0, 1899) + '\\u2026';\n}\nfunction asText(value) {\n  if (value == null) return '';\n  if (typeof value === 'string') return value;\n  if (Array.isArray(value)) {\n    return value.map(function (x) { return '- ' + x; }).join('\\n\\n');\n  }\n  return String(value);\n}\nfunction repairJson(s) {\n  let out = '';\n  let inString = false;\n  let escaped = false;\n  for (let i = 0; i < s.length; i++) {\n    const c = s[i];\n    const code = s.charCodeAt(i);\n    if (!inString) {\n      if (c === '\"') inString = true;\n      out += c;\n      continue;\n    }\n    if (escaped) {\n      out += c;\n      escaped = false;\n      continue;\n    }\n    if (c === '\\\\') {\n      out += c;\n      escaped = true;\n      continue;\n    }\n    if (c === '\"') {\n      out += c;\n      inString = false;\n      continue;\n    }\n    if (code < 32) {\n      if (c === '\\n') out += '\\\\n';\n      else if (c === '\\r') out += '\\\\r';\n      else if (c === '\\t') out += '\\\\t';\n      else out += '\\\\u' + ('0000' + code.toString(16)).slice(-4);\n      continue;\n    }\n    out += c;\n  }\n  return out;\n}\nconst item = $input.item.json;\nconst content = item.content;\nconst textBlock = Array.isArray(content) ? content.find(function (b) { return b && b.type === 'text' && b.text; }) : null;\nconst text = (textBlock && textBlock.text) || '';\nconst match = String(text).match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('Sonnet did not return JSON');\nconst parsed = JSON.parse(repairJson(match[0]));\nconst prev = $('Flatten Style').first().json;\nconst flag = parsed.salary_flag === 'extracted' ? 'extracted' : 'UNVERIFIED Estimate';\nreturn { json: {\n  url: prev.url,\n  cv_md: prev.cv_md || '',\n  job_title: prev.job_title,\n  company: prev.company,\n  skills: prev.skills,\n  location: prev.location,\n  fit_score: prev.fit_score,\n  rationale: prev.rationale,\n  gaps: prev.gaps || '',\n  cv_bullets: cap(asText(parsed.cv_bullets)),\n  cover_letter: cap(asText(parsed.cover_letter)),\n  salary_range: parsed.salary_range || 'UNVERIFIED Estimate',\n  salary_flag: flag\n} };"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -483,18 +469,6 @@
               "type": "string"
             },
             {
-              "id": "t10",
-              "name": "flashcards",
-              "value": "={{ $json.flashcards }}",
-              "type": "string"
-            },
-            {
-              "id": "t11",
-              "name": "dossier",
-              "value": "={{ $json.dossier }}",
-              "type": "string"
-            },
-            {
               "id": "t12",
               "name": "salary_range",
               "value": "={{ $json.salary_range }}",
@@ -507,25 +481,19 @@
               "type": "string"
             },
             {
-              "id": "t14",
-              "name": "gaps",
-              "value": "={{ $json.gaps }}",
-              "type": "string"
-            },
-            {
-              "id": "t15",
+              "id": "58f2c29e-ab3f-41d7-beaa-b32f5d2187d7",
               "name": "latex_cv",
               "value": "={{ $json.latex_cv }}",
               "type": "string"
             },
             {
-              "id": "t16",
+              "id": "c79f4047-1efb-4b9a-b1f0-355601dd3a94",
               "name": "latex_cover_letter",
               "value": "={{ $json.latex_cover_letter }}",
               "type": "string"
             },
             {
-              "id": "t17",
+              "id": "8f8b23b6-d910-4a4f-8fd7-df50f0d4f3fd",
               "name": "latex_patch_map",
               "value": "={{ $json.latex_patch_map }}",
               "type": "string"
@@ -537,7 +505,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        3936,
+        3216,
         -64
       ],
       "id": "739ab385-dadf-47b7-b256-abdcd1711755",
@@ -548,7 +516,7 @@
         "resource": "databasePage",
         "databaseId": {
           "__rl": true,
-          "value": "3cfcf2debf3e80a29775cddd5bec9204?v=3cfcf2debf3e806791e5000cd53f652b",
+          "value": "REPLACE_ME_APPLICATIONS_DB_ID",
           "mode": "id"
         },
         "title": "={{ $json.job_title }}",
@@ -593,7 +561,7 @@
             },
             {
               "key": "LaTex CV|rich_text",
-              "textContent": "={{ $json.latex_cv }}"
+              "textContent": "= {{ $json.latex_cv }}"
             },
             {
               "key": "LaTex Cover Letter|rich_text",
@@ -630,20 +598,6 @@
             },
             {
               "textContent": "={{ $json.cover_letter }}"
-            },
-            {
-              "type": "heading_2",
-              "textContent": "Interview flashcards"
-            },
-            {
-              "textContent": "={{ $json.flashcards }}"
-            },
-            {
-              "type": "heading_2",
-              "textContent": "Company dossier"
-            },
-            {
-              "textContent": "={{ $json.dossier }}"
             }
           ]
         },
@@ -652,14 +606,13 @@
       "type": "n8n-nodes-base.notion",
       "typeVersion": 2.2,
       "position": [
-        4176,
+        3456,
         -64
       ],
       "id": "da0fd424-f308-4e96-9c4c-81a96e730d8d",
       "name": "Create Application",
       "credentials": {
         "notionApi": {
-          "id": "PVbozrs4FE83DBwK",
           "name": "Notion account"
         }
       }
@@ -680,7 +633,7 @@
       ],
       "id": "866afc30-915d-4721-bfa7-1957a961871b",
       "name": "Webhook1",
-      "webhookId": "e85b00be-aff1-49bb-aacd-dede3a7082e0"
+      "webhookId": "REPLACE_ME_WEBHOOK_ID"
     },
     {
       "parameters": {
@@ -699,16 +652,15 @@
     },
     {
       "parameters": {
-        "mode": "runOnceForEachItem",
-        "jsCode": "const j = $input.item.json;\nlet cv = String(j.cv_md || '');\nif (!cv) {\n  try { cv = String($('Flatten CV').first().json.cv_md || ''); } catch (e) {}\n}\nif (!cv) {\n  try { cv = String($('Flatten Style').first().json.cv_md || ''); } catch (e) {}\n}\nconst latex_user = [\n  'Put each tailored bullet under the closest EXISTING job/employer/role in MASTER CV TEXT.',\n  'Do not invent jobs. Do not skip a bullet because its topic is not a heading name.',\n  'Group bullets that belong to the same role into one patch.',\n  'NO MATCH only if MASTER CV TEXT is empty.',\n  '',\n  'MASTER CV TEXT:',\n  cv.slice(0, 2500) || '(empty Master CV)',\n  '',\n  'CV BULLETS:',\n  j.cv_bullets || '',\n  '',\n  'COVER LETTER:',\n  j.cover_letter || ''\n].join('\\n');\nreturn { json: Object.assign({}, j, { latex_user: latex_user }) };\n"
+        "jsCode": "const j = $input.item.json;\nlet cv = String(j.cv_md || '');\nif (!cv) {\n  try { cv = String($('Flatten CV').first().json.cv_md || ''); } catch (e) {}\n}\nif (!cv) {\n  try { cv = String($('Flatten Style').first().json.cv_md || ''); } catch (e) {}\n}\nconst latex_user = [\n  'Put each tailored bullet under the closest EXISTING job/employer/role in MASTER CV TEXT.',\n  'Do not invent jobs. Do not skip a bullet because its topic is not a heading name.',\n  'Group bullets that belong to the same role into one patch.',\n  'NO MATCH only if MASTER CV TEXT is empty.',\n  '',\n  'MASTER CV TEXT:',\n  cv.slice(0, 2500) || '(empty Master CV)',\n  '',\n  'CV BULLETS:',\n  j.cv_bullets || '',\n  '',\n  'COVER LETTER:',\n  j.cover_letter || ''\n].join('\\n');\nreturn { json: Object.assign({}, j, { latex_user: latex_user }) };"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3216,
-        -64
+        2960,
+        160
       ],
-      "id": "2bdf9a6f-8539-4537-8feb-8e3252f5ff73",
+      "id": "f12adf6f-4932-4e6c-b65f-a36cc8bb6239",
       "name": "Build Latex Prompt"
     },
     {
@@ -732,36 +684,34 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 4000, thinking: { type: 'disabled' }, system: \"You map approved CV bullets onto existing jobs in MASTER CV TEXT, and translate the cover letter. Same facts only. Do not invent employers, dates, metrics, or roles. Do not emit \\\\documentclass or \\\\begin{document}. Reply with ONLY a JSON object, no markdown fences. Keys: latex_cv_patches (array of 1 to 4 objects with where, action, latex), latex_cover_letter (object with where, action, latex). where: 'Section > Role @ Employer' copied from MASTER CV TEXT (use whatever labels exist even if not markdown headings). action: one line starting with Replace, Insert, or Add to, naming that role's itemize. latex: fragment with \\\\begin{itemize} / \\\\item for that role; escape %, &, $, #, _. A tailored bullet about a new skill still belongs under the closest existing role. NO MATCH only if MASTER CV TEXT is empty. latex_cover_letter.where is the master cover-letter file / body; action is Replace all 3 paragraphs.\", messages: [{ role: 'user', content: $json.latex_user }] }) }}",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 4000, thinking: { type: 'disabled' }, system: \"You map approved CV bullets and a cover letter onto the Master CV outline. Same facts only. Do not invent employers, dates, metrics, roles, or sections. Do not emit \\\\documentclass or \\\\begin{document}. Reply with ONLY a JSON object, no markdown fences. Keys: latex_cv_patches (array of 1 to 4 objects with where, action, latex), latex_cover_letter (object with where, action, latex). where: copy a path from MASTER CV OUTLINE, e.g. 'Experience > Data Engineer @ Acme Corp'. action: one line starting with Replace, Insert, or Add to, naming the exact itemize/paragraph. latex: fragment only (\\\\section / \\\\subsection / \\\\textbf / \\\\begin{itemize} / \\\\item); escape %, &, $, #, _. If a bullet has no matching heading, where must start with 'NO MATCH' and latex must be empty.\", messages: [{ role: 'user', content: $json.latex_user }] }) }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        3456,
-        -64
+        3232,
+        160
       ],
-      "id": "2303ed67-3079-4b34-956a-d44e174ef1b6",
+      "id": "9f025360-f78d-4b1e-927e-278d219d53a1",
       "name": "Sonnet LaTeX",
       "credentials": {
         "httpHeaderAuth": {
-          "id": "GLdlfmzAkKCgVcKm",
           "name": "JDClaude"
         }
       }
     },
     {
       "parameters": {
-        "mode": "runOnceForEachItem",
-        "jsCode": "function cap(s) {\n  s = String(s || '');\n  return s.length <= 1900 ? s : s.slice(0, 1899) + '\\u2026';\n}\nfunction asPatch(p) {\n  if (p == null) return { where: '', action: '', latex: '' };\n  if (typeof p === 'string') return { where: '', action: '', latex: p };\n  return {\n    where: String(p.where || ''),\n    action: String(p.action || ''),\n    latex: String(p.latex || '')\n  };\n}\nfunction block(p) {\n  p = asPatch(p);\n  return [\n    '% WHERE: ' + p.where,\n    '% ACTION: ' + p.action,\n    p.latex\n  ].join('\\n');\n}\nconst item = $input.item.json;\nconst content = item.content;\nconst textBlock = Array.isArray(content) ? content.find(function (b) { return b && b.type === 'text' && b.text; }) : null;\nconst text = (textBlock && textBlock.text) || '';\nconst match = String(text).match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('Sonnet LaTeX did not return JSON');\nconst parsed = JSON.parse(match[0]);\nconst prev = $('Parse Assets').first().json;\nconst patches = Array.isArray(parsed.latex_cv_patches) ? parsed.latex_cv_patches : (parsed.latex_cv ? [parsed.latex_cv] : []);\nconst letter = asPatch(parsed.latex_cover_letter);\nconst mapLines = patches.map(function (p, i) {\n  p = asPatch(p);\n  return (i + 1) + '. CV → ' + p.where + ' — ' + p.action;\n});\nmapLines.push('Letter → ' + letter.where + ' — ' + letter.action);\nreturn { json: Object.assign({}, prev, {\n  latex_cv: cap(patches.map(block).join('\\n\\n')),\n  latex_cover_letter: cap(block(letter)),\n  latex_patch_map: cap(mapLines.join('\\n'))\n}) };\n"
+        "jsCode": "function cap(s) {\n  s = String(s || '');\n  return s.length <= 1900 ? s : s.slice(0, 1899) + '\\u2026';\n}\nfunction asPatch(p) {\n  if (p == null) return { where: '', action: '', latex: '' };\n  if (typeof p === 'string') return { where: '', action: '', latex: p };\n  return {\n    where: String(p.where || ''),\n    action: String(p.action || ''),\n    latex: String(p.latex || '')\n  };\n}\nfunction block(p) {\n  p = asPatch(p);\n  return [\n    '% WHERE: ' + p.where,\n    '% ACTION: ' + p.action,\n    p.latex\n  ].join('\\n');\n}\nconst item = $input.item.json;\nconst content = item.content;\nconst textBlock = Array.isArray(content) ? content.find(function (b) { return b && b.type === 'text' && b.text; }) : null;\nconst text = (textBlock && textBlock.text) || '';\nconst match = String(text).match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('Sonnet LaTeX did not return JSON');\nconst parsed = JSON.parse(match[0]);\nconst prev = $('Parse Assets').first().json;\nconst patches = Array.isArray(parsed.latex_cv_patches) ? parsed.latex_cv_patches : (parsed.latex_cv ? [parsed.latex_cv] : []);\nconst letter = asPatch(parsed.latex_cover_letter);\nconst mapLines = patches.map(function (p, i) {\n  p = asPatch(p);\n  return (i + 1) + '. CV \u2192 ' + p.where + ' \u2014 ' + p.action;\n});\nmapLines.push('Letter \u2192 ' + letter.where + ' \u2014 ' + letter.action);\nreturn { json: Object.assign({}, prev, {\n  latex_cv: cap(patches.map(block).join('\\n\\n')),\n  latex_cover_letter: cap(block(letter)),\n  latex_patch_map: cap(mapLines.join('\\n'))\n}) };"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3696,
-        -64
+        3456,
+        160
       ],
-      "id": "67875e0c-d2f8-4904-a11b-e0120aad8864",
+      "id": "ce901269-882e-42ac-958c-61621b3d2222",
       "name": "Parse Latex"
     }
   ],
@@ -1002,16 +952,15 @@
       ]
     }
   },
-  "active": true,
+  "active": false,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "dc57ae6f-d69b-40b3-8994-d5477cc01a04",
   "meta": {
     "templateCredsSetupCompleted": true
   },
   "nodeGroups": [],
-  "id": "VZH4LpQ6MVi8FvEW",
+  "id": "REPLACE_ME_WORKFLOW_ID",
   "tags": []
 }

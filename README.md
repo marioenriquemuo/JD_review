@@ -1,6 +1,6 @@
 # Automated Job Analysis & Asset Engine
 
-Manual ingest of a job posting via a Chrome extension. n8n deduplicates against Notion for $0, triages with Claude Haiku, and only then spends Sonnet tokens on CV bullets, cover letter, interview flashcards, and a company dossier.
+Manual ingest of a job posting via a Chrome extension. n8n deduplicates against Notion for $0, triages with Claude Haiku, and only then spends Sonnet tokens on CV bullets, a cover letter, and salary.
 
 API keys and Notion tokens are **not** in this repo. Import [`JD Flow.json`](JD Flow.json) into n8n and attach credentials locally.
 
@@ -25,12 +25,12 @@ Chrome extension (URL + HTML)
   → Claude Haiku triage (JSON: title, company, skills, location, fit_score, rationale)
        fit < 70  → Notion row Status=Skipped  (~$0.004)
        fit >= 70 → Get Style & Learnings
-  → Claude Sonnet (one JSON: bullets, letter, flashcards, dossier, salary)
+  → Claude Sonnet (one JSON: bullets, letter, salary)
   → Claude Sonnet LaTeX (fragments from those bullets/letter only)
   → Notion row Status=Ready to Apply  (~$0.045 total)
 ```
 
-The mermaid H1–H4 boxes are fields from **one** Sonnet response, not four model calls. LaTeX columns are a **second** Sonnet call that only translates those bullets/letter — not another mermaid model box.
+The mermaid H1–H2 boxes are fields from **one** Sonnet response, not two model calls. LaTeX columns are a **second** Sonnet call that only translates those bullets/letter — not another mermaid model box.
 
 ## Models and unit economics
 
@@ -67,7 +67,7 @@ Title property: **Job Title**.
 | LaTex CV | rich_text | LaTeX fragment of CV sections to paste into the master `.tex` |
 | LaTex Cover Letter | rich_text | LaTeX fragment of the letter body to paste into the master letter |
 
-Long assets (CV bullets, cover letter, flashcards, dossier) are written into the **page body**, not properties — Notion property values cap at 2,000 characters. **LaTex CV** and **LaTex Cover Letter** are section fragments (capped ~1,900 chars), not a full `\documentclass` dump.
+Long assets (CV bullets, cover letter) are written into the **page body**, not properties — Notion property values cap at 2,000 characters. **LaTex CV** and **LaTex Cover Letter** are section fragments (capped ~1,900 chars), not a full `\documentclass` dump.
 
 `Status=Duplicate` is not written. A hit on `Job URL` ends the execution; n8n’s execution log is the duplicate record.
 
