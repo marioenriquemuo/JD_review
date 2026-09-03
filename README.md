@@ -26,10 +26,11 @@ Chrome extension (URL + HTML)
        fit < 70  → Notion row Status=Skipped  (~$0.004)
        fit >= 70 → Get Style & Learnings
   → Claude Sonnet (one JSON: bullets, letter, flashcards, dossier, salary)
-  → Notion row Status=Ready to Apply  (~$0.031 total)
+  → Claude Sonnet LaTeX (fragments from those bullets/letter only)
+  → Notion row Status=Ready to Apply  (~$0.045 total)
 ```
 
-The mermaid H1–H4 boxes are fields from **one** Sonnet response, not four model calls.
+The mermaid H1–H4 boxes are fields from **one** Sonnet response, not four model calls. LaTeX columns are a **second** Sonnet call that only translates those bullets/letter — not another mermaid model box.
 
 ## Models and unit economics
 
@@ -40,7 +41,8 @@ Claude 3.5 Haiku is retired on the Claude API. This project uses the current che
 | Dedup | Every run | Python + Notion | 0 LLM | $0.000 |
 | Triage fail | New JD, fit &lt; 70 | `claude-haiku-4-5` | ~2,500 in / 300 out | ~$0.004 |
 | Assets | fit &gt;= 70 | `claude-sonnet-5` | ~3,500 in / 2,000 out | ~$0.027 |
-| Full pass | Qualified JD | both | — | **~$0.031** |
+| LaTeX | after assets | `claude-sonnet-5` | ~800 in / 1,200 out | ~$0.014 |
+| Full pass | Qualified JD | Haiku + two Sonnets | — | **~$0.045** |
 
 Prices from [Anthropic API pricing](https://platform.claude.com/docs/en/about-claude/pricing) (Haiku 4.5 $1/$5 per MTok, Sonnet 5 $2/$10 per MTok). Recalculate if you change models.
 
@@ -62,8 +64,10 @@ Title property: **Job Title**.
 | Rationale | rich_text | Two-sentence Haiku reason |
 | Salary Range | rich_text | Number range or estimate |
 | Salary Flag | select | `extracted`, `UNVERIFIED Estimate` |
+| LaTex CV | rich_text | LaTeX fragment of CV sections to paste into the master `.tex` |
+| LaTex Cover Letter | rich_text | LaTeX fragment of the letter body to paste into the master letter |
 
-Long assets (CV bullets, cover letter, flashcards, dossier) are written into the **page body**, not properties — Notion property values cap at 2,000 characters.
+Long assets (CV bullets, cover letter, flashcards, dossier) are written into the **page body**, not properties — Notion property values cap at 2,000 characters. **LaTex CV** and **LaTex Cover Letter** are section fragments (capped ~1,900 chars), not a full `\documentclass` dump.
 
 `Status=Duplicate` is not written. A hit on `Job URL` ends the execution; n8n’s execution log is the duplicate record.
 

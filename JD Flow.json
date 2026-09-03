@@ -135,7 +135,7 @@
     },
     {
       "parameters": {
-        "jsCode": "function blockText(j) {\n  if (!j) return '';\n  if (typeof j.content === 'string') return j.content;\n  if (typeof j.textContent === 'string') return j.textContent;\n  if (typeof j.plain_text === 'string') return j.plain_text;\n  const keys = ['paragraph','heading_1','heading_2','heading_3','bulleted_list_item','numbered_list_item','quote','code','toggle','callout'];\n  for (const k of keys) {\n    const b = j[k];\n    if (b && Array.isArray(b.rich_text)) {\n      return b.rich_text.map(function (t) { return t.plain_text || ''; }).join('');\n    }\n  }\n  if (Array.isArray(j.rich_text)) {\n    return j.rich_text.map(function (t) { return t.plain_text || ''; }).join('');\n  }\n  return '';\n}\nconst cv_md = $input.all().map(function (i) { return blockText(i.json); }).filter(Boolean).join('\\n');\nconst prev = $('Parse Clean MD').first().json;\nreturn [{ json: { url: prev.url, clean_md: prev.clean_md, cv_md: cv_md } }];\n"
+        "jsCode": "function blockText(j) {\n  if (!j) return '';\n  if (typeof j.content === 'string') return j.content;\n  if (typeof j.textContent === 'string') return j.textContent;\n  if (typeof j.plain_text === 'string') return j.plain_text;\n  const prefix = {\n    heading_1: '# ',\n    heading_2: '## ',\n    heading_3: '### ',\n    bulleted_list_item: '- ',\n    numbered_list_item: '- '\n  };\n  const keys = ['paragraph','heading_1','heading_2','heading_3','bulleted_list_item','numbered_list_item','quote','code','toggle','callout'];\n  for (const k of keys) {\n    const b = j[k];\n    if (b && Array.isArray(b.rich_text)) {\n      const t = b.rich_text.map(function (x) { return x.plain_text || ''; }).join('');\n      return (prefix[k] || '') + t;\n    }\n  }\n  if (Array.isArray(j.rich_text)) {\n    return j.rich_text.map(function (t) { return t.plain_text || ''; }).join('');\n  }\n  return '';\n}\nconst cv_md = $input.all().map(function (i) { return blockText(i.json); }).filter(Boolean).join('\\n');\nconst prev = $('Parse Clean MD').first().json;\nreturn [{ json: { url: prev.url, clean_md: prev.clean_md, cv_md: cv_md } }];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -413,7 +413,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "function cap(s) {\n  s = String(s || '');\n  return s.length <= 1900 ? s : s.slice(0, 1899) + '\\u2026';\n}\nfunction asText(value) {\n  if (value == null) return '';\n  if (typeof value === 'string') return value;\n  if (Array.isArray(value)) {\n    return value.map(function (x) {\n      if (typeof x === 'string') return '- ' + x;\n      const q = x.question || x.q || '';\n      const a = x.answer || x.a || '';\n      return 'Q: ' + q + '\\nA: ' + a;\n    }).join('\\n\\n');\n  }\n  if (typeof value === 'object') {\n    const parts = [];\n    Object.keys(value).forEach(function (k) {\n      parts.push('## ' + k);\n      parts.push(asText(value[k]));\n    });\n    return parts.join('\\n\\n');\n  }\n  return String(value);\n}\nconst item = $input.item.json;\nconst content = item.content;\nconst textBlock = Array.isArray(content) ? content.find(function (b) { return b && b.type === 'text' && b.text; }) : null;\nconst text = (textBlock && textBlock.text) || '';\nconst match = String(text).match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('Sonnet did not return JSON');\nconst parsed = JSON.parse(match[0]);\nconst prev = $('Flatten Style').first().json;\nconst flag = parsed.salary_flag === 'extracted' ? 'extracted' : 'UNVERIFIED Estimate';\nreturn { json: {\n  url: prev.url,\n  job_title: prev.job_title,\n  company: prev.company,\n  skills: prev.skills,\n  location: prev.location,\n  fit_score: prev.fit_score,\n  rationale: prev.rationale,\n  gaps: prev.gaps || '',\n  cv_bullets: cap(asText(parsed.cv_bullets)),\n  cover_letter: cap(asText(parsed.cover_letter)),\n  flashcards: cap(asText(parsed.flashcards)),\n  dossier: cap(asText(parsed.dossier)),\n  salary_range: parsed.salary_range || 'UNVERIFIED Estimate',\n  salary_flag: flag\n} };\n"
+        "jsCode": "function cap(s) {\n  s = String(s || '');\n  return s.length <= 1900 ? s : s.slice(0, 1899) + '\\u2026';\n}\nfunction asText(value) {\n  if (value == null) return '';\n  if (typeof value === 'string') return value;\n  if (Array.isArray(value)) {\n    return value.map(function (x) {\n      if (typeof x === 'string') return '- ' + x;\n      const q = x.question || x.q || '';\n      const a = x.answer || x.a || '';\n      return 'Q: ' + q + '\\nA: ' + a;\n    }).join('\\n\\n');\n  }\n  if (typeof value === 'object') {\n    const parts = [];\n    Object.keys(value).forEach(function (k) {\n      parts.push('## ' + k);\n      parts.push(asText(value[k]));\n    });\n    return parts.join('\\n\\n');\n  }\n  return String(value);\n}\nconst item = $input.item.json;\nconst content = item.content;\nconst textBlock = Array.isArray(content) ? content.find(function (b) { return b && b.type === 'text' && b.text; }) : null;\nconst text = (textBlock && textBlock.text) || '';\nconst match = String(text).match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('Sonnet did not return JSON');\nconst parsed = JSON.parse(match[0]);\nconst prev = $('Flatten Style').first().json;\nconst flag = parsed.salary_flag === 'extracted' ? 'extracted' : 'UNVERIFIED Estimate';\nreturn { json: {\n  url: prev.url,\n  cv_md: prev.cv_md || '',\n  job_title: prev.job_title,\n  company: prev.company,\n  skills: prev.skills,\n  location: prev.location,\n  fit_score: prev.fit_score,\n  rationale: prev.rationale,\n  gaps: prev.gaps || '',\n  cv_bullets: cap(asText(parsed.cv_bullets)),\n  cover_letter: cap(asText(parsed.cover_letter)),\n  flashcards: cap(asText(parsed.flashcards)),\n  dossier: cap(asText(parsed.dossier)),\n  salary_range: parsed.salary_range || 'UNVERIFIED Estimate',\n  salary_flag: flag\n} };\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -511,6 +511,24 @@
               "name": "gaps",
               "value": "={{ $json.gaps }}",
               "type": "string"
+            },
+            {
+              "id": "t15",
+              "name": "latex_cv",
+              "value": "={{ $json.latex_cv }}",
+              "type": "string"
+            },
+            {
+              "id": "t16",
+              "name": "latex_cover_letter",
+              "value": "={{ $json.latex_cover_letter }}",
+              "type": "string"
+            },
+            {
+              "id": "t17",
+              "name": "latex_patch_map",
+              "value": "={{ $json.latex_patch_map }}",
+              "type": "string"
             }
           ]
         },
@@ -519,7 +537,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        3216,
+        3936,
         -64
       ],
       "id": "739ab385-dadf-47b7-b256-abdcd1711755",
@@ -572,11 +590,26 @@
             {
               "key": "Salary Flag|select",
               "selectValue": "={{ $json.salary_flag }}"
+            },
+            {
+              "key": "LaTex CV|rich_text",
+              "textContent": "={{ $json.latex_cv }}"
+            },
+            {
+              "key": "LaTex Cover Letter|rich_text",
+              "textContent": "={{ $json.latex_cover_letter }}"
             }
           ]
         },
         "blockUi": {
           "blockValues": [
+            {
+              "type": "heading_2",
+              "textContent": "Where to update the master CV"
+            },
+            {
+              "textContent": "={{ $json.latex_patch_map }}"
+            },
             {
               "type": "heading_2",
               "textContent": "Gaps"
@@ -619,7 +652,7 @@
       "type": "n8n-nodes-base.notion",
       "typeVersion": 2.2,
       "position": [
-        3456,
+        4176,
         -64
       ],
       "id": "da0fd424-f308-4e96-9c4c-81a96e730d8d",
@@ -663,6 +696,73 @@
       ],
       "id": "79d64ea3-a406-4f74-a9c9-c70a90c09300",
       "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const j = $input.item.json;\nlet cv = String(j.cv_md || '');\nif (!cv) {\n  try { cv = String($('Flatten CV').first().json.cv_md || ''); } catch (e) {}\n}\nif (!cv) {\n  try { cv = String($('Flatten Style').first().json.cv_md || ''); } catch (e) {}\n}\nconst latex_user = [\n  'Put each tailored bullet under the closest EXISTING job/employer/role in MASTER CV TEXT.',\n  'Do not invent jobs. Do not skip a bullet because its topic is not a heading name.',\n  'Group bullets that belong to the same role into one patch.',\n  'NO MATCH only if MASTER CV TEXT is empty.',\n  '',\n  'MASTER CV TEXT:',\n  cv.slice(0, 2500) || '(empty Master CV)',\n  '',\n  'CV BULLETS:',\n  j.cv_bullets || '',\n  '',\n  'COVER LETTER:',\n  j.cover_letter || ''\n].join('\\n');\nreturn { json: Object.assign({}, j, { latex_user: latex_user }) };\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3216,
+        -64
+      ],
+      "id": "2bdf9a6f-8539-4537-8feb-8e3252f5ff73",
+      "name": "Build Latex Prompt"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 4000, thinking: { type: 'disabled' }, system: \"You map approved CV bullets onto existing jobs in MASTER CV TEXT, and translate the cover letter. Same facts only. Do not invent employers, dates, metrics, or roles. Do not emit \\\\documentclass or \\\\begin{document}. Reply with ONLY a JSON object, no markdown fences. Keys: latex_cv_patches (array of 1 to 4 objects with where, action, latex), latex_cover_letter (object with where, action, latex). where: 'Section > Role @ Employer' copied from MASTER CV TEXT (use whatever labels exist even if not markdown headings). action: one line starting with Replace, Insert, or Add to, naming that role's itemize. latex: fragment with \\\\begin{itemize} / \\\\item for that role; escape %, &, $, #, _. A tailored bullet about a new skill still belongs under the closest existing role. NO MATCH only if MASTER CV TEXT is empty. latex_cover_letter.where is the master cover-letter file / body; action is Replace all 3 paragraphs.\", messages: [{ role: 'user', content: $json.latex_user }] }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3456,
+        -64
+      ],
+      "id": "2303ed67-3079-4b34-956a-d44e174ef1b6",
+      "name": "Sonnet LaTeX",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "GLdlfmzAkKCgVcKm",
+          "name": "JDClaude"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function cap(s) {\n  s = String(s || '');\n  return s.length <= 1900 ? s : s.slice(0, 1899) + '\\u2026';\n}\nfunction asPatch(p) {\n  if (p == null) return { where: '', action: '', latex: '' };\n  if (typeof p === 'string') return { where: '', action: '', latex: p };\n  return {\n    where: String(p.where || ''),\n    action: String(p.action || ''),\n    latex: String(p.latex || '')\n  };\n}\nfunction block(p) {\n  p = asPatch(p);\n  return [\n    '% WHERE: ' + p.where,\n    '% ACTION: ' + p.action,\n    p.latex\n  ].join('\\n');\n}\nconst item = $input.item.json;\nconst content = item.content;\nconst textBlock = Array.isArray(content) ? content.find(function (b) { return b && b.type === 'text' && b.text; }) : null;\nconst text = (textBlock && textBlock.text) || '';\nconst match = String(text).match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('Sonnet LaTeX did not return JSON');\nconst parsed = JSON.parse(match[0]);\nconst prev = $('Parse Assets').first().json;\nconst patches = Array.isArray(parsed.latex_cv_patches) ? parsed.latex_cv_patches : (parsed.latex_cv ? [parsed.latex_cv] : []);\nconst letter = asPatch(parsed.latex_cover_letter);\nconst mapLines = patches.map(function (p, i) {\n  p = asPatch(p);\n  return (i + 1) + '. CV → ' + p.where + ' — ' + p.action;\n});\nmapLines.push('Letter → ' + letter.where + ' — ' + letter.action);\nreturn { json: Object.assign({}, prev, {\n  latex_cv: cap(patches.map(block).join('\\n\\n')),\n  latex_cover_letter: cap(block(letter)),\n  latex_patch_map: cap(mapLines.join('\\n'))\n}) };\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3696,
+        -64
+      ],
+      "id": "67875e0c-d2f8-4904-a11b-e0120aad8864",
+      "name": "Parse Latex"
     }
   ],
   "pinData": {},
@@ -828,7 +928,7 @@
       "main": [
         [
           {
-            "node": "Assemble Payload",
+            "node": "Build Latex Prompt",
             "type": "main",
             "index": 0
           }
@@ -862,6 +962,39 @@
         [
           {
             "node": "Parse Clean MD",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Latex Prompt": {
+      "main": [
+        [
+          {
+            "node": "Sonnet LaTeX",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sonnet LaTeX": {
+      "main": [
+        [
+          {
+            "node": "Parse Latex",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Latex": {
+      "main": [
+        [
+          {
+            "node": "Assemble Payload",
             "type": "main",
             "index": 0
           }

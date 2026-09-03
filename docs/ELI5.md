@@ -23,7 +23,8 @@ Imagine a post office:
 5. **Haiku** = a cheap intern who scores fit 0–100.
 6. **If score &lt; 70** = file as **Skipped**. Stop.
 7. **If score ≥ 70** = read your CV style notes, then **Sonnet** writes bullets, letter, flashcards, dossier.
-8. **Notion** = the filing cabinet. New page: **Ready to Apply**.
+8. A **second small Sonnet** call turns those bullets/letter into LaTeX sections (not a full `.tex` file).
+9. **Notion** = the filing cabinet. New page: **Ready to Apply**, plus columns **LaTex CV** and **LaTex Cover Letter**.
 
 You click. n8n thinks. Notion stores.
 
@@ -81,7 +82,7 @@ Do these in the order of the steps below. Do not paste API keys into this repo.
 
 - [ ] n8n editor open, **JD Flow** canvas visible, **Active = off**
 - [ ] Anthropic API key stored as n8n **Header Auth**
-- [ ] That credential attached to **Haiku Triage** and **Sonnet Assets**
+- [ ] That credential attached to **Haiku Triage**, **Sonnet Assets**, and **Sonnet LaTeX**
 - [ ] Notion internal integration token in n8n **Notion API** credential
 - [ ] Notion database **Applications** with the properties listed below
 - [ ] Pages **Master CV** and **Style & Learnings**, shared with the integration
@@ -108,8 +109,10 @@ Database title property name: **Job Title** (type **Title**).
 | Rationale | Text | — |
 | Salary Range | Text | — |
 | Salary Flag | Select | `extracted`, `UNVERIFIED Estimate` |
+| LaTex CV | Text | LaTeX fragment to paste into the master CV |
+| LaTex Cover Letter | Text | LaTeX fragment to paste into the master letter |
 
-Long text (CV bullets, cover letter, flashcards, dossier) is **not** a property. The workflow writes those into the **page body**.
+Long text (CV bullets, cover letter, flashcards, dossier) is **not** a property. The workflow writes those into the **page body**. **LaTex CV** / **LaTex Cover Letter** are properties (cap 2,000 characters) filled by a second Sonnet call from the parsed bullets/letter.
 
 ---
 
@@ -162,10 +165,13 @@ Read left to right.
 | Get Style Learnings | Downloads style rules (only if fit is high). |
 | Flatten Style | One `style_rules` string. |
 | Build Sonnet Prompt | JD + full CV + style. |
-| Sonnet Assets | Writes the application pack as JSON. |
+| Sonnet Assets | Writes the application pack as JSON (mermaid H1–H4). |
 | Parse Assets | Flattens JSON into text fields (capped ~1900 chars for Notion). |
+| Build Latex Prompt | Packs those bullets + letter only (no full JD). |
+| Sonnet LaTeX | Translates them into `latex_cv` / `latex_cover_letter` fragments. |
+| Parse Latex | Reads that JSON; caps ~1900 chars. |
 | Assemble Payload | Picks the fields we store. |
-| Create Application | New Notion row, Status = Ready to Apply, assets in the page body. |
+| Create Application | New Notion row, Status = Ready to Apply, assets in the page body, LaTeX in the two columns. |
 
 ---
 
@@ -206,10 +212,11 @@ n8n: **Credentials** (left) → **Add credential** → search **Header Auth**.
 
 Save.
 
-### Step 5 — Attach Claude to the two HTTP nodes
+### Step 5 — Attach Claude to the three HTTP nodes
 
 Open **Haiku Triage** → Credentials → pick **Anthropic API**.  
-Open **Sonnet Assets** → same.
+Open **Sonnet Assets** → same.  
+Open **Sonnet LaTeX** → same.
 
 Those nodes already send header `anthropic-version: 2023-06-01`. You do not add that in the credential.
 
@@ -225,7 +232,7 @@ n8n: **Add credential** → **Notion API** → paste token → save. Name it `No
 
 In Notion, **New page** → type `/database` → **Table – Full page**. Name it **Applications**.
 
-Add the properties from the table above. Names must match **exactly** (including spaces): `Job URL`, `Fit Score`, `Salary Flag`, etc.
+Add the properties from the table above. Names must match **exactly** (including spaces and spelling): `Job URL`, `Fit Score`, `Salary Flag`, `LaTex CV`, `LaTex Cover Letter`, etc.
 
 Status options: `Skipped` and `Ready to Apply`.  
 Salary Flag options: `extracted` and `UNVERIFIED Estimate`.

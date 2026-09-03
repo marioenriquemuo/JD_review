@@ -65,7 +65,7 @@ Open **JD Flow** in n8n and replace the three placeholders on the Notion nodes /
 - `REPLACE_ME_MASTER_CV_PAGE_ID`
 - `REPLACE_ME_STYLE_PAGE_ID`
 
-Select the Notion credential on every Notion node. Select **Anthropic API** Header Auth on **Haiku Triage** and **Sonnet Assets**.
+Select the Notion credential on every Notion node. Select **Anthropic API** Header Auth on **Haiku Triage**, **Sonnet Assets**, and **Sonnet LaTeX**.
 
 ---
 
