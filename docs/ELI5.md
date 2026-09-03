@@ -23,10 +23,11 @@ Imagine a post office:
 5. **Haiku** = a cheap intern who scores fit 0–100.
 6. **If score &lt; 70** = file as **Skipped**. Stop.
 7. **If score ≥ 70** = read your CV style notes, then **Sonnet** writes bullets, letter, salary.
-8. A **second small Sonnet** call turns those bullets/letter into LaTeX sections (not a full `.tex` file).
-9. **Notion** = the filing cabinet. New page: **Ready to Apply**, plus columns **LaTex CV** and **LaTex Cover Letter**.
+8. A **second small Sonnet** call maps those bullets onto **line numbers** in your local master `.tex`.
+9. Python copies the master, replaces those lines, and drops two full `.tex` files in **Downloads**.
+10. **Notion** = the filing cabinet. New page: **Ready to Apply**, plus columns **LaTex CV** and **LaTex Cover Letter**.
 
-You click. n8n thinks. Notion stores.
+You click. n8n thinks. Downloads gets files. Notion stores.
 
 ---
 
@@ -167,10 +168,11 @@ Read left to right.
 | Build Sonnet Prompt | JD + full CV + style. |
 | Sonnet Assets | Writes the application pack as JSON (mermaid H1–H2). |
 | Parse Assets | Flattens JSON into text fields (capped ~1900 chars for Notion). |
-| Build Latex Prompt | Packs those bullets + letter only (no full JD). |
-| Sonnet LaTeX | Translates them into `latex_cv` / `latex_cover_letter` fragments. |
-| Parse Latex | Reads that JSON; caps ~1900 chars. |
-| Assemble Payload | Picks the fields we store. |
+| Build Latex Prompt | Numbers `secrets/master_cv.tex` and packs bullets + letter. |
+| Sonnet LaTeX | Returns `start_line` / `end_line` patches + letter body. |
+| Parse Latex | Reads that JSON; caps ~1900 chars for Notion; keeps structured patches. |
+| Write Tex Files | Runs `assemble_tex.py`; writes complete `.tex` copies to `~/Downloads`. |
+| Assemble Payload | Picks the fields we store (including file paths). |
 | Create Application | New Notion row, Status = Ready to Apply, assets in the page body, LaTeX in the two columns. |
 
 ---
@@ -252,6 +254,18 @@ For now you can paste a short placeholder, e.g. “CV goes here”. Later we dis
 ```
 
 Then paste `master_cv.md` and `style_learnings.md` into those pages.
+
+Also copy the original CV `.tex` (not the Markdown distill) to a local file the assembler reads. Do **not** paste the `.tex` into n8n:
+
+```bash
+mkdir -p /home/mario/Documents/n8n/Nuevo trabajo/secrets
+cp /path/to/your.tex /home/mario/Documents/n8n/Nuevo trabajo/secrets/master_cv.tex
+```
+
+Optional letter template: `secrets/master_letter.tex` with `% LETTER_BODY` and `% END_LETTER_BODY` around the paragraphs to swap. Qualified runs write:
+
+`/home/mario/Downloads/{company}_{job_title}_CV.tex`  
+`/home/mario/Downloads/{company}_{job_title}_CoverLetter.tex`
 
 **Share / Connect** the database **and both pages** with your integration. If you skip this, n8n gets 404.
 
