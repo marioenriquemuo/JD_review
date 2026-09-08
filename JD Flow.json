@@ -202,7 +202,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const j = $input.item.json;\nconst cvSummary = String(j.cv_md || '').slice(0, 2500);\nconst jd = String(j.clean_md || '').slice(0, 8000);\nconst haiku_user = 'MASTER CV SUMMARY:\\n' + cvSummary + '\\n\\nJOB DESCRIPTION:\\n' + jd;\nreturn { json: Object.assign({}, j, { haiku_user: haiku_user }) };\n",
+        "jsCode": "const key = String($('Secret IDs').first().json.anthropic_api_key || '').trim();\nif (!key) throw new Error('anthropic_api_key missing after Load Secret IDs. Check secrets/notion_ids.json and SSH on Load Secret IDs.');\nconst j = $input.item.json;\nconst cvSummary = String(j.cv_md || '').slice(0, 2500);\nconst jd = String(j.clean_md || '').slice(0, 8000);\nconst haiku_user = 'MASTER CV SUMMARY:\\n' + cvSummary + '\\n\\nJOB DESCRIPTION:\\n' + jd;\nreturn { json: Object.assign({}, j, { haiku_user: haiku_user }) };\n",
         "mode": "runOnceForEachItem"
       },
       "type": "n8n-nodes-base.code",
@@ -232,7 +232,7 @@
             },
             {
               "name": "x-api-key",
-              "value": "={{ $('Secret IDs').item.json.anthropic_api_key }}"
+              "value": "={{ $('Secret IDs').first().json.anthropic_api_key }}"
             }
           ]
         },
@@ -474,7 +474,7 @@
             },
             {
               "name": "x-api-key",
-              "value": "={{ $('Secret IDs').item.json.anthropic_api_key }}"
+              "value": "={{ $('Secret IDs').first().json.anthropic_api_key }}"
             }
           ]
         },
@@ -805,7 +805,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const run = $('Merge Run State').first().json;\nconst masterNode = $('Read Master Tex Resume').first().json;\nconst master = String(masterNode.stdout || masterNode.data || '');\nconst story = String($json.stdout || $json.data || '');\nconst audit = [\n  'Critical missing keywords: ' + (run.critical_missing_keywords || []).join('; '),\n  'Impact alignment: ' + (run.impact_alignment || []).join('; '),\n  'Strategic positioning: ' + (run.strategic_positioning || ''),\n  'Questions asked: ' + (run.questions || []).join('; ')\n].join('\\n');\nconst phase2_user = [\n  'MASTER LATEX CV (keep the same communication style):',\n  master,\n  '',\n  'JOB DESCRIPTION:',\n  run.clean_md || '',\n  '',\n  'PHASE 1 AUDIT:',\n  audit,\n  '',\n  'CANDIDATE ANSWERS (answers; may be empty):',\n  run.candidate_context || '(none)',\n  '',\n  'STYLE & LEARNINGS:',\n  run.style_rules || ''\n].join('\\n');\nreturn { json: Object.assign({}, run, {\n  master_tex: master,\n  storytelling: story,\n  phase2_user: phase2_user\n}) };\n"
+        "jsCode": "const key = String($('Resume Secrets').first().json.anthropic_api_key || '').trim();\nif (!key) throw new Error('anthropic_api_key missing after Load Secret IDs Resume. Check secrets/notion_ids.json and SSH on Load Secret IDs Resume.');\nconst run = $('Merge Run State').first().json;\nconst masterNode = $('Read Master Tex Resume').first().json;\nconst master = String(masterNode.stdout || masterNode.data || '');\nconst story = String($json.stdout || $json.data || '');\nconst audit = [\n  'Critical missing keywords: ' + (run.critical_missing_keywords || []).join('; '),\n  'Impact alignment: ' + (run.impact_alignment || []).join('; '),\n  'Strategic positioning: ' + (run.strategic_positioning || ''),\n  'Questions asked: ' + (run.questions || []).join('; ')\n].join('\\n');\nconst phase2_user = [\n  'MASTER LATEX CV (keep the same communication style):',\n  master,\n  '',\n  'JOB DESCRIPTION:',\n  run.clean_md || '',\n  '',\n  'PHASE 1 AUDIT:',\n  audit,\n  '',\n  'CANDIDATE ANSWERS (answers; may be empty):',\n  run.candidate_context || '(none)',\n  '',\n  'STYLE & LEARNINGS:',\n  run.style_rules || ''\n].join('\\n');\nreturn { json: Object.assign({}, run, {\n  master_tex: master,\n  storytelling: story,\n  phase2_user: phase2_user\n}) };\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -834,7 +834,7 @@
             },
             {
               "name": "x-api-key",
-              "value": "={{ $json.anthropic_api_key }}"
+              "value": "={{ $('Resume Secrets').first().json.anthropic_api_key }}"
             }
           ]
         },
@@ -854,7 +854,7 @@
     },
     {
       "parameters": {
-        "jsCode": "function repairJson(s) {\n  let out = '';\n  let inString = false;\n  let escaped = false;\n  for (let i = 0; i < s.length; i++) {\n    const c = s[i];\n    const code = s.charCodeAt(i);\n    if (!inString) {\n      if (c === '\"') inString = true;\n      out += c;\n      continue;\n    }\n    if (escaped) {\n      out += c;\n      escaped = false;\n      continue;\n    }\n    if (c === '\\\\') {\n      out += c;\n      escaped = true;\n      continue;\n    }\n    if (c === '\"') {\n      out += c;\n      inString = false;\n      continue;\n    }\n    if (code < 32) {\n      if (c === '\\n') out += '\\\\n';\n      else if (c === '\\r') out += '\\\\r';\n      else if (c === '\\t') out += '\\\\t';\n      else out += '\\\\u' + ('0000' + code.toString(16)).slice(-4);\n      continue;\n    }\n    out += c;\n  }\n  return out;\n}\nconst item = $input.item.json;\nconst content = item.content;\nconst textBlock = Array.isArray(content) ? content.find(function (b) { return b && b.type === 'text' && b.text; }) : null;\nconst text = (textBlock && textBlock.text) || '';\nconst match = String(text).match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('Sonnet Phase 2 did not return JSON');\nconst parsed = JSON.parse(repairJson(match[0]));\nconst prev = $('Build Phase 2 Prompt').first().json;\nconst cv_tex = String(parsed.cv_tex || '');\nif (!cv_tex.includes('\\\\documentclass') && !cv_tex.includes('documentclass')) {\n  throw new Error('Phase 2 cv_tex missing documentclass');\n}\nconst phase3_user = [\n  'UPDATED LATEX CV:',\n  cv_tex,\n  '',\n  'JOB DESCRIPTION:',\n  prev.clean_md || '',\n  '',\n  'STORYTELLING / STRUCTURE GUIDELINES:',\n  prev.storytelling || '',\n  '',\n  'COMPANY:',\n  prev.company || '',\n  'ROLE:',\n  prev.job_title || '',\n  'LOCATION:',\n  prev.location || ''\n].join('\\n');\nreturn { json: Object.assign({}, prev, { cv_tex: cv_tex, phase3_user: phase3_user }) };"
+        "jsCode": "function repairJson(s) {\n  let out = '';\n  let inString = false;\n  let escaped = false;\n  for (let i = 0; i < s.length; i++) {\n    const c = s[i];\n    const code = s.charCodeAt(i);\n    if (!inString) {\n      if (c === '\"') inString = true;\n      out += c;\n      continue;\n    }\n    if (escaped) {\n      out += c;\n      escaped = false;\n      continue;\n    }\n    if (c === '\\\\') {\n      out += c;\n      escaped = true;\n      continue;\n    }\n    if (c === '\"') {\n      out += c;\n      inString = false;\n      continue;\n    }\n    if (code < 32) {\n      if (c === '\\n') out += '\\\\n';\n      else if (c === '\\r') out += '\\\\r';\n      else if (c === '\\t') out += '\\\\t';\n      else out += '\\\\u' + ('0000' + code.toString(16)).slice(-4);\n      continue;\n    }\n    out += c;\n  }\n  return out;\n}\nconst item = $input.item.json;\nconst content = item.content;\nconst textBlock = Array.isArray(content) ? content.find(function (b) { return b && b.type === 'text' && b.text; }) : null;\nconst text = (textBlock && textBlock.text) || '';\nconst match = String(text).match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('Sonnet Phase 2 did not return JSON');\nconst parsed = JSON.parse(repairJson(match[0]));\nconst prev = $('Build Phase 2 Prompt').first().json;\nconst cv_tex = String(parsed.cv_tex || '');\nif (!cv_tex.includes('\\\\documentclass') && !cv_tex.includes('documentclass')) {\n  throw new Error('Phase 2 cv_tex missing documentclass');\n}\nconst audit = [\n  'Critical missing keywords: ' + (prev.critical_missing_keywords || []).join('; '),\n  'Impact alignment: ' + (prev.impact_alignment || []).join('; '),\n  'Strategic positioning: ' + (prev.strategic_positioning || '')\n].join('\\n');\nconst phase3_user = [\n  'UPDATED LATEX CV:',\n  cv_tex,\n  '',\n  'JOB DESCRIPTION:',\n  prev.clean_md || '',\n  '',\n  'PHASE 1 AUDIT:',\n  audit,\n  '',\n  'CANDIDATE ANSWERS (answers; may be empty):',\n  prev.candidate_context || '(none)',\n  '',\n  'STORYTELLING / STRUCTURE GUIDELINES:',\n  prev.storytelling || '',\n  '',\n  'COMPANY:',\n  prev.company || '',\n  'ROLE:',\n  prev.job_title || '',\n  'LOCATION:',\n  prev.location || ''\n].join('\\n');\nreturn { json: Object.assign({}, prev, { cv_tex: cv_tex, phase3_user: phase3_user }) };"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -883,13 +883,13 @@
             },
             {
               "name": "x-api-key",
-              "value": "={{ $json.anthropic_api_key }}"
+              "value": "={{ $('Resume Secrets').first().json.anthropic_api_key }}"
             }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 8000, thinking: { type: 'disabled' }, system: \"You are an Executive Career Strategist. PHASE 3: Draft a highly targeted cover letter in LaTeX. Cross-reference the updated CV, the Job Description, and the storytelling guidelines. Maintain a professional, authoritative, concise tone. Use storytelling structure; do not list traits. Do not invent employers, dates, metrics, or skills. Address the real company and role from the inputs \\u2014 never keep a previous company's header. Output ONLY a JSON object, no markdown fences. Keys: letter_tex (string: FULL compilable LaTeX including \\\\\\\\documentclass and \\\\\\\\begin{document}). Escape LaTeX special characters ($, &, %, #, _).\", messages: [{ role: 'user', content: $json.phase3_user }] }) }}",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 8000, thinking: { type: 'disabled' }, system: \"You are an Executive Career Strategist. PHASE 3: Draft a highly targeted cover letter in LaTeX. Cross-reference the updated CV, the Job Description, the Phase 1 audit, Candidate Answers, and the storytelling guidelines. Maintain a professional, authoritative, concise tone. Use storytelling structure; do not list traits. Open with one hook: a fact from the JD, a problem the JD names, or one metric already in the updated CV. Never open with I am writing to apply. Use 3 to 4 short paragraphs, about 250 to 400 words. Include one evidenced metric from the updated CV. Do not invent employers, dates, metrics, or skills. Use Candidate Answers only as facts; if they are empty, use only the updated CV. If a gap remains after Candidate Answers, do not fake it, do not apologize, and do not mention it unless the answers give a truthful bridge. Close with a specific contribution to this company and role plus a clear next step. Address the real company and role from the inputs \\u2014 never keep a previous company's header. Output ONLY a JSON object, no markdown fences. Keys: letter_tex (string: FULL compilable LaTeX including \\\\\\\\documentclass and \\\\\\\\begin{document}). Escape LaTeX special characters ($, &, %, #, _).\", messages: [{ role: 'user', content: $json.phase3_user }] }) }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -1041,7 +1041,7 @@
     },
     {
       "parameters": {
-        "content": "# JD Flow (Phase 1\u20133)\n\n**Ingest:** POST /webhook/job-ingest \u2192 Needs Context\n**Resume:** Extension **Continue Phase 2** \u2192 POST /webhook/job-resume\n  (looks up Job URL, reads Candidate Answers, writes CV/letter)\n\nNotion: Candidate notes = questions; Candidate Answers = your replies.\nNo Notion Trigger \u2014 button starts Phase 2 immediately.\n",
+        "content": "# JD Flow (Phase 1–3)\n\n**Ingest:** POST /webhook/job-ingest → Needs Context\n**Resume:** Extension **Continue Phase 2** → POST /webhook/job-resume\n  (looks up Job URL, reads Candidate Answers, writes CV/letter)\n\nNotion: Candidate notes = questions; Candidate Answers = your replies.\nNo Notion Trigger — button starts Phase 2 immediately.\n",
         "height": 460,
         "width": 380
       },
@@ -1106,7 +1106,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const ingest = $('Pack Resume').first().json;\nconst raw = String($json.stdout || $json.data || '').trim();\nconst match = raw.match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('load_secret_ids.py returned no JSON');\nconst ids = JSON.parse(match[0]);\nreturn { json: Object.assign({}, ingest, ids) };\n"
+        "jsCode": "const ingest = $('Pack Resume').first().json;\nconst raw = String($json.stdout || $json.data || '').trim();\nconst match = raw.match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('load_secret_ids.py returned no JSON');\nconst ids = JSON.parse(match[0]);\nif (!ids.applications_db_id || !ids.master_cv_page_id || !ids.style_learnings_page_id || !ids.anthropic_api_key) {\n  throw new Error('Resume Secret IDs missing required fields from secrets/notion_ids.json');\n}\nreturn { json: Object.assign({}, ingest, ids) };\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
