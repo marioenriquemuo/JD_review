@@ -5,8 +5,8 @@ Follow the steps **in order**. Do not skip ahead.
 
 When you finish, you will be able to:
 
-1. Open a job posting in Chrome.
-2. Click **Send job to n8n**.
+1. Open a job posting in Chrome (or upload a text PDF).
+2. Click **Send job to n8n** or **Upload PDF**.
 3. Answer a few questions in Notion.
 4. Click **Continue Phase 2**.
 5. Get a tailored CV and cover letter (LaTeX files) in your Downloads folder.
@@ -51,14 +51,17 @@ You do **not** need to know how to code.
 After setup, your daily work is only this:
 
 ```text
-1. Open the job page in Chrome
-2. Click extension → “Send job to n8n”
+1. Open the job page in Chrome, or have a text PDF of the JD
+2. Click extension → “Send job to n8n”  (web posting)
+   or “Upload PDF”                      (PDF job description)
 3. If the job is a good fit → Notion shows questions
 4. Type your answers in Notion column “Candidate Answers”
 5. Click extension → “Continue Phase 2”
 6. Wait until the popup says Ready to Apply
 7. Open the .tex files in Downloads
 ```
+
+**Upload PDF** works only if the PDF has selectable text. Scanned/image PDFs are not supported.
 
 Possible popup results after **Send job**:
 
@@ -249,7 +252,7 @@ Replace the path if your folder is different.
 ```bash
 PROJECT="/home/mario/Documents/n8n/Nuevo trabajo"
 python3 -m venv "$PROJECT/.venv"
-"$PROJECT/.venv/bin/pip" install beautifulsoup4 html2text
+"$PROJECT/.venv/bin/pip" install beautifulsoup4 html2text pypdf
 ```
 
 You should see packages install without red fatal errors.
@@ -352,13 +355,14 @@ If you change the extension files later, return to `chrome://extensions` and cli
    - Extension webhook points to `/webhook/job-ingest`
 2. Open a real job posting in Chrome (LinkedIn, company career site, etc.).
 3. Click the extension.
-4. Click **Send job to n8n**.
+4. Click **Send job to n8n**.  
+   If the JD is a **text PDF** instead of a web page, click **Upload PDF** and pick the file (scanned/image PDFs will fail).
 5. Wait. The popup shows **Scoring…** then a result.
 
 ### If you see Skipped
 
 That means fit score was below 70. Check Notion: a **Skipped** row should exist.  
-This still proves the pipeline works.
+**Candidate notes** on that row lists the gaps Haiku did not find in the Master CV. Treat those as a ticket: add only true facts, then delete the row and send the job again.
 
 ### If you see Needs Context
 

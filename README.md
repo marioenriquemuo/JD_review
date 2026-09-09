@@ -8,7 +8,7 @@ Source graph: [`mearmaid.txt`](mearmaid.txt). Setup: [`docs/SETUP.md`](docs/SETU
 
 ## Architecture principles
 
-- **Zero-risk ingest.** You click the extension on a JD tab. Nothing crawls the open web.
+- **Zero-risk ingest.** You click the extension on a JD tab, or **Upload PDF**. Nothing crawls the open web. Claude receives markdown only (never PDF bytes).
 - **Secrets outside the canvas.** Notion IDs and the Anthropic `x-api-key` are read from `secrets/notion_ids.json` on each run.
 - **Deterministic dedup.** Notion is queried by `Job URL` before any LLM call.
 - **Two-tier LLM routing.** Haiku scores fit. Sonnet runs only when `fit_score >= 70`.
@@ -18,9 +18,11 @@ Source graph: [`mearmaid.txt`](mearmaid.txt). Setup: [`docs/SETUP.md`](docs/SETU
 ## Flow
 
 ```text
-Chrome extension (URL + HTML)
+Chrome extension (URL + HTML, or Upload PDF)
   → n8n Webhook POST /webhook/job-ingest  (waits; responseNode)
-  → Pack Ingest / Parse Clean MD
+  → Pack Ingest
+       pdf_b64 → extract_pdf.py → { url, clean_md }
+       else    → Parse Clean MD
   → SSH Load Secret IDs
   → Notion Applications DB lookup by Job URL
        duplicate → Respond { status: duplicate }  ($0)
@@ -70,7 +72,7 @@ Title property: **Job Title**.
 | Rationale | rich_text | Two-sentence Haiku reason |
 | Salary Range | rich_text | Number range or estimate |
 | Salary Flag | select | `extracted`, `UNVERIFIED Estimate` |
-| Candidate notes | rich_text | Phase 1 questions (seeded) |
+| Candidate notes | rich_text | Phase 1 questions (seeded); on **Skipped**, Haiku gaps |
 | Candidate Answers | rich_text | Your answers to those questions |
 | LaTex CV | rich_text | Preview ≤1900 chars (full file in Downloads) |
 | LaTex Cover Letter | rich_text | Preview ≤1900 chars |
@@ -91,6 +93,7 @@ Title property: **Job Title**.
 | Path | What |
 | --- | --- |
 | [`JD Flow.json`](JD Flow.json) | n8n workflow export |
+| [`scripts/extract_pdf.py`](scripts/extract_pdf.py) | PDF bytes → `{ url, clean_md }` only |
 | [`scripts/assemble_tex.py`](scripts/assemble_tex.py) | `--write-full` / patch / `--number` |
 | [`scripts/persist_run.py`](scripts/persist_run.py) | Save/load Phase 1 run JSON |
 | [`scripts/load_secret_ids.py`](scripts/load_secret_ids.py) | Print IDs + Claude key |
@@ -99,6 +102,7 @@ Title property: **Job Title**.
 ## Assumptions
 
 - Extension waits for Phase 1 (tens of seconds). Popup shows `Scoring…` then the real status.
+- **Upload PDF** is for text PDFs only (no OCR). Dedup URL is `https://jd-flow.local/pdf/<sha256>`.
 - Empty Candidate Answers + Proceed Phase 2 still generates files from the master CV only (no invented facts).
 - Phase 2 starts from the extension **Continue Phase 2** button (not a Notion poll).
 - Fit threshold is hard-coded at 70.

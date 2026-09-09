@@ -1,7 +1,5 @@
 const statusEl = document.getElementById("status");
-const sendBtn = document.getElementById("send");
-const pdfBtn = document.getElementById("pdf");
-const resumeBtn = document.getElementById("resume");
+const pdfFile = document.getElementById("pdf-file");
 
 function formatStatus(body) {
   if (!body || typeof body !== "object") {
@@ -34,22 +32,6 @@ function formatStatus(body) {
     if (who) line = who + "\n" + line;
     return line;
   }
-  if (status === "not_found") {
-    return (
-      body.message ||
-      "No Notion row found. Click Send job on the job posting first."
-    );
-  }
-  if (status === "ready_to_apply") {
-    const company = body.company || "";
-    const title = body.job_title || "";
-    const who = [company, title].filter(Boolean).join(" — ");
-    let line = "Ready to Apply.";
-    if (who) line = who + "\n" + line;
-    if (body.cv_path) line += "\nCV: " + body.cv_path;
-    if (body.letter_path) line += "\nLetter: " + body.letter_path;
-    return line;
-  }
   return status;
 }
 
@@ -64,13 +46,6 @@ function rememberResume(body) {
       saved_at: Date.now()
     }
   });
-}
-
-function setBusy(busy, label) {
-  sendBtn.disabled = busy;
-  pdfBtn.disabled = busy;
-  resumeBtn.disabled = busy;
-  if (busy) statusEl.textContent = label || "Working…";
 }
 
 function handleIngestResult(result) {
@@ -91,30 +66,26 @@ function handleIngestResult(result) {
   statusEl.textContent = formatStatus(result.body);
 }
 
-sendBtn.addEventListener("click", function () {
-  setBusy(true, "Scoring…");
-  chrome.runtime.sendMessage({ type: "INGEST_TAB" }, function (result) {
-    setBusy(false);
-    handleIngestResult(result);
-  });
-});
-
-pdfBtn.addEventListener("click", function () {
-  chrome.tabs.create({ url: chrome.runtime.getURL("upload.html") });
-});
-
-resumeBtn.addEventListener("click", function () {
-  setBusy(true, "Generating CV + letter…");
-  chrome.runtime.sendMessage({ type: "RESUME_TAB" }, function (result) {
-    setBusy(false);
-    if (chrome.runtime.lastError) {
-      statusEl.textContent = chrome.runtime.lastError.message;
-      return;
-    }
-    if (!result || !result.ok) {
-      statusEl.textContent = (result && result.error) || "Request failed";
-      return;
-    }
-    statusEl.textContent = formatStatus(result.body);
-  });
+pdfFile.addEventListener("change", function () {
+  const file = pdfFile.files && pdfFile.files[0];
+  pdfFile.value = "";
+  if (!file) return;
+  pdfFile.disabled = true;
+  statusEl.textContent = "Scoring…";
+  const reader = new FileReader();
+  reader.onerror = function () {
+    pdfFile.disabled = false;
+    statusEl.textContent = "Could not read PDF";
+  };
+  reader.onload = function () {
+    const bytes = new Uint8Array(reader.result);
+    chrome.runtime.sendMessage(
+      { type: "INGEST_PDF", filename: file.name, bytes: Array.from(bytes) },
+      function (result) {
+        pdfFile.disabled = false;
+        handleIngestResult(result);
+      }
+    );
+  };
+  reader.readAsArrayBuffer(file);
 });

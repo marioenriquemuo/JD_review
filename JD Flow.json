@@ -20,7 +20,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const j = $input.item.json;\nconst src = (j.body && (j.body.url || j.body.html)) ? j.body : j;\nconst url = src.url || '';\nconst html = src.html || src.content || '';\nreturn { json: { url: url, html: html } };",
+        "jsCode": "const j = $input.item.json;\nconst src = (j.body && (j.body.url || j.body.html || j.body.pdf_b64)) ? j.body : j;\nconst url = src.url || '';\nconst html = src.html || src.content || '';\nconst pdf_b64 = src.pdf_b64 || '';\nconst filename = src.filename || '';\nreturn { json: { url: url, html: html, pdf_b64: pdf_b64, filename: filename } };",
         "mode": "runOnceForEachItem"
       },
       "type": "n8n-nodes-base.code",
@@ -40,11 +40,92 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -620,
-        0
+        -500,
+        200
       ],
       "id": "f121e0e6-3e52-42c4-9f9d-eab316931394",
       "name": "Parse Clean MD"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "is-pdf",
+              "leftValue": "={{ $json.pdf_b64 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -740,
+        0
+      ],
+      "id": "c3e8a1b4-6d72-4f19-9e50-2a7c4b8d1f06",
+      "name": "Is PDF?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const j = $input.item.json;\nconst payload = { url: j.url || '', pdf_b64: j.pdf_b64 || '' };\nreturn { json: { pdf_payload_b64: Buffer.from(JSON.stringify(payload), 'utf8').toString('base64') } };",
+        "mode": "runOnceForEachItem"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -500,
+        -200
+      ],
+      "id": "7c4e2a91-3b58-4f0d-9c2a-1e6f8a0b4d32",
+      "name": "Pack PDF Payload"
+    },
+    {
+      "parameters": {
+        "command": "={{ 'echo ' + JSON.stringify($json.pdf_payload_b64) + \" | base64 -d | '/home/mario/Documents/n8n/Nuevo trabajo/.venv/bin/python' '/home/mario/Documents/n8n/Nuevo trabajo/scripts/extract_pdf.py'\" }}"
+      },
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        -260,
+        -200
+      ],
+      "id": "2d9f1c70-8a44-4b6e-b3c1-5e7a9d2f0b18",
+      "name": "Extract PDF",
+      "credentials": {
+        "sshPassword": {
+          "id": "nM6jdLaHV8O6GLPF",
+          "name": "SSH localhost"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = String($json.stdout || $json.data || '').trim();\nconst match = raw.match(/\\{[\\s\\S]*\\}/);\nif (!match) {\n  throw new Error('extract_pdf.py returned no JSON. stdout=' + raw.slice(0, 200));\n}\nconst parsed = JSON.parse(match[0]);\nconst clean_md = String(parsed.clean_md || '').trim();\nif (!clean_md) {\n  throw new Error('PDF had no extractable text (scanned PDFs are not supported)');\n}\nreturn { json: { url: parsed.url || '', clean_md: clean_md } };",
+        "mode": "runOnceForEachItem"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -20,
+        -200
+      ],
+      "id": "5a8c3e16-1d27-4f93-ae50-9b4c6d8e2a71",
+      "name": "Parse PDF MD"
     },
     {
       "parameters": {
@@ -67,7 +148,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const ingest = $('Parse Clean MD').item.json;\nconst raw = String($json.stdout || $json.data || '').trim();\nconst match = raw.match(/\\{[\\s\\S]*\\}/);\nif (!match) {\n  throw new Error('load_secret_ids.py returned no JSON. stdout=' + raw.slice(0, 200));\n}\nconst ids = JSON.parse(match[0]);\nif (!ids.applications_db_id || !ids.master_cv_page_id || !ids.style_learnings_page_id || !ids.anthropic_api_key) {\n  throw new Error('Secret IDs missing required fields');\n}\nreturn { json: Object.assign({}, ingest, ids) };",
+        "jsCode": "function ingestMd() {\n  try {\n    const pdf = $('Parse PDF MD').item.json;\n    if (pdf && String(pdf.clean_md || '').trim()) {\n      return { url: pdf.url || '', clean_md: String(pdf.clean_md).trim() };\n    }\n  } catch (e) {}\n  const html = $('Parse Clean MD').item.json;\n  return { url: html.url || '', clean_md: String(html.clean_md || '').trim() };\n}\nconst ingest = ingestMd();\nconst raw = String($json.stdout || $json.data || '').trim();\nconst match = raw.match(/\\{[\\s\\S]*\\}/);\nif (!match) {\n  throw new Error('load_secret_ids.py returned no JSON. stdout=' + raw.slice(0, 200));\n}\nconst ids = JSON.parse(match[0]);\nif (!ids.applications_db_id || !ids.master_cv_page_id || !ids.style_learnings_page_id || !ids.anthropic_api_key) {\n  throw new Error('Secret IDs missing required fields');\n}\nreturn { json: Object.assign({}, ingest, ids) };",
         "mode": "runOnceForEachItem"
       },
       "type": "n8n-nodes-base.code",
@@ -189,7 +270,7 @@
     },
     {
       "parameters": {
-        "jsCode": "function blockText(j) {\n  if (!j) return '';\n  if (typeof j.content === 'string') return j.content;\n  if (typeof j.textContent === 'string') return j.textContent;\n  if (typeof j.plain_text === 'string') return j.plain_text;\n  const keys = ['paragraph','heading_1','heading_2','heading_3','bulleted_list_item','numbered_list_item','quote','code','toggle','callout'];\n  for (const k of keys) {\n    const b = j[k];\n    if (b && Array.isArray(b.rich_text)) {\n      return b.rich_text.map(function (t) { return t.plain_text || ''; }).join('');\n    }\n  }\n  if (Array.isArray(j.rich_text)) {\n    return j.rich_text.map(function (t) { return t.plain_text || ''; }).join('');\n  }\n  return '';\n}\nconst cv_md = $input.all().map(function (i) { return blockText(i.json); }).filter(Boolean).join('\\n');\nconst prev = $('Parse Clean MD').first().json;\nreturn [{ json: { url: prev.url, clean_md: prev.clean_md, cv_md: cv_md } }];\n"
+        "jsCode": "function blockText(j) {\n  if (!j) return '';\n  if (typeof j.content === 'string') return j.content;\n  if (typeof j.textContent === 'string') return j.textContent;\n  if (typeof j.plain_text === 'string') return j.plain_text;\n  const keys = ['paragraph','heading_1','heading_2','heading_3','bulleted_list_item','numbered_list_item','quote','code','toggle','callout'];\n  for (const k of keys) {\n    const b = j[k];\n    if (b && Array.isArray(b.rich_text)) {\n      return b.rich_text.map(function (t) { return t.plain_text || ''; }).join('');\n    }\n  }\n  if (Array.isArray(j.rich_text)) {\n    return j.rich_text.map(function (t) { return t.plain_text || ''; }).join('');\n  }\n  return '';\n}\nconst cv_md = $input.all().map(function (i) { return blockText(i.json); }).filter(Boolean).join('\\n');\nfunction ingestMd() {\n  try {\n    const pdf = $('Parse PDF MD').first().json;\n    if (pdf && String(pdf.clean_md || '').trim()) return pdf;\n  } catch (e) {}\n  return $('Parse Clean MD').first().json;\n}\nconst prev = ingestMd();\nreturn [{ json: { url: prev.url, clean_md: prev.clean_md, cv_md: cv_md } }];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -335,6 +416,10 @@
             {
               "key": "Rationale|rich_text",
               "textContent": "={{ $json.rationale }}"
+            },
+            {
+              "key": "Candidate notes|rich_text",
+              "textContent": "={{ $json.gaps }}"
             }
           ]
         },
@@ -687,26 +772,17 @@
     },
     {
       "parameters": {
-        "resource": "databasePage",
-        "operation": "update",
-        "pageId": {
-          "__rl": true,
-          "value": "={{ $json.page_id }}",
-          "mode": "id"
-        },
-        "simple": false,
-        "propertiesUi": {
-          "propertyValues": [
-            {
-              "key": "Status|select",
-              "selectValue": "Generating"
-            }
-          ]
-        },
+        "method": "PATCH",
+        "url": "=https://api.notion.com/v1/pages/{{ $json.page_id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "notionApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"archived\":false,\"properties\":{\"Status\":{\"select\":{\"name\":\"Generating\"}}}}",
         "options": {}
       },
-      "type": "n8n-nodes-base.notion",
-      "typeVersion": 2.2,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
         580,
         520
@@ -840,7 +916,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 16000, thinking: { type: 'disabled' }, system: \"You are an Executive Career Strategist. PHASE 2: Update the LaTeX resume. Integrate Candidate notes and Phase 1 audit findings into the existing CV. Elevate phrasing to director-level leadership and quantifiable impact; maintain the same communication style. Do not lie. Do not include anything the candidate has not explicitly said. Only use the MASTER LATEX CV and Candidate notes. Output ONLY a JSON object, no markdown fences. Keys: cv_tex (string: the FULL compilable LaTeX document including \\\\\\\\documentclass and \\\\\\\\begin{document}). Ensure no syntax errors; escape LaTeX special characters ($, &, %, #, _). If Candidate notes are empty, rewrite/reorder using only facts already in the master CV to better match the JD keywords that are already evidenced \\u2014 never invent.\", messages: [{ role: 'user', content: $json.phase2_user }] }) }}",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 16000, thinking: { type: 'disabled' }, system: \"You are an Executive Career Strategist. PHASE 2: Update the LaTeX resume. Integrate Candidate notes and Phase 1 audit findings into the existing CV. Elevate phrasing to director-level leadership and quantifiable impact; maintain the same communication style. Copy the MASTER LATEX CV preamble, packages, colors, titleformat, header block (name, title line, email, LinkedIn), section titles, itemize settings, and Result: labels unchanged. Do not switch templates. Edit summary text, bullet text, and bullet order only. Do not lie. Do not include anything the candidate has not explicitly said. Only use the MASTER LATEX CV and Candidate notes. Output ONLY a JSON object, no markdown fences. Keys: cv_tex (string: the FULL compilable LaTeX document including \\\\\\\\documentclass and \\\\\\\\begin{document}). Ensure no syntax errors; escape LaTeX special characters ($, &, %, #, _). If Candidate notes are empty, rewrite/reorder using only facts already in the master CV to better match the JD keywords that are already evidenced \\u2014 never invent.\", messages: [{ role: 'user', content: $json.phase2_user }] }) }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -889,7 +965,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 8000, thinking: { type: 'disabled' }, system: \"You are an Executive Career Strategist. PHASE 3: Draft a highly targeted cover letter in LaTeX. Cross-reference the updated CV, the Job Description, the Phase 1 audit, Candidate Answers, and the storytelling guidelines. Maintain a professional, authoritative, concise tone. Use storytelling structure; do not list traits. Open with one hook: a fact from the JD, a problem the JD names, or one metric already in the updated CV. Never open with I am writing to apply. Use 3 to 4 short paragraphs, about 250 to 400 words. Include one evidenced metric from the updated CV. Do not invent employers, dates, metrics, or skills. Use Candidate Answers only as facts; if they are empty, use only the updated CV. If a gap remains after Candidate Answers, do not fake it, do not apologize, and do not mention it unless the answers give a truthful bridge. Close with a specific contribution to this company and role plus a clear next step. Address the real company and role from the inputs \\u2014 never keep a previous company's header. Output ONLY a JSON object, no markdown fences. Keys: letter_tex (string: FULL compilable LaTeX including \\\\\\\\documentclass and \\\\\\\\begin{document}). Escape LaTeX special characters ($, &, %, #, _).\", messages: [{ role: 'user', content: $json.phase3_user }] }) }}",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 8000, thinking: { type: 'disabled' }, system: \"You are an Executive Career Strategist. PHASE 3: Draft a highly targeted cover letter in LaTeX. Cross-reference the updated CV, the Job Description, the Phase 1 audit, Candidate Answers, and the storytelling guidelines. Maintain a professional, authoritative, concise tone. Copy the MASTER letter preamble, packages, colors, and name/contact header. Replace Date/To/Company/Position and the letter body only. Do not switch templates. Use storytelling structure; do not list traits. Open with one hook: a fact from the JD, a problem the JD names, or one metric already in the updated CV. Never open with I am writing to apply. Use 3 to 4 short paragraphs, about 250 to 400 words. Include one evidenced metric from the updated CV. Do not invent employers, dates, metrics, or skills. Use Candidate Answers only as facts; if they are empty, use only the updated CV. If a gap remains after Candidate Answers, do not fake it, do not apologize, and do not mention it unless the answers give a truthful bridge. Close with a specific contribution to this company and role plus a clear next step. Address the real company and role from the inputs \\u2014 never keep a previous company's header. Output ONLY a JSON object, no markdown fences. Keys: letter_tex (string: FULL compilable LaTeX including \\\\\\\\documentclass and \\\\\\\\begin{document}). Escape LaTeX special characters ($, &, %, #, _).\", messages: [{ role: 'user', content: $json.phase3_user }] }) }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -1316,7 +1392,58 @@
       "main": [
         [
           {
+            "node": "Is PDF?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is PDF?": {
+      "main": [
+        [
+          {
+            "node": "Pack PDF Payload",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
             "node": "Parse Clean MD",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pack PDF Payload": {
+      "main": [
+        [
+          {
+            "node": "Extract PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract PDF": {
+      "main": [
+        [
+          {
+            "node": "Parse PDF MD",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse PDF MD": {
+      "main": [
+        [
+          {
+            "node": "Load Secret IDs",
             "type": "main",
             "index": 0
           }

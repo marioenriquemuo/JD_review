@@ -13,25 +13,33 @@ BRACE_RE = re.compile(r"\{([^{}]*)\}")
 
 
 def latex_to_markdown(tex):
+    if "\\begin{document}" in tex:
+        tex = tex.split("\\begin{document}", 1)[1]
+    if "\\end{document}" in tex:
+        tex = tex.split("\\end{document}", 1)[0]
     text = re.sub(r"(?<!\\)%.*", "", tex)
-    text = re.sub(r"\\documentclass(?:\[[^\]]*\])?\{[^{}]+\}", "", text)
-    text = re.sub(r"\\begin\{document\}", "", text)
-    text = re.sub(r"\\end\{document\}", "", text)
     text = text.replace("\\&", "&").replace("\\%", "%")
-    text = re.sub(r"\\section\*?\{([^{}]+)\}", r"\n## \1\n", text)
-    text = re.sub(r"\\subsection\*?\{([^{}]+)\}", r"\n### \1\n", text)
+    text = re.sub(r"\\href\{[^{}]*\}\{([^{}]*)\}", r"\1", text)
+    text = re.sub(r"\\section\*\{([^{}]+)\}", r"\n## \1\n", text)
+    text = re.sub(r"\\subsection\*\{([^{}]+)\}", r"\n### \1\n", text)
     text = re.sub(r"\\textbf\{([^{}]+)\}", r"**\1**", text)
     text = re.sub(r"\\textit\{([^{}]+)\}", r"*\1*", text)
     text = re.sub(r"\\emph\{([^{}]+)\}", r"*\1*", text)
+    text = re.sub(r"\\hfill", " — ", text)
+    text = re.sub(r"\\(?:vspace|hspace)\{[^}]*\}", "", text)
+    text = re.sub(r"\\newpage", "\n", text)
+    text = re.sub(r"\\noindent\s*", "", text)
+    text = text.replace("\\begin{center}", "").replace("\\end{center}", "")
+    text = text.replace("\\\\", "\n")
     text = re.sub(r"\\item\s*", "\n- ", text)
     text = text.replace("\\begin{itemize}", "").replace("\\end{itemize}", "")
     text = text.replace("\\begin{enumerate}", "").replace("\\end{enumerate}", "")
-    # Drop remaining commands but keep brace contents (nested, a few passes).
+    text = re.sub(r"\\(?:Huge|LARGE|Large|large|bfseries)\s*", "", text)
     for _ in range(8):
         text = COMMAND_RE.sub("", text)
         text = BRACE_RE.sub(r"\1", text)
     text = text.replace("{", "").replace("}", "")
-    text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r"[ \t]+\n", "\n", text)
     text = re.sub(r"\n{3,}", "\n\n", text)
     return text.strip()
 

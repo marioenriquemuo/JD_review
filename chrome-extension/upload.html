@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>JD Flow — Upload PDF</title>
+    <style>
+      body {
+        font: 14px/1.4 system-ui, sans-serif;
+        max-width: 40rem;
+        margin: 2rem auto;
+        padding: 0 1rem;
+      }
+      button,
+      input {
+        font: inherit;
+      }
+      #status {
+        margin-top: 12px;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Upload job PDF</h1>
+    <p>Use a text PDF (selectable text). Scanned/image PDFs will fail.</p>
+    <input id="pdf-file" type="file" accept="application/pdf" />
+    <div id="status">Choose a PDF. This tab stays open so n8n can receive it.</div>
+    <script src="upload.js"></script>
+  </body>
+</html>

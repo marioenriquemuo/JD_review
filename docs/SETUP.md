@@ -14,11 +14,12 @@ Debian/Ubuntu blocks system `pip`. Use a project venv (this is what the n8n Exec
 
 ```bash
 python3 -m venv "$PROJECT/.venv"
-"$PROJECT/.venv/bin/pip" install beautifulsoup4 html2text
+"$PROJECT/.venv/bin/pip" install beautifulsoup4 html2text pypdf
 "$PROJECT/.venv/bin/python" "$PROJECT/scripts/clean_html.py" --in "$PROJECT/tests/sample_ingest.json"
+"$PROJECT/.venv/bin/python" "$PROJECT/scripts/extract_pdf.py" --pdf "$PROJECT/tests/sample_jd.pdf" --url "https://jd-flow.local/pdf/sample"
 ```
 
-Expect JSON on stdout with `url` and `clean_md`. `clean_md` must not contain the sample `<script>` or `<nav>` text `Ignore this nav`.
+Expect JSON on stdout with `url` and `clean_md`. `clean_md` must not contain the sample `<script>` or `<nav>` text `Ignore this nav`. The PDF check must print the sentence starting `Senior Python Engineer` and no other JSON keys.
 
 Optional CV distill (your files, not in git):
 

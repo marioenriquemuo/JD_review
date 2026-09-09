@@ -132,6 +132,32 @@ def _letter_body(payload):
     return str(letter)
 
 
+BEGIN_DOC = "\\begin{document}"
+END_DOC = "\\end{document}"
+
+
+def document_body(tex):
+    text = str(tex or "")
+    if BEGIN_DOC in text:
+        text = text.split(BEGIN_DOC, 1)[1]
+    if END_DOC in text:
+        text = text.rsplit(END_DOC, 1)[0]
+    return text.strip()
+
+
+def splice_preamble(master, generated):
+    """Keep master packages/colors; use generated document body."""
+    master = str(master or "")
+    generated = str(generated or "")
+    if BEGIN_DOC not in master:
+        return generated if generated.endswith("\n") else generated + "\n"
+    body = document_body(generated)
+    if not body:
+        raise ValueError("generated tex has no document body")
+    pre = master.split(BEGIN_DOC, 1)[0]
+    return pre + BEGIN_DOC + "\n" + body + "\n" + END_DOC + "\n"
+
+
 # --- Full write (Phase 2/3) ---
 
 def write_full(payload, out_dir, master_path="", letter_master=""):
@@ -141,6 +167,12 @@ def write_full(payload, out_dir, master_path="", letter_master=""):
         raise ValueError("cv_tex is empty")
     if not letter_text.strip():
         raise ValueError("letter_tex is empty")
+    if master_path and os.path.isfile(master_path):
+        with open(master_path, "r") as handle:
+            cv_text = splice_preamble(handle.read(), cv_text)
+    if letter_master and os.path.isfile(letter_master):
+        with open(letter_master, "r") as handle:
+            letter_text = splice_preamble(handle.read(), letter_text)
     os.makedirs(out_dir, exist_ok=True)
     company = slug(payload.get("company"))
     title = slug(payload.get("job_title"))
