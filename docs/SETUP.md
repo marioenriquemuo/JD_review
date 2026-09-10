@@ -24,10 +24,10 @@ Expect JSON on stdout with `url` and `clean_md`. `clean_md` must not contain the
 Optional CV distill (your files, not in git):
 
 ```bash
-"$PROJECT/.venv/bin/python" "$PROJECT/scripts/distill_cv.py" --tex /path/to/cv.tex --csv /path/to/writing.csv --out-dir /tmp/jd-distill
+"$PROJECT/.venv/bin/python" "$PROJECT/scripts/distill_cv.py" --tex "$PROJECT/secrets/master_cv.tex" --csv /path/to/writing.csv --out-dir /tmp/jd-distill
 ```
 
-Paste `/tmp/jd-distill/master_cv.md` into the Notion **Master CV** page and `/tmp/jd-distill/style_learnings.md` into **Style & Learnings**. Edit before use.
+Paste `/tmp/jd-distill/master_cv.md` into the Notion **Master CV** page. Paste `/tmp/jd-distill/style_learnings.md` into **Style & Learnings** **only if you passed a CSV**. Without `--csv`, `style_learnings.md` is a placeholder — do not overwrite a real Style page with it. After any edit to `master_cv.tex`, re-distill and replace the Notion Master CV page.
 
 Copy the original `.tex` locally (gitignored). Notion stays Markdown-only:
 
@@ -37,6 +37,32 @@ cp /path/to/cv.tex "$PROJECT/secrets/master_cv.tex"
 ```
 
 Also keep `"$PROJECT/secrets/storytelling.md"` (Phase 3 letter structure). After **Proceed Phase 2**, complete files land in `/home/mario/Downloads/{company}_{job_title}_CV.tex` and `_CoverLetter.tex`.
+
+### Master CV (ATS)
+
+Workday, Greenhouse, Taleo, and Lever map PDF text to form fields from **standalone headings**. Combined titles (`EDUCATION, CERTIFICATIONS & SKILLS`), nested bullets, and `Degree | School (Year)` pipes leave Education/Certifications empty.
+
+Required `\section*` titles (each on its own line, never merged):
+
+- `EDUCATION` — programs with a start–end range (school + dates, credential on the next line)
+- `CERTIFICATIONS` — issued, non-expired credentials (issuer + name + date). No credential IDs (parsers treat them as dates).
+- `LANGUAGES`
+- `SKILLS`
+
+Date ranges use an ASCII hyphen (`2014 - 2015`), not LaTeX `--` (en-dashes often extract as a gap). Preamble must include `lmodern` + `cmap` so `fi` ligatures extract as `Effective` / `Certificate` / `Proficient`, not `Ective` / `Certicate`.
+
+Phase 2 (`Sonnet Phase 2` in [`JD Flow.json`](../JD Flow.json)) copies this structure: it may reorder certifications to match the JD; degree entries stay fixed; it must not nest or merge those four sections.
+
+Compile and check extractable text before uploading a PDF to an ATS:
+
+```bash
+sudo apt install texlive-latex-base texlive-latex-recommended texlive-latex-extra texlive-fonts-recommended texlive-lang-spanish poppler-utils
+mkdir -p /tmp/jd-cv-pdf
+pdflatex -interaction=nonstopmode -output-directory=/tmp/jd-cv-pdf "$PROJECT/secrets/master_cv.tex"
+pdftotext -layout /tmp/jd-cv-pdf/master_cv.pdf - | sed -n '/EDUCATION/,$p'
+```
+
+Expect four headings on their own lines, four education blocks, nine certification lines, and the words `Effective`, `Certificate`, `Proficient`. Tailored Downloads `.tex` files need the same compile step before you apply. If one ATS still leaves Education empty, use a `.docx` fallback for that employer only.
 
 ---
 
@@ -57,7 +83,7 @@ Put the key in `$PROJECT/secrets/notion_ids.json` as `anthropic_api_key`. Claude
 2. Create database **Applications** with the properties in [README.md](../README.md) (title = Job Title).
 3. **Status** select must include exactly: `Skipped`, `Needs Context`, `Generating`, `Proceed Phase 2`, `Ready to Apply`.
 4. Add **Candidate notes** (Text / rich_text) if missing.
-5. Create two empty pages: **Master CV**, **Style & Learnings**. Paste the distilled Markdown.
+5. Create two empty pages: **Master CV**, **Style & Learnings**. Paste the distilled Markdown. The Master CV page must show separate headings **EDUCATION**, **CERTIFICATIONS**, **LANGUAGES**, **SKILLS** (same as the `.tex`).
 6. Share the database and both pages with the integration (**Connect to**).
 7. Copy IDs from the URLs:
    - Database: `https://notion.so/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx?v=...` → 32 hex chars (optionally insert dashes as `8-4-4-4-12`).
@@ -73,7 +99,7 @@ Select the Notion credential on every Notion node (including **Notion Resume Tri
 
 ## 4. n8n (self-hosted, this machine)
 
-1. Import [`JD Flow.json`](../JD Flow.json): **Workflows → Import from File**. If **JD Flow** is already listed, refresh the n8n tab instead.
+1. Import [`JD Flow.json`](../JD Flow.json): **Workflows → Import from File**. If **JD Flow** is already listed, open **Sonnet Phase 2** and confirm the system prompt contains `Preserve EDUCATION, CERTIFICATIONS, LANGUAGES, and SKILLS as separate sections.` If that sentence is missing, import the file again, re-attach credentials, Save.
 2. Confirm **Execute Command** on **Clean HTML** points at the venv interpreter:
 
 ```text
@@ -120,6 +146,9 @@ To allow a non-localhost n8n URL, add it to `host_permissions` in [`chrome-exten
 ## Checklist
 
 - [ ] `secrets/master_cv.tex` + `secrets/storytelling.md` present
+- [ ] Master CV `.tex` has separate EDUCATION / CERTIFICATIONS / LANGUAGES / SKILLS; Notion Master CV page matches after distill
+- [ ] `pdftotext` of the compiled PDF shows those four headings and `Effective` / `Certificate` / `Proficient`
+- [ ] **Sonnet Phase 2** prompt includes Preserve EDUCATION… (re-import `JD Flow.json` if not)
 - [ ] `anthropic_api_key` in `secrets/notion_ids.json`; spend cap set in Anthropic console
 - [ ] Applications DB Status options include Needs Context / Proceed Phase 2 / Generating
 - [ ] **Candidate notes** property exists

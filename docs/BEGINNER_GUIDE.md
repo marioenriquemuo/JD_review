@@ -39,7 +39,7 @@ Checklist — have all of these ready:
 - [ ] **Google Chrome** (or Chromium)
 - [ ] A **Notion** account
 - [ ] An **Anthropic** account (for Claude API) with billing/spend limit set
-- [ ] Your resume as a **`.tex` (LaTeX)** file, or a Markdown version you can paste into Notion
+- [ ] Your resume as a **`.tex` (LaTeX)** file with separate EDUCATION / CERTIFICATIONS / LANGUAGES / SKILLS sections, or a Markdown version you can paste into Notion
 - [ ] About **45–90 minutes** for the first setup
 
 You do **not** need to know how to code.
@@ -159,12 +159,15 @@ Open the **Status** property → Edit options. Create these exact options:
 ## Step 4 — Create two helper pages in Notion
 
 1. Create a page named **Master CV**.  
-   Paste a plain-text / Markdown summary of your resume (not the raw LaTeX if you prefer readability).
+   Paste the distilled Markdown from `scripts/distill_cv.py` (not the raw LaTeX).  
+   The page must have four separate headings: **EDUCATION**, **CERTIFICATIONS**, **LANGUAGES**, **SKILLS**.  
+   Do not dump school, certs, and skills under one combined title — ATS and Haiku both need those headings.
 2. Create a page named **Style & Learnings**.  
    Paste short writing rules (tone, phrases to avoid, what “good” bullets look like).  
-   Keep it short (about 10–20 rules).
+   Keep it short (about 10–20 rules).  
+   Only paste `style_learnings.md` from distill if you ran distill **with a CSV**. Without a CSV that file is a placeholder.
 
-Later you can improve these pages; they do not need to be perfect on day one.
+When you change `secrets/master_cv.tex`, re-run distill and replace the Master CV page. Details: [`SETUP.md`](SETUP.md#master-cv-ats).
 
 ---
 
@@ -234,6 +237,8 @@ Your project has a private folder named `secrets` (it should not be uploaded to 
 5. Also place your master resume LaTeX here:
 
 `/home/mario/Documents/n8n/Nuevo trabajo/secrets/master_cv.tex`
+
+   That file must keep **EDUCATION**, **CERTIFICATIONS**, **LANGUAGES**, and **SKILLS** as four `\section*` titles (never one combined list). Use ASCII hyphens in dates (`2014 - 2015`) and keep the `lmodern` + `cmap` packages so job-site PDF parsers can read words like Effective / Certificate.
 
 6. Make sure this file exists (cover-letter storytelling rules):
 
@@ -308,9 +313,10 @@ ssh localhost
 `/home/mario/Documents/n8n/Nuevo trabajo/JD Flow.json`
 
 3. Open the imported workflow named **JD Flow**.
-4. For every red / warning Notion node: select credential **Notion account**.
-5. For every SSH node: select credential **SSH localhost**.
-6. Click **Save**.
+4. Open **Sonnet Phase 2** and confirm the prompt says to keep EDUCATION, CERTIFICATIONS, LANGUAGES, and SKILLS as separate sections.
+5. For every red / warning Notion node: select credential **Notion account**.
+6. For every SSH node: select credential **SSH localhost**.
+7. Click **Save**.
 
 ### Turn it ON for daily use
 
@@ -398,8 +404,8 @@ The URL was already in Notion.
 3. If **Needs Context**:
    - Answer in Notion **Candidate Answers** (short, factual, no exaggeration).
    - Click **Continue Phase 2**.
-4. Download / compile the LaTeX files.
-5. Review before applying. You are still responsible for accuracy.
+4. Compile the Downloads `_CV.tex` to PDF (`pdflatex`). Upload that PDF to the job site, not the `.tex`.
+5. Review before applying. You are still responsible for accuracy. Confirm Education and Certifications auto-filled; field-of-study may still need a small manual tweak.
 
 ## What each Notion Status means
 
@@ -462,6 +468,20 @@ Check:
 That is normal. Notion text fields are limited (~2000 characters).  
 Full files are in **Downloads**.
 
+## Job site leaves Education / Certifications blank after PDF upload
+
+The PDF must have four headings on their own lines: EDUCATION, CERTIFICATIONS, LANGUAGES, SKILLS. Combined titles and nested bullets do not parse.
+
+Fix:
+
+1. Check `secrets/master_cv.tex` (and the Downloads `_CV.tex`) for those four `\section*` titles.
+2. Compile with `pdflatex`, then `pdftotext -layout … | sed -n '/EDUCATION/,$p'`.
+3. You must see `Effective`, `Certificate`, `Proficient` (not `Ective` / `Certicate`). If ligatures are broken, keep `\usepackage{lmodern}` and `\usepackage{cmap}` in the preamble.
+4. Re-distill and update the Notion Master CV page so Haiku/Phase 2 see the same headings.
+5. Open **Sonnet Phase 2** and confirm it is told not to merge those sections.
+
+Full commands: [`SETUP.md`](SETUP.md#master-cv-ats).
+
 ## Costs feel high
 
 - Weak jobs should stay **Skipped** (cheap).
@@ -476,6 +496,7 @@ You are fully set up when all of these are true:
 
 - [ ] Claude key and Notion IDs are in `secrets/notion_ids.json`
 - [ ] `master_cv.tex` and `storytelling.md` exist in `secrets/`
+- [ ] Master CV (tex + Notion page) has separate EDUCATION / CERTIFICATIONS / LANGUAGES / SKILLS headings
 - [ ] Applications database has all required columns
 - [ ] Integration is connected to DB + Master CV + Style pages
 - [ ] n8n JD Flow is Active with Notion + SSH credentials attached
@@ -488,6 +509,7 @@ You are fully set up when all of these are true:
 
 - Short architecture overview: [`README.md`](../README.md)
 - Compact setup notes: [`SETUP.md`](SETUP.md)
+- Master CV headings so job sites parse Education/Certifications: [`SETUP.md` Master CV (ATS)](SETUP.md#master-cv-ats)
 - Simple story version: [`ELI5.md`](ELI5.md)
 
 If something fails, open n8n → **Executions**, click the failed run, and note:

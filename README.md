@@ -14,6 +14,7 @@ Source graph: [`mearmaid.txt`](mearmaid.txt). Setup: [`docs/SETUP.md`](docs/SETU
 - **Two-tier LLM routing.** Haiku scores fit. Sonnet runs only when `fit_score >= 70`.
 - **Honest feedback loop.** Phase 1 audits gaps and asks questions; Phase 2/3 use only your CV + Candidate notes (no invented metrics).
 - **Full LaTeX, not patches.** Complete compilable `.tex` files go to Downloads; Notion columns hold a 1,900-char preview (Notion property cap).
+- **ATS-parseable master CV.** `secrets/master_cv.tex` keeps **EDUCATION**, **CERTIFICATIONS**, **LANGUAGES**, and **SKILLS** as separate headings. Phase 2 must not merge them. Details: [`docs/SETUP.md`](docs/SETUP.md#master-cv-ats).
 
 ## Flow
 
@@ -81,9 +82,9 @@ Title property: **Job Title**.
 
 | Path / page | Role |
 | --- | --- |
-| Notion Master CV | Distilled Markdown for Haiku |
+| Notion Master CV | Distilled Markdown for Haiku (must show the same four section headings as the `.tex`) |
 | Notion Style & Learnings | Tone rules for Sonnet |
-| `secrets/master_cv.tex` | Full LaTeX master for Phase 1–2 |
+| `secrets/master_cv.tex` | Full LaTeX master for Phase 1–2 and ATS PDF compile |
 | `secrets/storytelling.md` | Phase 3 letter structure |
 | `secrets/runs/{page_id}.json` | Phase 1 state for resume |
 | `secrets/notion_ids.json` | DB/page IDs + `anthropic_api_key` |
@@ -105,4 +106,6 @@ Title property: **Job Title**.
 - **Upload PDF** is for text PDFs only (no OCR). Dedup URL is `https://jd-flow.local/pdf/<sha256>`.
 - Empty Candidate Answers + Proceed Phase 2 still generates files from the master CV only (no invented facts).
 - Phase 2 starts from the extension **Continue Phase 2** button (not a Notion poll).
+- Phase 2 may reorder **CERTIFICATIONS** to match the JD. Degree entries stay fixed. It must not merge EDUCATION / CERTIFICATIONS / LANGUAGES / SKILLS or turn education into nested bullets.
+- After you edit `secrets/master_cv.tex`, re-run `scripts/distill_cv.py` and paste **only** `master_cv.md` into the Notion Master CV page (do not paste the style placeholder unless you passed a CSV).
 - Fit threshold is hard-coded at 70.

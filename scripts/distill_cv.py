@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""One-time LaTeX CV + writing CSV → Notion-ready Markdown drafts."""
+"""One-time LaTeX CV + writing CSV → Notion-ready Markdown drafts.
+
+Re-run after editing secrets/master_cv.tex. Paste only master_cv.md into the
+Notion Master CV page. That page must keep EDUCATION, CERTIFICATIONS,
+LANGUAGES, and SKILLS as separate headings (ATS + Haiku). Without --csv,
+style_learnings.md is a placeholder — do not overwrite a real Style page.
+"""
 
 import argparse
 import csv

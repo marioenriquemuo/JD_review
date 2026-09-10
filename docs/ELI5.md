@@ -243,17 +243,20 @@ Salary Flag options: `extracted` and `UNVERIFIED Estimate`.
 
 Create pages **Master CV** and **Style & Learnings**.
 
-For now you can paste a short placeholder, e.g. “CV goes here”. Later we distill your LaTeX/CSV with:
+The Master CV page needs four headings: **EDUCATION**, **CERTIFICATIONS**, **LANGUAGES**, **SKILLS**. Combined titles make job-site forms leave those fields empty.
+
+For now you can paste a short placeholder, e.g. “CV goes here”. Later distill your LaTeX with:
 
 ```bash
 /home/mario/Documents/n8n/Nuevo trabajo/.venv/bin/python \
   /home/mario/Documents/n8n/Nuevo trabajo/scripts/distill_cv.py \
-  --tex /path/to/your.tex \
-  --csv /path/to/your.csv \
+  --tex /home/mario/Documents/n8n/Nuevo trabajo/secrets/master_cv.tex \
   --out-dir /tmp/jd-distill
 ```
 
-Then paste `master_cv.md` and `style_learnings.md` into those pages.
+Paste **only** `master_cv.md` into the Master CV page. Add `--csv /path/to/your.csv` only when you want a real Style & Learnings draft; without a CSV, `style_learnings.md` is a placeholder — do not overwrite a good Style page with it.
+
+After you edit `secrets/master_cv.tex`, run distill again and replace the Notion Master CV page. ATS compile/check commands: [`SETUP.md`](SETUP.md#master-cv-ats).
 
 Also copy the original CV `.tex` (not the Markdown distill) to a local file the assembler reads. Do **not** paste the `.tex` into n8n:
 
@@ -341,6 +344,7 @@ You can now send jobs without clicking Test workflow first.
 | Notion property error | Property name/type does not match the table (e.g. `richText` vs Text) |
 | Haiku/Sonnet 401 | Header Auth name is not `x-api-key`, or wrong key |
 | Popup CORS / failed fetch | Webhook host is not `localhost:5678`; add it to `host_permissions` in `manifest.json` and reload the extension |
+| ATS Education/Certifications stay empty | Combined CV heading or nested bullets; see [`SETUP.md`](SETUP.md#master-cv-ats) |
 
 ---
 
