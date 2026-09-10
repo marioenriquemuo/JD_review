@@ -24,7 +24,8 @@ def main():
         "style_learnings_page_id": clean_id(data.get("style_learnings_page_id")),
         "anthropic_api_key": str(data.get("anthropic_api_key") or "").strip(),
     }
-    missing = [k for k, v in out.items() if not v]
+    required = ("applications_db_id", "style_learnings_page_id", "anthropic_api_key")
+    missing = [k for k in required if not out.get(k)]
     if missing:
         raise SystemExit("missing fields in secrets file: " + ", ".join(missing))
     print(json.dumps(out, separators=(",", ":")))

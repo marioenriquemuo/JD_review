@@ -148,7 +148,7 @@
     },
     {
       "parameters": {
-        "jsCode": "function ingestMd() {\n  try {\n    const pdf = $('Parse PDF MD').item.json;\n    if (pdf && String(pdf.clean_md || '').trim()) {\n      return { url: pdf.url || '', clean_md: String(pdf.clean_md).trim() };\n    }\n  } catch (e) {}\n  const html = $('Parse Clean MD').item.json;\n  return { url: html.url || '', clean_md: String(html.clean_md || '').trim() };\n}\nconst ingest = ingestMd();\nconst raw = String($json.stdout || $json.data || '').trim();\nconst match = raw.match(/\\{[\\s\\S]*\\}/);\nif (!match) {\n  throw new Error('load_secret_ids.py returned no JSON. stdout=' + raw.slice(0, 200));\n}\nconst ids = JSON.parse(match[0]);\nif (!ids.applications_db_id || !ids.master_cv_page_id || !ids.style_learnings_page_id || !ids.anthropic_api_key) {\n  throw new Error('Secret IDs missing required fields');\n}\nreturn { json: Object.assign({}, ingest, ids) };",
+        "jsCode": "function ingestMd() {\n  try {\n    const pdf = $('Parse PDF MD').item.json;\n    if (pdf && String(pdf.clean_md || '').trim()) {\n      return { url: pdf.url || '', clean_md: String(pdf.clean_md).trim() };\n    }\n  } catch (e) {}\n  const html = $('Parse Clean MD').item.json;\n  return { url: html.url || '', clean_md: String(html.clean_md || '').trim() };\n}\nconst ingest = ingestMd();\nconst raw = String($json.stdout || $json.data || '').trim();\nconst match = raw.match(/\\{[\\s\\S]*\\}/);\nif (!match) {\n  throw new Error('load_secret_ids.py returned no JSON. stdout=' + raw.slice(0, 200));\n}\nconst ids = JSON.parse(match[0]);\nif (!ids.applications_db_id || !ids.style_learnings_page_id || !ids.anthropic_api_key) {\n  throw new Error('Secret IDs missing required fields');\n}\nreturn { json: Object.assign({}, ingest, ids) };",
         "mode": "runOnceForEachItem"
       },
       "type": "n8n-nodes-base.code",
@@ -242,35 +242,26 @@
     },
     {
       "parameters": {
-        "resource": "block",
-        "operation": "getAll",
-        "blockId": {
-          "__rl": true,
-          "value": "={{ $('Secret IDs').item.json.master_cv_page_id }}",
-          "mode": "id"
-        },
-        "returnAll": true,
-        "fetchNestedBlocks": true
+        "command": "'/home/mario/Documents/n8n/Nuevo trabajo/.venv/bin/python' '/home/mario/Documents/n8n/Nuevo trabajo/scripts/distill_cv.py' --tex '/home/mario/Documents/n8n/Nuevo trabajo/secrets/master_cv.tex' --verify-json"
       },
-      "type": "n8n-nodes-base.notion",
-      "typeVersion": 2.2,
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
       "position": [
         580,
         0
       ],
       "id": "fb6ca921-27f1-48e7-a464-833def6a595a",
-      "name": "Get Master CV",
-      "alwaysOutputData": true,
+      "name": "Distill Master CV",
       "credentials": {
-        "notionApi": {
-          "id": "PVbozrs4FE83DBwK",
-          "name": "Notion account"
+        "sshPassword": {
+          "id": "nM6jdLaHV8O6GLPF",
+          "name": "SSH localhost"
         }
       }
     },
     {
       "parameters": {
-        "jsCode": "function blockText(j) {\n  if (!j) return '';\n  if (typeof j.content === 'string') return j.content;\n  if (typeof j.textContent === 'string') return j.textContent;\n  if (typeof j.plain_text === 'string') return j.plain_text;\n  const keys = ['paragraph','heading_1','heading_2','heading_3','bulleted_list_item','numbered_list_item','quote','code','toggle','callout'];\n  for (const k of keys) {\n    const b = j[k];\n    if (b && Array.isArray(b.rich_text)) {\n      return b.rich_text.map(function (t) { return t.plain_text || ''; }).join('');\n    }\n  }\n  if (Array.isArray(j.rich_text)) {\n    return j.rich_text.map(function (t) { return t.plain_text || ''; }).join('');\n  }\n  return '';\n}\nconst cv_md = $input.all().map(function (i) { return blockText(i.json); }).filter(Boolean).join('\\n');\nfunction ingestMd() {\n  try {\n    const pdf = $('Parse PDF MD').first().json;\n    if (pdf && String(pdf.clean_md || '').trim()) return pdf;\n  } catch (e) {}\n  return $('Parse Clean MD').first().json;\n}\nconst prev = ingestMd();\nreturn [{ json: { url: prev.url, clean_md: prev.clean_md, cv_md: cv_md } }];\n"
+        "jsCode": "function ingestMd() {\n  try {\n    const pdf = $('Parse PDF MD').first().json;\n    if (pdf && String(pdf.clean_md || '').trim()) return pdf;\n  } catch (e) {}\n  return $('Parse Clean MD').first().json;\n}\nconst raw = String($json.stdout || $json.data || '').trim();\nconst match = raw.match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('distill_cv.py returned no JSON. stdout=' + raw.slice(0, 200));\nconst parsed = JSON.parse(match[0]);\nif (!parsed.ok) {\n  throw new Error('Master CV markdown dropped facts: ' + (parsed.missing || []).join(', '));\n}\nconst cv_md = String(parsed.cv_md || '').trim();\nif (!cv_md) throw new Error('distill_cv.py returned empty cv_md');\nconst prev = ingestMd();\nreturn [{ json: { url: prev.url, clean_md: prev.clean_md, cv_md: cv_md } }];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -283,7 +274,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const key = String($('Secret IDs').first().json.anthropic_api_key || '').trim();\nif (!key) throw new Error('anthropic_api_key missing after Load Secret IDs. Check secrets/notion_ids.json and SSH on Load Secret IDs.');\nconst j = $input.item.json;\nconst cvSummary = String(j.cv_md || '').slice(0, 2500);\nconst jd = String(j.clean_md || '').slice(0, 8000);\nconst haiku_user = 'MASTER CV SUMMARY:\\n' + cvSummary + '\\n\\nJOB DESCRIPTION:\\n' + jd;\nreturn { json: Object.assign({}, j, { haiku_user: haiku_user }) };\n",
+        "jsCode": "const key = String($('Secret IDs').first().json.anthropic_api_key || '').trim();\nif (!key) throw new Error('anthropic_api_key missing after Load Secret IDs. Check secrets/notion_ids.json and SSH on Load Secret IDs.');\nconst j = $input.item.json;\nconst cvSummary = String(j.cv_md || '');\nconst jd = String(j.clean_md || '').slice(0, 8000);\nconst haiku_user = 'MASTER CV:\\n' + cvSummary + '\\n\\nJOB DESCRIPTION:\\n' + jd;\nreturn { json: Object.assign({}, j, { haiku_user: haiku_user }) };\n",
         "mode": "runOnceForEachItem"
       },
       "type": "n8n-nodes-base.code",
@@ -319,7 +310,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: 'claude-haiku-4-5', max_tokens: 8000, system: \"You score job fit 0-100 against the master CV. Non-negotiables: years of experience, core tech stack, required languages. Reply with ONLY a JSON object, no markdown fences. Keys: job_title (string), company (string), skills (string, comma-separated), location (string), fit_score (integer 0-100), rationale (string, exactly 2 sentences), gaps (array of 0 to 5 short strings: JD requirements not evidenced in the Master CV).\", messages: [{ role: 'user', content: $json.haiku_user }] }) }}",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-haiku-4-5', max_tokens: 1024, system: \"You score job fit 0-100 against the master CV. Non-negotiables: years of experience, core tech stack, required languages. Reply with ONLY a JSON object, no markdown fences. Keys: job_title (string), company (string), skills (string, comma-separated), location (string), fit_score (integer 0-100), rationale (string, exactly 2 sentences), gaps (array of 0 to 5 short strings: JD requirements not evidenced in the Master CV).\", messages: [{ role: 'user', content: $json.haiku_user }] }) }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -333,7 +324,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const item = $input.item.json;\nconst text = (item.content && item.content[0] && item.content[0].text) || item.content || '';\nconst match = String(text).match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('Haiku did not return JSON');\nconst parsed = JSON.parse(match[0]);\nfunction gapsText(g) {\n  if (g == null || g === '') return '';\n  const arr = Array.isArray(g) ? g : String(g).split(/\\n|;/);\n  return arr.map(function (x) { return String(x).replace(/^[-*]\\s*/, '').trim(); })\n    .filter(Boolean)\n    .slice(0, 5)\n    .map(function (x) { return '- ' + x; })\n    .join('\\n');\n}\nconst prev = $('Flatten CV').first().json;\nreturn { json: {\n  url: prev.url,\n  clean_md: prev.clean_md,\n  cv_md: prev.cv_md,\n  job_title: parsed.job_title || 'Untitled role',\n  company: parsed.company || '',\n  skills: parsed.skills || '',\n  location: parsed.location || '',\n  fit_score: Number(parsed.fit_score),\n  rationale: parsed.rationale || '',\n  gaps: gapsText(parsed.gaps)\n} };"
+        "jsCode": "const item = $input.item.json;\nconst text = (item.content && item.content[0] && item.content[0].text) || item.content || '';\nconst match = String(text).match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('Haiku did not return JSON');\nconst parsed = JSON.parse(match[0]);\nfunction gapsText(g) {\n  if (g == null || g === '') return '';\n  const arr = Array.isArray(g) ? g : String(g).split(/\\n|;/);\n  return arr.map(function (x) { return String(x).replace(/^[-*]\\s*/, '').trim(); })\n    .filter(Boolean)\n    .slice(0, 5)\n    .map(function (x) { return '- ' + x; })\n    .join('\\n');\n}\nconst prev = $('Flatten CV').first().json;\nconst usage = item.usage || {};\nreturn { json: {\n  url: prev.url,\n  clean_md: prev.clean_md,\n  cv_md: prev.cv_md,\n  job_title: parsed.job_title || 'Untitled role',\n  company: parsed.company || '',\n  skills: parsed.skills || '',\n  location: parsed.location || '',\n  fit_score: Number(parsed.fit_score),\n  rationale: parsed.rationale || '',\n  gaps: gapsText(parsed.gaps),\n  usage_triage: { input_tokens: Number(usage.input_tokens) || 0, output_tokens: Number(usage.output_tokens) || 0 }\n} };"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -442,7 +433,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const j = $('Parse Triage').first().json;\nreturn { json: { status: 'skipped', fit_score: j.fit_score, rationale: j.rationale || '', company: j.company || '', job_title: j.job_title || '' } };"
+        "jsCode": "const j = $('Parse Triage').first().json;\nreturn { json: { status: 'skipped', fit_score: j.fit_score, rationale: j.rationale || '', company: j.company || '', job_title: j.job_title || '', usage_triage: j.usage_triage || {} } };"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -530,7 +521,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const style = $('Flatten Style').first().json;\nconst master = String($json.stdout || $json.data || '');\nconst phase1_user = [\n  'MASTER LATEX CV:',\n  master,\n  '',\n  'JOB DESCRIPTION:',\n  style.clean_md || '',\n  '',\n  'STYLE & LEARNINGS (tone only; do not invent facts):',\n  style.style_rules || ''\n].join('\\n');\nreturn { json: Object.assign({}, style, { master_tex: master, phase1_user: phase1_user }) };"
+        "jsCode": "const style = $('Flatten Style').first().json;\nconst phase1_user = [\n  'MASTER CV:',\n  style.cv_md || '',\n  '',\n  'JOB DESCRIPTION:',\n  style.clean_md || '',\n  '',\n  'STYLE & LEARNINGS (tone only; do not invent facts):',\n  style.style_rules || ''\n].join('\\n');\nreturn { json: Object.assign({}, style, { phase1_user: phase1_user }) };"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -565,7 +556,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 8000, thinking: { type: 'disabled' }, system: \"You are an Executive Career Strategist and Expert ATS Auditor. PHASE 1 ONLY: Semantic Gap Analysis. Do not rewrite the CV. Do not write a cover letter. No arbitrary percentage scores. Conduct a rigorous Semantic Gap Analysis. Do not invent employers, dates, metrics, or skills absent from the MASTER LATEX CV. Reply with ONLY a JSON object, no markdown fences. Keys: critical_missing_keywords (array of strings: hard skills/software/methodologies in the JD but absent in the CV), impact_alignment (array of strings: places the CV lists tasks instead of quantifiable outcomes), strategic_positioning (string: how narrative aligns with seniority/scope of the role), questions (array of 3 to 8 short strings: concrete questions to ask the candidate so gaps can be filled honestly), salary_range (string: numbers from the JD, or a market range estimate), salary_flag (string: exactly 'extracted' if the JD listed pay, otherwise 'UNVERIFIED Estimate').\", messages: [{ role: 'user', content: $json.phase1_user }] }) }}",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-haiku-4-5', max_tokens: 2000, system: \"You are an Executive Career Strategist and Expert ATS Auditor. PHASE 1 ONLY: Semantic Gap Analysis. Do not rewrite the CV. Do not write a cover letter. No arbitrary percentage scores. Conduct a rigorous Semantic Gap Analysis. Do not invent employers, dates, metrics, or skills absent from the MASTER CV. Reply with ONLY a JSON object, no markdown fences. Keys: critical_missing_keywords (array of strings: hard skills/software/methodologies in the JD but absent in the CV), impact_alignment (array of strings: places the CV lists tasks instead of quantifiable outcomes), strategic_positioning (string: how narrative aligns with seniority/scope of the role), questions (array of 3 to 8 short strings: concrete questions to ask the candidate so gaps can be filled honestly), salary_range (string: numbers from the JD, or a market range estimate), salary_flag (string: exactly 'extracted' if the JD listed pay, otherwise 'UNVERIFIED Estimate').\", messages: [{ role: 'user', content: $json.phase1_user }] }) }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -575,11 +566,11 @@
         0
       ],
       "id": "85ec6d92-cca0-45c9-b5f1-e51805b8538e",
-      "name": "Sonnet Phase 1"
+      "name": "Haiku Phase 1"
     },
     {
       "parameters": {
-        "jsCode": "function repairJson(s) {\n  let out = '';\n  let inString = false;\n  let escaped = false;\n  for (let i = 0; i < s.length; i++) {\n    const c = s[i];\n    const code = s.charCodeAt(i);\n    if (!inString) {\n      if (c === '\"') inString = true;\n      out += c;\n      continue;\n    }\n    if (escaped) {\n      out += c;\n      escaped = false;\n      continue;\n    }\n    if (c === '\\\\') {\n      out += c;\n      escaped = true;\n      continue;\n    }\n    if (c === '\"') {\n      out += c;\n      inString = false;\n      continue;\n    }\n    if (code < 32) {\n      if (c === '\\n') out += '\\\\n';\n      else if (c === '\\r') out += '\\\\r';\n      else if (c === '\\t') out += '\\\\t';\n      else out += '\\\\u' + ('0000' + code.toString(16)).slice(-4);\n      continue;\n    }\n    out += c;\n  }\n  return out;\n}\nfunction asList(v) {\n  if (Array.isArray(v)) return v.map(function (x) { return String(x); }).filter(Boolean);\n  if (v == null || v === '') return [];\n  return [String(v)];\n}\nfunction cap(s) {\n  s = String(s || '');\n  return s.length <= 1900 ? s : s.slice(0, 1899) + '\\u2026';\n}\nconst item = $input.item.json;\nconst content = item.content;\nconst textBlock = Array.isArray(content) ? content.find(function (b) { return b && b.type === 'text' && b.text; }) : null;\nconst text = (textBlock && textBlock.text) || '';\nconst match = String(text).match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('Sonnet Phase 1 did not return JSON');\nconst parsed = JSON.parse(repairJson(match[0]));\nconst prev = $('Build Phase 1 Prompt').first().json;\nconst questions = asList(parsed.questions);\nconst keywords = asList(parsed.critical_missing_keywords);\nconst impact = asList(parsed.impact_alignment);\nconst positioning = String(parsed.strategic_positioning || '');\nconst audit_md = [\n  '## Critical Missing Keywords',\n  keywords.length ? keywords.map(function (k) { return '- ' + k; }).join('\\n') : '- none',\n  '',\n  '## Impact Alignment',\n  impact.length ? impact.map(function (k) { return '- ' + k; }).join('\\n') : '- none',\n  '',\n  '## Strategic Positioning',\n  positioning,\n  '',\n  '## Questions for you',\n  questions.length ? questions.map(function (k, i) { return (i + 1) + '. ' + k; }).join('\\n') : '- none',\n  '',\n  'Write answers in Candidate Answers. Then set Status to Proceed Phase 2. Empty answers still proceed using only the master CV (nothing invented).'\n].join('\\n');\nconst body_keywords = cap(keywords.length ? keywords.map(function (k) { return '- ' + k; }).join('\\n') : '- none');\nconst body_impact = cap(impact.length ? impact.map(function (k) { return '- ' + k; }).join('\\n') : '- none');\nconst body_positioning = cap(positioning || '- none');\nconst body_questions = cap(questions.length ? questions.map(function (k, i) { return (i + 1) + '. ' + k; }).join('\\n') : '- none');\nconst body_footer = 'Write answers in Candidate Answers. Then set Status to Proceed Phase 2. Empty answers still proceed using only the master CV (nothing invented).';\nconst candidate_notes_seed = (function () {\n  var s = questions.map(function (q, i) { return (i + 1) + '. ' + q; }).join('\\n');\n  return cap(s);\n})();\nreturn { json: Object.assign({}, prev, {\n  critical_missing_keywords: keywords,\n  impact_alignment: impact,\n  strategic_positioning: positioning,\n  questions: questions,\n  salary_range: cap(parsed.salary_range || ''),\n  salary_flag: String(parsed.salary_flag || 'UNVERIFIED Estimate'),\n  audit_md: audit_md,\n  body_keywords: body_keywords,\n  body_impact: body_impact,\n  body_positioning: body_positioning,\n  body_questions: body_questions,\n  body_footer: body_footer,\n  candidate_notes_seed: candidate_notes_seed\n}) };\n"
+        "jsCode": "function repairJson(s) {\n  let out = '';\n  let inString = false;\n  let escaped = false;\n  for (let i = 0; i < s.length; i++) {\n    const c = s[i];\n    const code = s.charCodeAt(i);\n    if (!inString) {\n      if (c === '\"') inString = true;\n      out += c;\n      continue;\n    }\n    if (escaped) {\n      out += c;\n      escaped = false;\n      continue;\n    }\n    if (c === '\\\\') {\n      out += c;\n      escaped = true;\n      continue;\n    }\n    if (c === '\"') {\n      out += c;\n      inString = false;\n      continue;\n    }\n    if (code < 32) {\n      if (c === '\\n') out += '\\\\n';\n      else if (c === '\\r') out += '\\\\r';\n      else if (c === '\\t') out += '\\\\t';\n      else out += '\\\\u' + ('0000' + code.toString(16)).slice(-4);\n      continue;\n    }\n    out += c;\n  }\n  return out;\n}\nfunction asList(v) {\n  if (Array.isArray(v)) return v.map(function (x) { return String(x); }).filter(Boolean);\n  if (v == null || v === '') return [];\n  return [String(v)];\n}\nfunction cap(s) {\n  s = String(s || '');\n  return s.length <= 1900 ? s : s.slice(0, 1899) + '\\u2026';\n}\nconst item = $input.item.json;\nconst content = item.content;\nconst textBlock = Array.isArray(content) ? content.find(function (b) { return b && b.type === 'text' && b.text; }) : null;\nconst text = (textBlock && textBlock.text) || '';\nconst match = String(text).match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('Haiku Phase 1 did not return JSON');\nconst parsed = JSON.parse(repairJson(match[0]));\nconst prev = $('Build Phase 1 Prompt').first().json;\nconst questions = asList(parsed.questions);\nconst keywords = asList(parsed.critical_missing_keywords);\nconst impact = asList(parsed.impact_alignment);\nconst positioning = String(parsed.strategic_positioning || '');\nconst audit_md = [\n  '## Critical Missing Keywords',\n  keywords.length ? keywords.map(function (k) { return '- ' + k; }).join('\\n') : '- none',\n  '',\n  '## Impact Alignment',\n  impact.length ? impact.map(function (k) { return '- ' + k; }).join('\\n') : '- none',\n  '',\n  '## Strategic Positioning',\n  positioning,\n  '',\n  '## Questions for you',\n  questions.length ? questions.map(function (k, i) { return (i + 1) + '. ' + k; }).join('\\n') : '- none',\n  '',\n  'Write answers in Candidate Answers. Then set Status to Proceed Phase 2. Empty answers still proceed using only the master CV (nothing invented).'\n].join('\\n');\nconst body_keywords = cap(keywords.length ? keywords.map(function (k) { return '- ' + k; }).join('\\n') : '- none');\nconst body_impact = cap(impact.length ? impact.map(function (k) { return '- ' + k; }).join('\\n') : '- none');\nconst body_positioning = cap(positioning || '- none');\nconst body_questions = cap(questions.length ? questions.map(function (k, i) { return (i + 1) + '. ' + k; }).join('\\n') : '- none');\nconst body_footer = 'Write answers in Candidate Answers. Then set Status to Proceed Phase 2. Empty answers still proceed using only the master CV (nothing invented).';\nconst candidate_notes_seed = (function () {\n  var s = questions.map(function (q, i) { return (i + 1) + '. ' + q; }).join('\\n');\n  return cap(s);\n})();\nreturn { json: Object.assign({}, prev, {\n  critical_missing_keywords: keywords,\n  impact_alignment: impact,\n  strategic_positioning: positioning,\n  questions: questions,\n  salary_range: cap(parsed.salary_range || ''),\n  salary_flag: String(parsed.salary_flag || 'UNVERIFIED Estimate'),\n  audit_md: audit_md,\n  body_keywords: body_keywords,\n  body_impact: body_impact,\n  body_positioning: body_positioning,\n  body_questions: body_questions,\n  body_footer: body_footer,\n  candidate_notes_seed: candidate_notes_seed,\n  usage_phase1: { input_tokens: Number((item.usage || {}).input_tokens) || 0, output_tokens: Number((item.usage || {}).output_tokens) || 0 }\n}) };\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -698,7 +689,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const audit = $('Parse Phase 1').first().json;\nconst page = $json;\nconst page_id = String(page.id || page.pageId || '').replace(/-/g, '').toLowerCase();\nif (!/^[0-9a-f]{32}$/.test(page_id)) {\n  throw new Error('Create Needs Context returned no usable page id: ' + String(page.id || page.pageId || ''));\n}\nconst run = {\n  page_id: page_id,\n  url: audit.url,\n  clean_md: audit.clean_md,\n  company: audit.company,\n  job_title: audit.job_title,\n  location: audit.location,\n  skills: audit.skills,\n  fit_score: audit.fit_score,\n  rationale: audit.rationale,\n  gaps: audit.gaps,\n  salary_range: audit.salary_range,\n  salary_flag: audit.salary_flag,\n  critical_missing_keywords: audit.critical_missing_keywords,\n  impact_alignment: audit.impact_alignment,\n  strategic_positioning: audit.strategic_positioning,\n  questions: audit.questions,\n  audit_md: audit.audit_md,\n  style_rules: audit.style_rules\n};\nreturn { json: Object.assign({}, audit, {\n  page_id: page_id,\n  run_b64: Buffer.from(JSON.stringify(run), 'utf8').toString('base64')\n}) };\n"
+        "jsCode": "const audit = $('Parse Phase 1').first().json;\nconst page = $json;\nconst page_id = String(page.id || page.pageId || '').replace(/-/g, '').toLowerCase();\nif (!/^[0-9a-f]{32}$/.test(page_id)) {\n  throw new Error('Create Needs Context returned no usable page id: ' + String(page.id || page.pageId || ''));\n}\nconst run = {\n  page_id: page_id,\n  url: audit.url,\n  clean_md: audit.clean_md,\n  company: audit.company,\n  job_title: audit.job_title,\n  location: audit.location,\n  skills: audit.skills,\n  fit_score: audit.fit_score,\n  rationale: audit.rationale,\n  gaps: audit.gaps,\n  salary_range: audit.salary_range,\n  salary_flag: audit.salary_flag,\n  critical_missing_keywords: audit.critical_missing_keywords,\n  impact_alignment: audit.impact_alignment,\n  strategic_positioning: audit.strategic_positioning,\n  questions: audit.questions,\n  audit_md: audit.audit_md,\n  style_rules: audit.style_rules,\n  usage_triage: audit.usage_triage || {},\n  usage_phase1: audit.usage_phase1 || {}\n};\nreturn { json: Object.assign({}, audit, {\n  page_id: page_id,\n  run_b64: Buffer.from(JSON.stringify(run), 'utf8').toString('base64')\n}) };\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -730,7 +721,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const j = $('Pack Run State').first().json;\nreturn { json: {\n  status: 'needs_context',\n  fit_score: j.fit_score,\n  company: j.company || '',\n  job_title: j.job_title || '',\n  page_id: j.page_id,\n  url: j.url || ''\n} };"
+        "jsCode": "const j = $('Pack Run State').first().json;\nreturn { json: {\n  status: 'needs_context',\n  fit_score: j.fit_score,\n  company: j.company || '',\n  job_title: j.job_title || '',\n  page_id: j.page_id,\n  url: j.url || '',\n  usage_triage: j.usage_triage || {},\n  usage_phase1: j.usage_phase1 || {}\n} };"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -881,7 +872,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const key = String($('Resume Secrets').first().json.anthropic_api_key || '').trim();\nif (!key) throw new Error('anthropic_api_key missing after Load Secret IDs Resume. Check secrets/notion_ids.json and SSH on Load Secret IDs Resume.');\nconst run = $('Merge Run State').first().json;\nconst masterNode = $('Read Master Tex Resume').first().json;\nconst master = String(masterNode.stdout || masterNode.data || '');\nconst story = String($json.stdout || $json.data || '');\nconst audit = [\n  'Critical missing keywords: ' + (run.critical_missing_keywords || []).join('; '),\n  'Impact alignment: ' + (run.impact_alignment || []).join('; '),\n  'Strategic positioning: ' + (run.strategic_positioning || ''),\n  'Questions asked: ' + (run.questions || []).join('; ')\n].join('\\n');\nconst phase2_user = [\n  'MASTER LATEX CV (keep the same communication style):',\n  master,\n  '',\n  'JOB DESCRIPTION:',\n  run.clean_md || '',\n  '',\n  'PHASE 1 AUDIT:',\n  audit,\n  '',\n  'CANDIDATE ANSWERS (answers; may be empty):',\n  run.candidate_context || '(none)',\n  '',\n  'STYLE & LEARNINGS:',\n  run.style_rules || ''\n].join('\\n');\nreturn { json: Object.assign({}, run, {\n  master_tex: master,\n  storytelling: story,\n  phase2_user: phase2_user\n}) };\n"
+        "jsCode": "const key = String($('Resume Secrets').first().json.anthropic_api_key || '').trim();\nif (!key) throw new Error('anthropic_api_key missing after Load Secret IDs Resume. Check secrets/notion_ids.json and SSH on Load Secret IDs Resume.');\nconst run = $('Merge Run State').first().json;\nconst numbered = String($json.stdout || $json.data || '');\nif (!numbered.trim()) throw new Error('numbered master CV empty');\nconst audit = [\n  'Critical missing keywords: ' + (run.critical_missing_keywords || []).join('; '),\n  'Impact alignment: ' + (run.impact_alignment || []).join('; '),\n  'Strategic positioning: ' + (run.strategic_positioning || ''),\n  'Questions asked: ' + (run.questions || []).join('; ')\n].join('\\n');\nconst phase2_user = [\n  'NUMBERED MASTER LATEX CV (L001: labels only; do not copy them into latex):',\n  numbered,\n  '',\n  'JOB DESCRIPTION:',\n  run.clean_md || '',\n  '',\n  'PHASE 1 AUDIT:',\n  audit,\n  '',\n  'CANDIDATE ANSWERS (answers; may be empty):',\n  run.candidate_context || '(none)',\n  '',\n  'STYLE & LEARNINGS:',\n  run.style_rules || ''\n].join('\\n');\nreturn { json: Object.assign({}, run, { numbered_tex: numbered, phase2_user: phase2_user }) };\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -916,7 +907,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 16000, thinking: { type: 'disabled' }, system: \"You are an Executive Career Strategist. PHASE 2: Update the LaTeX resume. Integrate Candidate notes and Phase 1 audit findings into the existing CV. Elevate phrasing to director-level leadership and quantifiable impact; maintain the same communication style. Copy the MASTER LATEX CV preamble, packages, colors, titleformat, header block (name, title line, email, LinkedIn), section titles, itemize settings, and Result: labels unchanged. Do not switch templates. Preserve EDUCATION, CERTIFICATIONS, LANGUAGES, and SKILLS as separate sections. Never merge them. Never turn education into nested bullets. Cert order may follow the JD; degree entries stay fixed. Edit summary text, experience bullet text, and bullet order only. Do not lie. Do not include anything the candidate has not explicitly said. Only use the MASTER LATEX CV and Candidate notes. Output ONLY a JSON object, no markdown fences. Keys: cv_tex (string: the FULL compilable LaTeX document including \\\\\\\\documentclass and \\\\\\\\begin{document}). Ensure no syntax errors; escape LaTeX special characters ($, &, %, #, _). If Candidate notes are empty, rewrite/reorder using only facts already in the master CV to better match the JD keywords that are already evidenced \\u2014 never invent.\", messages: [{ role: 'user', content: $json.phase2_user }] }) }}",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 4000, thinking: { type: 'disabled' }, system: \"You are an Executive Career Strategist. PHASE 2: Return line-range patches for the numbered MASTER LATEX CV. Integrate Candidate Answers and Phase 1 audit findings. Elevate phrasing to director-level leadership and quantifiable impact; maintain the same communication style. Edit summary text, experience bullet text, and bullet order only. Do not copy the preamble. Do not switch templates. Preserve EDUCATION, CERTIFICATIONS, LANGUAGES, and SKILLS as separate sections. Never merge them. Never turn education into nested bullets. Cert order may follow the JD; degree entries stay fixed. Do not lie. Do not include anything the candidate has not explicitly said. Only use the MASTER LATEX CV and Candidate Answers. If Candidate Answers are empty, rewrite/reorder using only facts already in the master CV to better match JD keywords that are already evidenced \\u2014 never invent. Output ONLY a JSON object, no markdown fences. Keys: latex_cv_patches (array of {start_line integer, end_line integer, latex string}). start_line/end_line match the L000 labels. Do not include the L000 prefix in latex. Escape LaTeX special characters ($, &, %, #, _).\", messages: [{ role: 'user', content: $json.phase2_user }] }) }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -930,7 +921,7 @@
     },
     {
       "parameters": {
-        "jsCode": "function repairJson(s) {\n  let out = '';\n  let inString = false;\n  let escaped = false;\n  for (let i = 0; i < s.length; i++) {\n    const c = s[i];\n    const code = s.charCodeAt(i);\n    if (!inString) {\n      if (c === '\"') inString = true;\n      out += c;\n      continue;\n    }\n    if (escaped) {\n      out += c;\n      escaped = false;\n      continue;\n    }\n    if (c === '\\\\') {\n      out += c;\n      escaped = true;\n      continue;\n    }\n    if (c === '\"') {\n      out += c;\n      inString = false;\n      continue;\n    }\n    if (code < 32) {\n      if (c === '\\n') out += '\\\\n';\n      else if (c === '\\r') out += '\\\\r';\n      else if (c === '\\t') out += '\\\\t';\n      else out += '\\\\u' + ('0000' + code.toString(16)).slice(-4);\n      continue;\n    }\n    out += c;\n  }\n  return out;\n}\nconst item = $input.item.json;\nconst content = item.content;\nconst textBlock = Array.isArray(content) ? content.find(function (b) { return b && b.type === 'text' && b.text; }) : null;\nconst text = (textBlock && textBlock.text) || '';\nconst match = String(text).match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('Sonnet Phase 2 did not return JSON');\nconst parsed = JSON.parse(repairJson(match[0]));\nconst prev = $('Build Phase 2 Prompt').first().json;\nconst cv_tex = String(parsed.cv_tex || '');\nif (!cv_tex.includes('\\\\documentclass') && !cv_tex.includes('documentclass')) {\n  throw new Error('Phase 2 cv_tex missing documentclass');\n}\nconst audit = [\n  'Critical missing keywords: ' + (prev.critical_missing_keywords || []).join('; '),\n  'Impact alignment: ' + (prev.impact_alignment || []).join('; '),\n  'Strategic positioning: ' + (prev.strategic_positioning || '')\n].join('\\n');\nconst phase3_user = [\n  'UPDATED LATEX CV:',\n  cv_tex,\n  '',\n  'JOB DESCRIPTION:',\n  prev.clean_md || '',\n  '',\n  'PHASE 1 AUDIT:',\n  audit,\n  '',\n  'CANDIDATE ANSWERS (answers; may be empty):',\n  prev.candidate_context || '(none)',\n  '',\n  'STORYTELLING / STRUCTURE GUIDELINES:',\n  prev.storytelling || '',\n  '',\n  'COMPANY:',\n  prev.company || '',\n  'ROLE:',\n  prev.job_title || '',\n  'LOCATION:',\n  prev.location || ''\n].join('\\n');\nreturn { json: Object.assign({}, prev, { cv_tex: cv_tex, phase3_user: phase3_user }) };"
+        "jsCode": "function repairJson(s) {\n  let out = '';\n  let inString = false;\n  let escaped = false;\n  for (let i = 0; i < s.length; i++) {\n    const c = s[i];\n    const code = s.charCodeAt(i);\n    if (!inString) {\n      if (c === '\"') inString = true;\n      out += c;\n      continue;\n    }\n    if (escaped) {\n      out += c;\n      escaped = false;\n      continue;\n    }\n    if (c === '\\\\') {\n      out += c;\n      escaped = true;\n      continue;\n    }\n    if (c === '\"') {\n      out += c;\n      inString = false;\n      continue;\n    }\n    if (code < 32) {\n      if (c === '\\n') out += '\\\\n';\n      else if (c === '\\r') out += '\\\\r';\n      else if (c === '\\t') out += '\\\\t';\n      else out += '\\\\u' + ('0000' + code.toString(16)).slice(-4);\n      continue;\n    }\n    out += c;\n  }\n  return out;\n}\nconst item = $input.item.json;\nconst content = item.content;\nconst textBlock = Array.isArray(content) ? content.find(function (b) { return b && b.type === 'text' && b.text; }) : null;\nconst text = (textBlock && textBlock.text) || '';\nconst match = String(text).match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('Sonnet Phase 2 did not return JSON');\nconst parsed = JSON.parse(repairJson(match[0]));\nlet patches = parsed.latex_cv_patches || [];\nif (!Array.isArray(patches)) patches = [patches];\npatches = patches.filter(function (p) { return p && String(p.latex || '').trim(); });\nif (!patches.length) throw new Error('Phase 2 latex_cv_patches empty');\nconst prev = $('Build Phase 2 Prompt').first().json;\nconst payload = {\n  latex_cv_patches: patches,\n  company: prev.company || '',\n  job_title: prev.job_title || ''\n};\nconst write_b64 = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64');\nconst usage = item.usage || {};\nreturn { json: Object.assign({}, prev, {\n  latex_cv_patches: patches,\n  write_b64: write_b64,\n  usage_phase2: { input_tokens: Number(usage.input_tokens) || 0, output_tokens: Number(usage.output_tokens) || 0 }\n}) };\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -992,7 +983,7 @@
     },
     {
       "parameters": {
-        "command": "={{ 'printf %s ' + JSON.stringify($json.write_b64) + \" | base64 -d | '/home/mario/Documents/n8n/Nuevo trabajo/.venv/bin/python' '/home/mario/Documents/n8n/Nuevo trabajo/scripts/assemble_tex.py' --write-full --master '/home/mario/Documents/n8n/Nuevo trabajo/secrets/master_cv.tex' --letter '/home/mario/Documents/n8n/Nuevo trabajo/secrets/master_letter.tex' --out-dir '/home/mario/Downloads'\" }}"
+        "command": "={{ 'printf %s ' + JSON.stringify($json.write_b64) + \" | base64 -d | '/home/mario/Documents/n8n/Nuevo trabajo/.venv/bin/python' '/home/mario/Documents/n8n/Nuevo trabajo/scripts/assemble_tex.py' --master '/home/mario/Documents/n8n/Nuevo trabajo/secrets/master_cv.tex' --out-dir '/home/mario/Downloads' --cv-only\" }}"
       },
       "type": "n8n-nodes-base.ssh",
       "typeVersion": 1,
@@ -1011,7 +1002,7 @@
     },
     {
       "parameters": {
-        "jsCode": "function cap(s) {\n  s = String(s || '');\n  return s.length <= 1900 ? s : s.slice(0, 1899) + '\\u2026';\n}\nconst j = $input.item.json;\nconst stdout = String(j.stdout || j.data || '');\nconst stderr = String(j.stderr || '');\nconst match = String(stdout).match(/\\{[\\s\\S]*\\}/);\nif (!match) {\n  throw new Error('assemble_tex --write-full returned no JSON. stdout=' + stdout.slice(0, 200) + ' stderr=' + stderr.slice(0, 300));\n}\nconst parsed = JSON.parse(match[0]);\nif (parsed.error) throw new Error(parsed.error + (stderr ? ' | stderr=' + stderr.slice(0, 200) : ''));\nconst prev = $('Parse Phase 3').first().json;\nif (!String(prev.cv_tex || '').trim()) throw new Error('Parse Phase 3 cv_tex empty after write');\nconst paths = 'CV file: ' + parsed.cv_path + '\\nLetter file: ' + parsed.letter_path;\nreturn { json: Object.assign({}, prev, {\n  cv_path: parsed.cv_path,\n  letter_path: parsed.letter_path,\n  paths_md: paths,\n  latex_cv: cap(prev.cv_tex),\n  latex_cover_letter: cap(prev.letter_tex)\n}) };\n"
+        "jsCode": "function cap(s) {\n  s = String(s || '');\n  return s.length <= 1900 ? s : s.slice(0, 1899) + '\\u2026';\n}\nconst j = $input.item.json;\nconst stdout = String(j.stdout || j.data || '');\nconst stderr = String(j.stderr || '');\nconst match = String(stdout).match(/\\{[\\s\\S]*\\}/);\nif (!match) {\n  throw new Error('assemble_tex --cv-only returned no JSON. stdout=' + stdout.slice(0, 200) + ' stderr=' + stderr.slice(0, 300));\n}\nconst parsed = JSON.parse(match[0]);\nif (parsed.error) throw new Error(parsed.error + (stderr ? ' | stderr=' + stderr.slice(0, 200) : ''));\nconst prev = $('Parse Phase 2').first().json;\nif (!String(parsed.cv_path || '').trim()) throw new Error('assemble_tex returned no cv_path');\nconst paths = 'CV file: ' + parsed.cv_path;\nreturn { json: Object.assign({}, prev, {\n  cv_path: parsed.cv_path,\n  letter_path: parsed.letter_path || '',\n  paths_md: paths,\n  latex_cv: cap(parsed.cv_preview || ''),\n  latex_cover_letter: ''\n}) };\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1117,7 +1108,7 @@
     },
     {
       "parameters": {
-        "content": "# JD Flow (Phase 1–3)\n\n**Ingest:** POST /webhook/job-ingest → Needs Context\n**Resume:** Extension **Continue Phase 2** → POST /webhook/job-resume\n  (looks up Job URL, reads Candidate Answers, writes CV/letter)\n\nNotion: Candidate notes = questions; Candidate Answers = your replies.\nNo Notion Trigger — button starts Phase 2 immediately.\n",
+        "content": "# JD Flow (Phase 1\u20132, CV-only)\n\n**Ingest:** POST /webhook/job-ingest \u2192 Needs Context\n**Resume:** Extension **Continue Phase 2** \u2192 POST /webhook/job-resume\n  (looks up Job URL, reads Candidate Answers, writes patched CV)\n\nMaster CV: secrets/master_cv.tex only (runtime distill).\nNo cover letter in v1.\nNotion: Candidate notes = questions; Candidate Answers = your replies.\n",
         "height": 460,
         "width": 380
       },
@@ -1132,7 +1123,7 @@
     },
     {
       "parameters": {
-        "command": "cat '/home/mario/Documents/n8n/Nuevo trabajo/secrets/master_cv.tex'"
+        "command": "'/home/mario/Documents/n8n/Nuevo trabajo/.venv/bin/python' '/home/mario/Documents/n8n/Nuevo trabajo/scripts/assemble_tex.py' --number --cap 0 --master '/home/mario/Documents/n8n/Nuevo trabajo/secrets/master_cv.tex'"
       },
       "type": "n8n-nodes-base.ssh",
       "typeVersion": 1,
@@ -1182,7 +1173,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const ingest = $('Pack Resume').first().json;\nconst raw = String($json.stdout || $json.data || '').trim();\nconst match = raw.match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('load_secret_ids.py returned no JSON');\nconst ids = JSON.parse(match[0]);\nif (!ids.applications_db_id || !ids.master_cv_page_id || !ids.style_learnings_page_id || !ids.anthropic_api_key) {\n  throw new Error('Resume Secret IDs missing required fields from secrets/notion_ids.json');\n}\nreturn { json: Object.assign({}, ingest, ids) };\n"
+        "jsCode": "const ingest = $('Pack Resume').first().json;\nconst raw = String($json.stdout || $json.data || '').trim();\nconst match = raw.match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('load_secret_ids.py returned no JSON');\nconst ids = JSON.parse(match[0]);\nif (!ids.applications_db_id || !ids.style_learnings_page_id || !ids.anthropic_api_key) {\n  throw new Error('Resume Secret IDs missing required fields from secrets/notion_ids.json');\n}\nreturn { json: Object.assign({}, ingest, ids) };\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1275,7 +1266,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const prev = $('Parse Write Full').first().json;\nreturn { json: {\n  status: 'ready_to_apply',\n  company: prev.company || '',\n  job_title: prev.job_title || '',\n  cv_path: prev.cv_path || '',\n  letter_path: prev.letter_path || ''\n} };"
+        "jsCode": "const prev = $('Parse Write Full').first().json;\nreturn { json: {\n  status: 'ready_to_apply',\n  company: prev.company || '',\n  job_title: prev.job_title || '',\n  cv_path: prev.cv_path || '',\n  letter_path: prev.letter_path || '',\n  usage_triage: prev.usage_triage || {},\n  usage_phase1: prev.usage_phase1 || {},\n  usage_phase2: prev.usage_phase2 || {}\n} };\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1505,14 +1496,14 @@
         ],
         [
           {
-            "node": "Get Master CV",
+            "node": "Distill Master CV",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Get Master CV": {
+    "Distill Master CV": {
       "main": [
         [
           {
@@ -1622,17 +1613,6 @@
       "main": [
         [
           {
-            "node": "Read Master Tex",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Read Master Tex": {
-      "main": [
-        [
-          {
             "node": "Build Phase 1 Prompt",
             "type": "main",
             "index": 0
@@ -1644,14 +1624,14 @@
       "main": [
         [
           {
-            "node": "Sonnet Phase 1",
+            "node": "Haiku Phase 1",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Sonnet Phase 1": {
+    "Haiku Phase 1": {
       "main": [
         [
           {
@@ -1809,7 +1789,7 @@
       "main": [
         [
           {
-            "node": "Sonnet Phase 3",
+            "node": "Write Full Tex",
             "type": "main",
             "index": 0
           }
@@ -1875,7 +1855,7 @@
       "main": [
         [
           {
-            "node": "Read Storytelling",
+            "node": "Build Phase 2 Prompt",
             "type": "main",
             "index": 0
           }

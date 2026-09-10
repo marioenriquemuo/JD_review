@@ -1,8 +1,8 @@
 # Automated Job Analysis & Asset Engine
 
-Manual ingest of a job posting via a Chrome extension. n8n deduplicates against Notion for $0, triages with Claude Haiku, runs a **Phase 1 semantic gap audit**, then **pauses** for your Candidate notes. When you set Status to **Proceed Phase 2**, Sonnet writes a **full** tailored LaTeX CV and cover letter.
+Manual ingest of a job posting via a Chrome extension. n8n deduplicates against Notion for $0, triages with Claude Haiku, runs a **Phase 1 semantic gap audit** (Haiku), then **pauses** for your Candidate notes. **Continue Phase 2** applies Sonnet **line patches** to `secrets/master_cv.tex`; Python writes the CV. Cover letter is not generated in v1.
 
-API keys, Notion tokens, and Notion page/DB IDs are **not** stored in the workflow export (except the Applications DB id on the Notion Trigger). They live in gitignored [`secrets/notion_ids.json`](secrets/notion_ids.json) and load at runtime via SSH (**Load Secret IDs**). Import [`JD Flow.json`](JD Flow.json) and attach **Notion account** + **SSH localhost** locally.
+API keys, Notion tokens, and Notion page/DB IDs are **not** stored in the workflow export. They live in gitignored [`secrets/notion_ids.json`](secrets/notion_ids.json) and load at runtime via SSH (**Load Secret IDs**). Import [`JD Flow.json`](JD Flow.json) and attach **Notion account** + **SSH localhost** locally.
 
 Source graph: [`mearmaid.txt`](mearmaid.txt). Setup: [`docs/SETUP.md`](docs/SETUP.md). ELI5: [`docs/ELI5.md`](docs/ELI5.md). **Beginner walkthrough:** [`docs/BEGINNER_GUIDE.md`](docs/BEGINNER_GUIDE.md).
 
@@ -11,10 +11,10 @@ Source graph: [`mearmaid.txt`](mearmaid.txt). Setup: [`docs/SETUP.md`](docs/SETU
 - **Zero-risk ingest.** You click the extension on a JD tab, or **Upload PDF**. Nothing crawls the open web. Claude receives markdown only (never PDF bytes).
 - **Secrets outside the canvas.** Notion IDs and the Anthropic `x-api-key` are read from `secrets/notion_ids.json` on each run.
 - **Deterministic dedup.** Notion is queried by `Job URL` before any LLM call.
-- **Two-tier LLM routing.** Haiku scores fit. Sonnet runs only when `fit_score >= 70`.
-- **Honest feedback loop.** Phase 1 audits gaps and asks questions; Phase 2/3 use only your CV + Candidate notes (no invented metrics).
-- **Full LaTeX, not patches.** Complete compilable `.tex` files go to Downloads; Notion columns hold a 1,900-char preview (Notion property cap).
-- **ATS-parseable master CV.** `secrets/master_cv.tex` keeps **EDUCATION**, **CERTIFICATIONS**, **LANGUAGES**, and **SKILLS** as separate headings. Phase 2 must not merge them. Details: [`docs/SETUP.md`](docs/SETUP.md#master-cv-ats).
+- **Two-tier LLM routing.** Haiku scores fit. Haiku Phase 1 runs only when `fit_score >= 70`. Sonnet runs only on Continue Phase 2.
+- **Honest feedback loop.** Phase 1 audits gaps and asks questions; Phase 2 uses only your CV + Candidate notes (no invented metrics).
+- **Python owns the `.tex` shell.** Sonnet returns line patches; `assemble_tex.py --cv-only` applies them and restores missing `\begin{itemize}` / `\end{itemize}`. Notion **LaTex CV** holds a 1,900-char preview.
+- **ATS-parseable master CV.** `secrets/master_cv.tex` is the only CV source of truth. Phase 2 must not merge EDUCATION / CERTIFICATIONS / LANGUAGES / SKILLS. Details: [`docs/SETUP.md`](docs/SETUP.md#master-cv-ats).
 
 ## Flow
 
@@ -27,11 +27,11 @@ Chrome extension (URL + HTML, or Upload PDF)
   → SSH Load Secret IDs
   → Notion Applications DB lookup by Job URL
        duplicate → Respond { status: duplicate }  ($0)
-       new      → Get Master CV page
+       new      → distill_cv.py --verify-json (from secrets/master_cv.tex)
   → Claude Haiku triage
        fit < 70  → Notion Skipped → Respond { status: skipped }
-       fit >= 70 → Style & Learnings + master_cv.tex
-  → Claude Sonnet Phase 1 (semantic gap audit + questions)
+       fit >= 70 → Style & Learnings + derived CV markdown
+  → Claude Haiku Phase 1 (semantic gap audit + questions)
   → Notion row Status=Needs Context (Candidate notes seeded with questions)
   → Persist secrets/runs/{page_id}.json
   → Respond { status: needs_context }
@@ -39,10 +39,10 @@ Chrome extension (URL + HTML, or Upload PDF)
 You: fill **Candidate Answers** → extension **Continue Phase 2**
   → POST /webhook/job-resume (same Job URL)
   → Status=Generating
-  → Claude Sonnet Phase 2 (full CV .tex) → Phase 3 (full letter .tex)
-  → assemble_tex.py --write-full → ~/Downloads
-  → Notion Status=Ready to Apply + LaTex CV / LaTex Cover Letter previews
-  → popup: ready_to_apply + file paths
+  → Claude Sonnet Phase 2 (latex_cv_patches on numbered master)
+  → assemble_tex.py --cv-only (apply patches + repair itemize) → ~/Downloads
+  → Notion Status=Ready to Apply + LaTex CV preview
+  → popup: ready_to_apply + cv_path
 ```
 
 ## Models and unit economics
@@ -50,10 +50,12 @@ You: fill **Candidate Answers** → extension **Continue Phase 2**
 | Stage | When | Model | Est. cost |
 | --- | --- | --- | --- |
 | Dedup | Every run | Notion | $0 |
-| Triage fail | fit &lt; 70 | `claude-haiku-4-5` | ~$0.004 |
-| Phase 1 audit | fit ≥ 70 | `claude-sonnet-5` | ~$0.03 |
-| Phase 2+3 | After Proceed Phase 2 | `claude-sonnet-5` ×2 | ~$0.06–0.10 |
-| Full pass | Qualified + resume | Haiku + 3 Sonnets | **~$0.10–0.14** |
+| Triage fail | fit &lt; 70 | `claude-haiku-4-5` | ~$0.005 |
+| Phase 1 audit | fit ≥ 70 | `claude-haiku-4-5` | ~$0.01–0.02 |
+| Phase 2 patches | After Continue Phase 2 | `claude-sonnet-5` | ~$0.03–0.08 |
+| Full pass | Qualified + resume | Haiku ×2 + Sonnet patches | **target ≤ $0.10** |
+
+Webhook JSON includes `usage_triage` / `usage_phase1` / `usage_phase2` token counts. Cover letter (Phase 3) is not called in v1.
 
 ## Notion
 
@@ -76,18 +78,16 @@ Title property: **Job Title**.
 | Candidate notes | rich_text | Phase 1 questions (seeded); on **Skipped**, Haiku gaps |
 | Candidate Answers | rich_text | Your answers to those questions |
 | LaTex CV | rich_text | Preview ≤1900 chars (full file in Downloads) |
-| LaTex Cover Letter | rich_text | Preview ≤1900 chars |
+| LaTex Cover Letter | rich_text | Unused in v1 (empty) |
 
 ### Context pages / local secrets
 
 | Path / page | Role |
 | --- | --- |
-| Notion Master CV | Distilled Markdown for Haiku (must show the same four section headings as the `.tex`) |
-| Notion Style & Learnings | Tone rules for Sonnet |
-| `secrets/master_cv.tex` | Full LaTeX master for Phase 1–2 and ATS PDF compile |
-| `secrets/storytelling.md` | Phase 3 letter structure |
+| Notion Style & Learnings | Tone rules for Phase 1–2 |
+| `secrets/master_cv.tex` | Only CV source of truth (runtime distill + Phase 2 patches) |
 | `secrets/runs/{page_id}.json` | Phase 1 state for resume |
-| `secrets/notion_ids.json` | DB/page IDs + `anthropic_api_key` |
+| `secrets/notion_ids.json` | DB/page IDs + `anthropic_api_key` (`master_cv_page_id` optional) |
 
 ## Repo layout
 
@@ -95,7 +95,8 @@ Title property: **Job Title**.
 | --- | --- |
 | [`JD Flow.json`](JD Flow.json) | n8n workflow export |
 | [`scripts/extract_pdf.py`](scripts/extract_pdf.py) | PDF bytes → `{ url, clean_md }` only |
-| [`scripts/assemble_tex.py`](scripts/assemble_tex.py) | `--write-full` / patch / `--number` |
+| [`scripts/assemble_tex.py`](scripts/assemble_tex.py) | `--cv-only` / `--number` / patch apply / repair itemize |
+| [`scripts/distill_cv.py`](scripts/distill_cv.py) | Runtime `--verify-json` markdown + fact gate |
 | [`scripts/persist_run.py`](scripts/persist_run.py) | Save/load Phase 1 run JSON |
 | [`scripts/load_secret_ids.py`](scripts/load_secret_ids.py) | Print IDs + Claude key |
 | [`chrome-extension/`](chrome-extension/) | MV3 extension (popup shows skip / needs_context) |
@@ -104,8 +105,9 @@ Title property: **Job Title**.
 
 - Extension waits for Phase 1 (tens of seconds). Popup shows `Scoring…` then the real status.
 - **Upload PDF** is for text PDFs only (no OCR). Dedup URL is `https://jd-flow.local/pdf/<sha256>`.
-- Empty Candidate Answers + Proceed Phase 2 still generates files from the master CV only (no invented facts).
+- Empty Candidate Answers + Continue Phase 2 still patches from the master CV only (no invented facts).
 - Phase 2 starts from the extension **Continue Phase 2** button (not a Notion poll).
 - Phase 2 may reorder **CERTIFICATIONS** to match the JD. Degree entries stay fixed. It must not merge EDUCATION / CERTIFICATIONS / LANGUAGES / SKILLS or turn education into nested bullets.
-- After you edit `secrets/master_cv.tex`, re-run `scripts/distill_cv.py` and paste **only** `master_cv.md` into the Notion Master CV page (do not paste the style placeholder unless you passed a CSV).
+- After you edit `secrets/master_cv.tex`, the next ingest re-distills it. No Notion Master CV paste.
+- If Phase 2 patches drop `\begin{itemize}` / `\end{itemize}`, `repair_lists` in `assemble_tex.py` puts them back. Check the first experience block after Continue.
 - Fit threshold is hard-coded at 70.

@@ -21,22 +21,22 @@ python3 -m venv "$PROJECT/.venv"
 
 Expect JSON on stdout with `url` and `clean_md`. `clean_md` must not contain the sample `<script>` or `<nav>` text `Ignore this nav`. The PDF check must print the sentence starting `Senior Python Engineer` and no other JSON keys.
 
-Optional CV distill (your files, not in git):
+Runtime distill (Haiku reads this JSON; do not paste markdown into Notion):
 
 ```bash
-"$PROJECT/.venv/bin/python" "$PROJECT/scripts/distill_cv.py" --tex "$PROJECT/secrets/master_cv.tex" --csv /path/to/writing.csv --out-dir /tmp/jd-distill
+"$PROJECT/.venv/bin/python" "$PROJECT/scripts/distill_cv.py" --tex "$PROJECT/secrets/master_cv.tex" --verify-json
 ```
 
-Paste `/tmp/jd-distill/master_cv.md` into the Notion **Master CV** page. Paste `/tmp/jd-distill/style_learnings.md` into **Style & Learnings** **only if you passed a CSV**. Without `--csv`, `style_learnings.md` is a placeholder — do not overwrite a real Style page with it. After any edit to `master_cv.tex`, re-distill and replace the Notion Master CV page.
+Expect `"ok": true`. If `"missing"` is non-empty, facts were dropped — fix the `.tex` or the converter before ingest. Optional `--csv` / `--out-dir` still drafts Style & Learnings; without `--csv`, `style_learnings.md` is a placeholder — do not overwrite a real Style page with it.
 
-Copy the original `.tex` locally (gitignored). Notion stays Markdown-only:
+Copy the original `.tex` locally (gitignored):
 
 ```bash
 mkdir -p "$PROJECT/secrets"
 cp /path/to/cv.tex "$PROJECT/secrets/master_cv.tex"
 ```
 
-Also keep `"$PROJECT/secrets/storytelling.md"` (Phase 3 letter structure). After **Proceed Phase 2**, complete files land in `/home/mario/Downloads/{company}_{job_title}_CV.tex` and `_CoverLetter.tex`.
+After **Continue Phase 2**, the patched CV lands in `/home/mario/Downloads/{company}_{job_title}_CV.tex`. No cover letter in v1.
 
 ### Master CV (ATS)
 
@@ -51,7 +51,7 @@ Required `\section*` titles (each on its own line, never merged):
 
 Date ranges use an ASCII hyphen (`2014 - 2015`), not LaTeX `--` (en-dashes often extract as a gap). Preamble must include `lmodern` + `cmap` so `fi` ligatures extract as `Effective` / `Certificate` / `Proficient`, not `Ective` / `Certicate`.
 
-Phase 2 (`Sonnet Phase 2` in [`JD Flow.json`](../JD Flow.json)) copies this structure: it may reorder certifications to match the JD; degree entries stay fixed; it must not nest or merge those four sections.
+Phase 2 (`Sonnet Phase 2` in [`JD Flow.json`](../JD Flow.json)) returns line patches only. It may reorder certifications to match the JD; degree entries stay fixed; it must not nest or merge those four sections. `assemble_tex.py --cv-only` applies patches and restores missing `\begin{itemize}` / `\end{itemize}`.
 
 Compile and check extractable text before uploading a PDF to an ATS:
 
@@ -83,23 +83,23 @@ Put the key in `$PROJECT/secrets/notion_ids.json` as `anthropic_api_key`. Claude
 2. Create database **Applications** with the properties in [README.md](../README.md) (title = Job Title).
 3. **Status** select must include exactly: `Skipped`, `Needs Context`, `Generating`, `Proceed Phase 2`, `Ready to Apply`.
 4. Add **Candidate notes** (Text / rich_text) if missing.
-5. Create two empty pages: **Master CV**, **Style & Learnings**. Paste the distilled Markdown. The Master CV page must show separate headings **EDUCATION**, **CERTIFICATIONS**, **LANGUAGES**, **SKILLS** (same as the `.tex`).
-6. Share the database and both pages with the integration (**Connect to**).
+5. Create page **Style & Learnings**. Paste tone rules (optional distill `--csv` draft). Share the Applications DB and this page with the integration. A Notion Master CV page is unused (source of truth is `secrets/master_cv.tex`).
+6. Share the database and the Style page with the integration (**Connect to**).
 7. Copy IDs from the URLs:
    - Database: `https://notion.so/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx?v=...` → 32 hex chars (optionally insert dashes as `8-4-4-4-12`).
    - Page: the 32 hex chars after the page title slug.
 
 In n8n: **Credentials → Notion API** → Internal integration token.
 
-Put IDs and the Claude key in `$PROJECT/secrets/notion_ids.json` (`applications_db_id`, `master_cv_page_id`, `style_learnings_page_id`, `anthropic_api_key`). The workflow loads them at runtime via SSH (**Load Secret IDs**).
+Put IDs and the Claude key in `$PROJECT/secrets/notion_ids.json` (`applications_db_id`, `style_learnings_page_id`, `anthropic_api_key`; `master_cv_page_id` optional/unused). The workflow loads them at runtime via SSH (**Load Secret IDs**).
 
-Select the Notion credential on every Notion node (including **Notion Resume Trigger**). Select **SSH localhost** on Load Secret IDs / Read Master Tex / Persist Run State / Write Full Tex / Read Storytelling.
+Select the Notion credential on every Notion node. Select **SSH localhost** on Load Secret IDs / Distill Master CV / Persist Run State / Write Full Tex / Read Master Tex Resume.
 
 ---
 
 ## 4. n8n (self-hosted, this machine)
 
-1. Import [`JD Flow.json`](../JD Flow.json): **Workflows → Import from File**. If **JD Flow** is already listed, open **Sonnet Phase 2** and confirm the system prompt contains `Preserve EDUCATION, CERTIFICATIONS, LANGUAGES, and SKILLS as separate sections.` If that sentence is missing, import the file again, re-attach credentials, Save.
+1. Import [`JD Flow.json`](../JD Flow.json): **Workflows → Import from File**. If **JD Flow** is already listed, open **Sonnet Phase 2** and confirm the system prompt contains `latex_cv_patches` and `Preserve EDUCATION, CERTIFICATIONS, LANGUAGES, and SKILLS as separate sections.` If that is missing, import the file again, re-attach credentials, Save.
 2. Confirm **Execute Command** on **Clean HTML** points at the venv interpreter:
 
 ```text
@@ -122,11 +122,11 @@ curl -sS -X POST http://localhost:5678/webhook-test/job-ingest \
   -d @"$PROJECT/tests/sample_ingest.json"
 ```
 
-Expect `{ "status": "accepted" }` immediately. Then open **Executions**:
+Expect `{ "status": "skipped" }` or `{ "status": "needs_context" }` (the webhook **waits**; it is not instant `accepted`). Then open **Executions**:
 
-- First run: popup shows `skipped` or `needs_context` (not instant `accepted`). Notion **Skipped** or **Needs Context**.
-- Same `url` again: popup `Already filed. No new row.`
-- After Candidate notes + Status **Proceed Phase 2**: within ~1 minute, Downloads `.tex` files and Notion **Ready to Apply**.
+- First run: popup shows `skipped` or `needs_context`. Notion **Skipped** or **Needs Context**.
+- Same `url` again: popup `Already filed.`
+- After **Candidate Answers** + extension **Continue Phase 2**: Downloads `{company}_{title}_CV.tex` (no cover letter) and Notion **Ready to Apply**.
 
 ---
 
@@ -145,14 +145,14 @@ To allow a non-localhost n8n URL, add it to `host_permissions` in [`chrome-exten
 
 ## Checklist
 
-- [ ] `secrets/master_cv.tex` + `secrets/storytelling.md` present
-- [ ] Master CV `.tex` has separate EDUCATION / CERTIFICATIONS / LANGUAGES / SKILLS; Notion Master CV page matches after distill
+- [ ] `secrets/master_cv.tex` present; `distill_cv.py --verify-json` returns `"ok": true`
+- [ ] Master CV `.tex` has separate EDUCATION / CERTIFICATIONS / LANGUAGES / SKILLS
 - [ ] `pdftotext` of the compiled PDF shows those four headings and `Effective` / `Certificate` / `Proficient`
-- [ ] **Sonnet Phase 2** prompt includes Preserve EDUCATION… (re-import `JD Flow.json` if not)
+- [ ] **Sonnet Phase 2** prompt includes `latex_cv_patches` and Preserve EDUCATION… (re-import `JD Flow.json` if not)
 - [ ] `anthropic_api_key` in `secrets/notion_ids.json`; spend cap set in Anthropic console
 - [ ] Applications DB Status options include Needs Context / Proceed Phase 2 / Generating
 - [ ] **Candidate notes** property exists
-- [ ] Applications DB + two pages shared with the integration
+- [ ] Applications DB + Style & Learnings shared with the integration
 - [ ] Import latest `JD Flow.json`; Notion + SSH credentials attached
 - [ ] Workflow **Active**; extension uses `/webhook/job-ingest`
 - [ ] Reload Chrome extension so popup status messages update

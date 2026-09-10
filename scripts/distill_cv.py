@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-"""One-time LaTeX CV + writing CSV → Notion-ready Markdown drafts.
+"""Distill master_cv.tex to markdown; optional CSV → style draft.
 
-Re-run after editing secrets/master_cv.tex. Paste only master_cv.md into the
-Notion Master CV page. That page must keep EDUCATION, CERTIFICATIONS,
-LANGUAGES, and SKILLS as separate headings (ATS + Haiku). Without --csv,
-style_learnings.md is a placeholder — do not overwrite a real Style page.
+Runtime: --verify-json prints {cv_md, ok, missing} from the .tex (no second
+source of truth). --out-dir still writes drafts for optional Notion Style page.
+Without --csv, style_learnings.md is a placeholder — do not overwrite a real
+Style page.
 """
 
 import argparse
 import csv
+import json
 import os
 import re
 import sys
@@ -16,6 +17,12 @@ import sys
 
 COMMAND_RE = re.compile(r"\\[a-zA-Z]+\*?")
 BRACE_RE = re.compile(r"\{([^{}]*)\}")
+YEAR_RE = re.compile(r"\b(?:19|20)\d{2}\b")
+PERCENT_RE = re.compile(r"\d+(?:\.\d+)?%")
+DOLLAR_RE = re.compile(r"\$[\d,]+(?:\.\d+)?")
+TEXTBF_RE = re.compile(r"\\textbf\{([^{}]+)\}")
+BEGIN_DOC = "\\begin{document}"
+END_DOC = "\\end{document}"
 
 
 def latex_to_markdown(tex):
@@ -48,6 +55,51 @@ def latex_to_markdown(tex):
     text = re.sub(r"[ \t]+\n", "\n", text)
     text = re.sub(r"\n{3,}", "\n\n", text)
     return text.strip()
+
+
+def _document_body(tex):
+    text = str(tex or "")
+    if BEGIN_DOC in text:
+        text = text.split(BEGIN_DOC, 1)[1]
+    if END_DOC in text:
+        text = text.rsplit(END_DOC, 1)[0]
+    return text
+
+
+def _unescape_latex(text):
+    return str(text or "").replace("\\%", "%").replace("\\$", "$").replace("\\&", "&")
+
+
+def extract_facts(tex):
+    body = _document_body(tex)
+    unesc = _unescape_latex(body)
+    facts = []
+    seen = set()
+
+    def add(value):
+        item = str(value or "").strip()
+        if len(item) < 2:
+            return
+        key = item.lower()
+        if key in seen:
+            return
+        seen.add(key)
+        facts.append(item)
+
+    for match in YEAR_RE.findall(unesc):
+        add(match)
+    for match in PERCENT_RE.findall(unesc):
+        add(match)
+    for match in DOLLAR_RE.findall(unesc):
+        add(match)
+    for match in TEXTBF_RE.findall(body):
+        add(_unescape_latex(match))
+    return facts
+
+
+def verify_facts(tex, md):
+    hay = str(md or "").lower()
+    return [fact for fact in extract_facts(tex) if fact.lower() not in hay]
 
 
 def _cell_text(row, key):
@@ -132,13 +184,7 @@ def distill_csv(path):
 
 
 def master_cv_wrapper(body):
-    return (
-        "# Master CV\n\n"
-        "Distilled from LaTeX. Keep this under ~1,000 tokens. "
-        "Haiku sees the first ~2,500 characters; Sonnet gets the full page.\n\n"
-        + body
-        + "\n"
-    )
+    return "# Master CV\n\n" + body + "\n"
 
 
 def main():
@@ -146,10 +192,25 @@ def main():
     parser.add_argument("--tex", required=True, help="Path to master CV .tex")
     parser.add_argument("--csv", default="", help="Path to past-writing CSV (optional)")
     parser.add_argument("--out-dir", default="", help="Write master_cv.md and style_learnings.md here")
+    parser.add_argument(
+        "--verify-json",
+        action="store_true",
+        help="Print {cv_md, ok, missing} JSON; exit 1 if facts dropped",
+    )
     args = parser.parse_args()
 
     with open(args.tex, "r") as handle:
-        cv_md = master_cv_wrapper(latex_to_markdown(handle.read()))
+        tex = handle.read()
+    body_md = latex_to_markdown(tex)
+    cv_md = master_cv_wrapper(body_md)
+
+    if args.verify_json:
+        missing = verify_facts(tex, cv_md)
+        payload = {"cv_md": cv_md, "ok": not missing, "missing": missing}
+        sys.stdout.write(json.dumps(payload, ensure_ascii=False) + "\n")
+        if missing:
+            raise SystemExit(1)
+        return
 
     if args.csv:
         style_md = distill_csv(args.csv)

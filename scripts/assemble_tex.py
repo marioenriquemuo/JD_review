@@ -61,6 +61,76 @@ def apply_patches(text, patches):
     return out
 
 
+# --- List repair (model patches sometimes drop itemize wrappers) ---
+
+BEGIN_LIST_RE = re.compile(r"\\begin\{(itemize|enumerate)\}")
+END_LIST_RE = re.compile(r"\\end\{(itemize|enumerate)\}")
+ITEM_RE = re.compile(r"^\\item(\s|\[|$)")
+LIST_BREAK_PREFIXES = (
+    "\\section",
+    "\\subsection",
+    "\\newpage",
+    "\\vspace",
+    "\\noindent",
+    "\\end{document}",
+    "\\begin{document}",
+)
+
+
+def _list_name(match):
+    return match.group(1) if match else "itemize"
+
+
+def _is_item_line(line):
+    return bool(ITEM_RE.match(str(line or "").lstrip()))
+
+
+def _is_list_break(line):
+    stripped = str(line or "").strip()
+    if not stripped or stripped.startswith("%"):
+        return bool(stripped)
+    if _is_item_line(stripped):
+        return False
+    return any(stripped.startswith(prefix) for prefix in LIST_BREAK_PREFIXES)
+
+
+def repair_lists(tex):
+    """Insert missing \\begin{itemize}/\\end{itemize} around orphan \\item lines."""
+    lines = str(tex or "").splitlines()
+    out = []
+    stack = []
+    for line in lines:
+        stripped = line.lstrip()
+        begin = BEGIN_LIST_RE.search(line)
+        end = END_LIST_RE.search(line)
+        if begin and stripped.startswith("\\begin{"):
+            stack.append(_list_name(begin))
+            out.append(line)
+            continue
+        if end and stripped.startswith("\\end{"):
+            if stack:
+                stack.pop()
+                out.append(line)
+            continue
+        if _is_item_line(line) and not stack:
+            out.append("\\begin{itemize}")
+            stack.append("itemize")
+            out.append(line)
+            continue
+        if _is_list_break(line) and stack:
+            while stack:
+                out.append("\\end{%s}" % stack.pop())
+            out.append(line)
+            continue
+        out.append(line)
+    while stack:
+        out.append("\\end{%s}" % stack.pop())
+    result = "\n".join(out)
+    if str(tex or "").endswith("\n"):
+        result += "\n"
+    return result
+
+
 # --- Cover letter ---
 
 def wrap_letter(body):
@@ -203,6 +273,11 @@ def main():
         help="Write complete cv_tex + letter_tex from stdin JSON",
     )
     parser.add_argument("--cap", type=int, default=350, help="Max lines for --number")
+    parser.add_argument(
+        "--cv-only",
+        action="store_true",
+        help="Apply mode: write the CV copy only (no cover letter)",
+    )
     args = parser.parse_args()
 
     if args.write_full:
@@ -238,33 +313,34 @@ def main():
         if not isinstance(patches, list):
             patches = [patches]
 
-        cv_text = apply_patches(master, patches)
-        body = _letter_body(payload)
-        if args.letter:
-            with open(args.letter, "r") as handle:
-                letter_src = handle.read()
-            if LETTER_START in letter_src and LETTER_END in letter_src:
-                letter_text = apply_letter(letter_src, body)
-                letter_master = args.letter
-            else:
-                letter_text = wrap_letter(body)
-                letter_master = ""
-        else:
-            letter_text = wrap_letter(body)
-            letter_master = ""
-
+        cv_text = repair_lists(apply_patches(master, patches))
         os.makedirs(args.out_dir, exist_ok=True)
         company = slug(payload.get("company"))
         title = slug(payload.get("job_title"))
         cv_path = unique_path(args.out_dir, "%s_%s_CV.tex" % (company, title))
-        letter_path = unique_path(
-            args.out_dir, "%s_%s_CoverLetter.tex" % (company, title)
-        )
         _write(cv_path, cv_text, args.master)
-        _write(letter_path, letter_text, letter_master)
-        sys.stdout.write(
-            json.dumps({"cv_path": cv_path, "letter_path": letter_path}) + "\n"
-        )
+        preview = cv_text if len(cv_text) <= 1900 else cv_text[:1899] + "\u2026"
+        result = {"cv_path": cv_path, "cv_preview": preview}
+        if not args.cv_only:
+            body = _letter_body(payload)
+            if args.letter:
+                with open(args.letter, "r") as handle:
+                    letter_src = handle.read()
+                if LETTER_START in letter_src and LETTER_END in letter_src:
+                    letter_text = apply_letter(letter_src, body)
+                    letter_master = args.letter
+                else:
+                    letter_text = wrap_letter(body)
+                    letter_master = ""
+            else:
+                letter_text = wrap_letter(body)
+                letter_master = ""
+            letter_path = unique_path(
+                args.out_dir, "%s_%s_CoverLetter.tex" % (company, title)
+            )
+            _write(letter_path, letter_text, letter_master)
+            result["letter_path"] = letter_path
+        sys.stdout.write(json.dumps(result) + "\n")
     except Exception as exc:
         sys.stdout.write(json.dumps({"error": str(exc)}) + "\n")
         raise SystemExit(1)

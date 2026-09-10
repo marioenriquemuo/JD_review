@@ -104,7 +104,7 @@ pdfBtn.addEventListener("click", function () {
 });
 
 resumeBtn.addEventListener("click", function () {
-  setBusy(true, "Generating CV + letter…");
+  setBusy(true, "Generating CV…");
   chrome.runtime.sendMessage({ type: "RESUME_TAB" }, function (result) {
     setBusy(false);
     if (chrome.runtime.lastError) {

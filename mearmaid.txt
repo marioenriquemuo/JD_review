@@ -10,36 +10,34 @@ flowchart TB
         D1["Notion: Search Job URL"]
         D2{"Is Duplicate?"}
         RD["Respond duplicate"]
-        M["Notion: Get Master CV"]
+        M["SSH: distill_cv.py --verify-json"]
         E["Claude Haiku<br/>Tier 1 Triage"]
         F{"Fit Score >= 70%?"}
         G["Notion: Log Skipped"]
         RS["Respond skipped"]
         STY["Notion: Get Style Learnings"]
-        RT["SSH: Read master_cv.tex"]
-        P1["Claude Sonnet<br/>Phase 1 audit"]
+        P1["Claude Haiku<br/>Phase 1 audit"]
         NC["Notion: Needs Context<br/>+ Candidate notes questions"]
         PR["SSH: Persist run JSON"]
         RN["Respond needs_context"]
   end
- subgraph n8n_Resume["n8n Resume - Phase 2/3"]
+ subgraph n8n_Resume["n8n Resume - Phase 2 CV-only"]
         T["Webhook /job-resume<br/>extension Continue Phase 2"]
         GEN["Set Status Generating"]
-        LR["Load run JSON + storytelling"]
-        P2["Claude Sonnet<br/>Phase 2 full CV .tex"]
-        P3["Claude Sonnet<br/>Phase 3 full letter .tex"]
-        W["SSH: assemble_tex --write-full"]
-        U["Notion: Ready to Apply<br/>LaTex CV + Cover Letter"]
+        LR["Load run JSON"]
+        NUM["SSH: assemble_tex --number"]
+        P2["Claude Sonnet<br/>Phase 2 latex_cv_patches"]
+        W["SSH: assemble_tex --cv-only"]
+        U["Notion: Ready to Apply<br/>LaTex CV preview"]
   end
  subgraph Secrets["Local secrets/ gitignored"]
         SID["notion_ids.json"]
         TEX["master_cv.tex"]
-        STORY["storytelling.md"]
         RUNS["runs/{page_id}.json"]
   end
  subgraph Output["Output"]
         K["Notion: Applications DB"]
-        DL["~/Downloads<br/>company_job_CV.tex<br/>_CoverLetter.tex"]
+        DL["~/Downloads<br/>company_job_CV.tex"]
   end
     A -- Click extension --> B
     B --> C
@@ -50,15 +48,14 @@ flowchart TB
     D1 --> D2
     D2 -- YES --> RD
     D2 -- NO --> M
+    TEX --> M
     M --> E
     E --> F
     F -- NO --> G
     G --> RS
     RS --> B
     F -- YES --> STY
-    STY --> RT
-    TEX --> RT
-    RT --> P1
+    STY --> P1
     P1 --> NC
     NC --> PR
     PR --> RUNS
@@ -69,10 +66,10 @@ flowchart TB
     T --> GEN
     GEN --> LR
     RUNS --> LR
-    STORY --> LR
-    LR --> P2
-    P2 --> P3
-    P3 --> W
+    LR --> NUM
+    TEX --> NUM
+    NUM --> P2
+    P2 --> W
     TEX --> W
     W --> DL
     W --> U

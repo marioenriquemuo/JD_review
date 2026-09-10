@@ -22,10 +22,10 @@ Imagine a post office:
 4. **Notion search** = “Did we already file this exact job URL?” If yes, stop. Costs nothing.
 5. **Haiku** = cheap intern who scores fit 0–100.
 6. **If score &lt; 70** = **Skipped**. Popup says skipped.
-7. **If score ≥ 70** = **Sonnet Phase 1** audits gaps and asks you questions → Notion **Needs Context**.
-8. **You** fill **Candidate notes**, set Status to **Proceed Phase 2**.
-9. **Sonnet Phase 2** writes a full tailored CV `.tex`; **Phase 3** writes the cover letter `.tex`.
-10. Files land in **Downloads**. Notion becomes **Ready to Apply** with LaTeX previews in the columns.
+7. **If score ≥ 70** = **Haiku Phase 1** audits gaps and asks you questions → Notion **Needs Context**.
+8. **You** fill **Candidate Answers**, then click **Continue Phase 2**.
+9. **Sonnet Phase 2** returns line patches; Python writes the CV `.tex`. No cover letter in v1.
+10. File lands in **Downloads**. Notion becomes **Ready to Apply** with a LaTeX CV preview.
 
 You click → Notion asks questions → you answer → Downloads gets real tailored `.tex` files.
 
@@ -82,13 +82,12 @@ Then change **Clean HTML** to:
 Do these in the order of the steps below. Do not paste API keys into this repo.
 
 - [ ] n8n editor open, **JD Flow** canvas visible, **Active = off**
-- [ ] Anthropic API key stored as n8n **Header Auth**
-- [ ] That credential attached to **Haiku Triage**, **Sonnet Assets**, and **Sonnet LaTeX**
+- [ ] `anthropic_api_key` in `secrets/notion_ids.json` (not n8n Header Auth)
 - [ ] Notion internal integration token in n8n **Notion API** credential
 - [ ] Notion database **Applications** with the properties listed below
-- [ ] Pages **Master CV** and **Style & Learnings**, shared with the integration
-- [ ] Three IDs pasted into the Notion nodes (no `REPLACE_ME_...` left)
-- [ ] Notion credential attached to every Notion node
+- [ ] Page **Style & Learnings**, shared with the integration
+- [ ] IDs in `secrets/notion_ids.json` (`applications_db_id`, `style_learnings_page_id`)
+- [ ] Notion + SSH credentials attached
 - [ ] Chrome extension loaded unpacked
 - [ ] One test send, then (only then) turn **Active** on
 
@@ -106,14 +105,16 @@ Database title property name: **Job Title** (type **Title**).
 | Location | Text | — |
 | Skills | Text | — |
 | Fit Score | Number | number format is fine |
-| Status | Select | `Skipped`, `Ready to Apply` |
+| Status | Select | `Skipped`, `Needs Context`, `Generating`, `Proceed Phase 2`, `Ready to Apply` |
 | Rationale | Text | — |
 | Salary Range | Text | — |
 | Salary Flag | Select | `extracted`, `UNVERIFIED Estimate` |
-| LaTex CV | Text | LaTeX fragment to paste into the master CV |
-| LaTex Cover Letter | Text | LaTeX fragment to paste into the master letter |
+| Candidate notes | Text | Phase 1 questions (seeded) |
+| Candidate Answers | Text | Your replies |
+| LaTex CV | Text | Preview ≤1900 chars (full file in Downloads) |
+| LaTex Cover Letter | Text | Unused in v1 (left empty) |
 
-Long text (CV bullets, cover letter) is **not** a property. The workflow writes those into the **page body**. **LaTex CV** / **LaTex Cover Letter** are properties (cap 2,000 characters) filled by a second Sonnet call from the parsed bullets/letter.
+**LaTex CV** is a preview only. Phase 2 writes the full `.tex` to Downloads. Cover letter is not generated in v1.
 
 ---
 
@@ -126,21 +127,7 @@ Open the database or page in the browser.
 - **Page:** URL looks like `https://www.notion.so/My-Page-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`  
   The last 32 hex characters are the page ID.
 
-In n8n, paste that ID into the node’s resource field (mode **ID**, not URL), replacing:
-
-- `REPLACE_ME_APPLICATIONS_DB_ID` → Applications database
-- `REPLACE_ME_MASTER_CV_PAGE_ID` → Master CV page
-- `REPLACE_ME_STYLE_PAGE_ID` → Style & Learnings page
-
-Those placeholders sit on:
-
-- **Search Job URL** (database)
-- **Log Skipped** (database)
-- **Create Application** (database)
-- **Get Master CV** (page / block ID)
-- **Get Style Learnings** (page / block ID)
-
-A yellow sticky note on the left of the canvas lists the same three names.
+IDs go in `secrets/notion_ids.json` (no Master CV page, no `REPLACE_ME_...` on the canvas). Notion nodes use those IDs at runtime via **Load Secret IDs**.
 
 ---
 
@@ -150,30 +137,29 @@ Read left to right.
 
 | Node | Plain English |
 | --- | --- |
-| Webhook | The mailbox. POST JSON `{ "url", "html" }`. Answers `{ "status": "accepted" }` immediately. |
+| Webhook | The mailbox. POST JSON `{ "url", "html" }`. **Waits** and answers skipped / duplicate / needs_context. |
 | Pack Ingest | Packs HTML into base64 so the shell command does not break. |
 | Clean HTML | Code node. Strips nav/scripts. Makes Markdown (`url` + `clean_md`). |
+| Load Secret IDs | SSH. Reads `secrets/notion_ids.json`. |
 | Search Job URL | Asks Notion: any row with this Job URL? |
 | Is Duplicate? | If Notion returned a page `id` → duplicate. |
-| Stop Duplicate | End. No new row. $0. |
-| Get Master CV | Downloads your CV page blocks. |
-| Flatten CV | Turns blocks into one `cv_md` string. |
-| Build Haiku Prompt | JD + short CV. |
+| Distill Master CV | SSH. `distill_cv.py --verify-json` from `secrets/master_cv.tex`. |
+| Flatten CV | Parses `{cv_md, ok, missing}`. |
+| Build Haiku Prompt | Full CV markdown + JD (JD capped at 8000 chars). |
 | Haiku Triage | Cheap model. JSON with `fit_score`. |
-| Parse Triage | Reads that JSON. |
+| Parse Triage | Reads that JSON; copies `usage`. |
 | Fit Score >= 70%? | Fork. |
 | Log Skipped | New Notion row, Status = Skipped. |
 | Get Style Learnings | Downloads style rules (only if fit is high). |
 | Flatten Style | One `style_rules` string. |
-| Build Sonnet Prompt | JD + full CV + style. |
-| Sonnet Assets | Writes the application pack as JSON (mermaid H1–H2). |
-| Parse Assets | Flattens JSON into text fields (capped ~1900 chars for Notion). |
-| Build Latex Prompt | Numbers `secrets/master_cv.tex` and packs bullets + letter. |
-| Sonnet LaTeX | Returns `start_line` / `end_line` patches + letter body. |
-| Parse Latex | Reads that JSON; caps ~1900 chars for Notion; keeps structured patches. |
-| Write Tex Files | Runs `assemble_tex.py`; writes complete `.tex` copies to `~/Downloads`. |
-| Assemble Payload | Picks the fields we store (including file paths). |
-| Create Application | New Notion row, Status = Ready to Apply, assets in the page body, LaTeX in the two columns. |
+| Build Phase 1 Prompt | Derived CV markdown + JD + style. |
+| Haiku Phase 1 | Gap audit + questions JSON. |
+| Create Needs Context | New Notion row, Status = Needs Context. |
+| Persist Run State | Saves Phase 1 JSON under `secrets/runs/`. |
+| Webhook Resume | Continue Phase 2. |
+| Read Master Tex Resume | `assemble_tex.py --number --cap 0`. |
+| Sonnet Phase 2 | Returns `latex_cv_patches` only. |
+| Write Full Tex | `assemble_tex.py --cv-only` (patches + repair itemize) → Downloads. |
 
 ---
 
@@ -204,23 +190,13 @@ Leave the **Active** toggle **off**.
 
 Do not put this key in a git file.
 
-### Step 4 — Save the key inside n8n
+### Step 4 — Save the key in secrets (not n8n Header Auth)
 
-n8n: **Credentials** (left) → **Add credential** → search **Header Auth**.
+Put `anthropic_api_key` in `$PROJECT/secrets/notion_ids.json` with the Notion IDs. Claude HTTP nodes read `x-api-key` from **Load Secret IDs**. You do **not** need an n8n Header Auth credential.
 
-- Name: `Anthropic API`
-- Header name: `x-api-key`
-- Header value: paste the key
+### Step 5 — Confirm Claude HTTP nodes
 
-Save.
-
-### Step 5 — Attach Claude to the three HTTP nodes
-
-Open **Haiku Triage** → Credentials → pick **Anthropic API**.  
-Open **Sonnet Assets** → same.  
-Open **Sonnet LaTeX** → same.
-
-Those nodes already send header `anthropic-version: 2023-06-01`. You do not add that in the credential.
+Open **Haiku Triage**, **Haiku Phase 1**, and **Sonnet Phase 2**. Each should POST to `https://api.anthropic.com/v1/messages` with header `x-api-key` from Secret IDs. They already send `anthropic-version: 2023-06-01`.
 
 ### Step 6 — Notion integration token
 
@@ -236,54 +212,41 @@ In Notion, **New page** → type `/database` → **Table – Full page**. Name i
 
 Add the properties from the table above. Names must match **exactly** (including spaces and spelling): `Job URL`, `Fit Score`, `Salary Flag`, `LaTex CV`, `LaTex Cover Letter`, etc.
 
-Status options: `Skipped` and `Ready to Apply`.  
+Status options: `Skipped`, `Needs Context`, `Generating`, `Proceed Phase 2`, `Ready to Apply`.  
 Salary Flag options: `extracted` and `UNVERIFIED Estimate`.
 
-### Step 8 — Create two pages and share everything
+### Step 8 — Create Style & Learnings and the local master CV
 
-Create pages **Master CV** and **Style & Learnings**.
+Create page **Style & Learnings** (tone rules). Do **not** paste the CV into Notion.
 
-The Master CV page needs four headings: **EDUCATION**, **CERTIFICATIONS**, **LANGUAGES**, **SKILLS**. Combined titles make job-site forms leave those fields empty.
+Haiku distills `secrets/master_cv.tex` at runtime (`--verify-json`). After you edit that file, the next ingest re-distills it. ATS compile/check: [`SETUP.md`](SETUP.md#master-cv-ats).
 
-For now you can paste a short placeholder, e.g. “CV goes here”. Later distill your LaTeX with:
-
-```bash
-/home/mario/Documents/n8n/Nuevo trabajo/.venv/bin/python \
-  /home/mario/Documents/n8n/Nuevo trabajo/scripts/distill_cv.py \
-  --tex /home/mario/Documents/n8n/Nuevo trabajo/secrets/master_cv.tex \
-  --out-dir /tmp/jd-distill
-```
-
-Paste **only** `master_cv.md` into the Master CV page. Add `--csv /path/to/your.csv` only when you want a real Style & Learnings draft; without a CSV, `style_learnings.md` is a placeholder — do not overwrite a good Style page with it.
-
-After you edit `secrets/master_cv.tex`, run distill again and replace the Notion Master CV page. ATS compile/check commands: [`SETUP.md`](SETUP.md#master-cv-ats).
-
-Also copy the original CV `.tex` (not the Markdown distill) to a local file the assembler reads. Do **not** paste the `.tex` into n8n:
+Copy the original CV `.tex` locally. Do **not** paste the `.tex` into n8n:
 
 ```bash
 mkdir -p /home/mario/Documents/n8n/Nuevo trabajo/secrets
 cp /path/to/your.tex /home/mario/Documents/n8n/Nuevo trabajo/secrets/master_cv.tex
 ```
 
-Optional letter template: `secrets/master_letter.tex` with `% LETTER_BODY` and `% END_LETTER_BODY` around the paragraphs to swap. Qualified runs write:
+Continue Phase 2 writes only:
 
-`/home/mario/Downloads/{company}_{job_title}_CV.tex`  
-`/home/mario/Downloads/{company}_{job_title}_CoverLetter.tex`
+`/home/mario/Downloads/{company}_{job_title}_CV.tex`
 
-**Share / Connect** the database **and both pages** with your integration. If you skip this, n8n gets 404.
+**Share / Connect** the Applications database **and Style & Learnings** with your integration. If you skip this, n8n gets 404.
 
-### Step 9 — Paste the three IDs into JD Flow
+### Step 9 — Put IDs in secrets, attach Notion + SSH
 
-Replace every `REPLACE_ME_...` on the Notion nodes (list above).  
-Click each red/warning Notion node → pick credential **Notion account**.
+Put `applications_db_id`, `style_learnings_page_id`, and `anthropic_api_key` in `secrets/notion_ids.json`. `master_cv_page_id` is optional/unused.
+
+Click each red/warning Notion node → pick credential **Notion account**. Click each SSH node → **SSH localhost** (Load Secret IDs, Distill Master CV, Persist Run State, Write Full Tex, Read Master Tex Resume).
 
 Nodes that need Notion:
 
 - Search Job URL
-- Get Master CV
 - Log Skipped
 - Get Style Learnings
-- Create Application
+- Create Needs Context
+- Update Ready to Apply (and other resume Notion nodes)
 
 ### Step 10 — Confirm Clean HTML
 
@@ -316,11 +279,11 @@ curl -sS -X POST http://localhost:5678/webhook-test/job-ingest \
 
 or open a job page and click the extension **Send job to n8n**.
 
-Expect `{ "status": "accepted" }` (or the popup showing `accepted`).  
+Expect `{ "status": "skipped" }` or `{ "status": "needs_context" }` (or the popup showing those).  
 Then n8n **Executions**: green = good; red = open the failed node.
 
-First new URL → Haiku, then Skipped or Ready to Apply in Notion.  
-Same URL again → **Stop Duplicate**, no Claude call.
+First new URL → Distill + Haiku, then **Skipped** or **Needs Context** in Notion.  
+Same URL again → duplicate, no Claude call.
 
 ### Step 13 — Turn Active on
 
@@ -342,7 +305,7 @@ You can now send jobs without clicking Test workflow first.
 | Clean HTML failed | Python path wrong (Docker not mounted) or `bs4` missing |
 | Notion 404 / unauthorized | Page/DB not shared with the integration, or wrong ID |
 | Notion property error | Property name/type does not match the table (e.g. `richText` vs Text) |
-| Haiku/Sonnet 401 | Header Auth name is not `x-api-key`, or wrong key |
+| Haiku/Sonnet 401 | `anthropic_api_key` missing/wrong in `secrets/notion_ids.json` |
 | Popup CORS / failed fetch | Webhook host is not `localhost:5678`; add it to `host_permissions` in `manifest.json` and reload the extension |
 | ATS Education/Certifications stay empty | Combined CV heading or nested bullets; see [`SETUP.md`](SETUP.md#master-cv-ats) |
 

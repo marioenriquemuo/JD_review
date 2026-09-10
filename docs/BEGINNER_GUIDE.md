@@ -9,7 +9,7 @@ When you finish, you will be able to:
 2. Click **Send job to n8n** or **Upload PDF**.
 3. Answer a few questions in Notion.
 4. Click **Continue Phase 2**.
-5. Get a tailored CV and cover letter (LaTeX files) in your Downloads folder.
+5. Get a tailored CV (LaTeX) in your Downloads folder. No cover letter in v1.
 
 ---
 
@@ -21,7 +21,7 @@ Think of a small post office:
 | --- | --- | --- |
 | Chrome extension | A button in your browser | Sends the job page to n8n |
 | n8n | An automation app on your computer | Runs the steps automatically |
-| Claude (Anthropic) | An AI service you pay for by usage | Scores the job and writes CV / letter text |
+| Claude (Anthropic) | An AI service you pay for by usage | Scores the job (Haiku) and patches the CV (Sonnet) |
 | Notion | Your filing cabinet (online database) | Stores each job, questions, and answers |
 | Your CV files | Files on your computer | The “master” resume the AI is allowed to use |
 
@@ -39,7 +39,7 @@ Checklist — have all of these ready:
 - [ ] **Google Chrome** (or Chromium)
 - [ ] A **Notion** account
 - [ ] An **Anthropic** account (for Claude API) with billing/spend limit set
-- [ ] Your resume as a **`.tex` (LaTeX)** file with separate EDUCATION / CERTIFICATIONS / LANGUAGES / SKILLS sections, or a Markdown version you can paste into Notion
+- [ ] Your resume as a **`.tex` (LaTeX)** file with separate EDUCATION / CERTIFICATIONS / LANGUAGES / SKILLS sections (this is the only CV source of truth)
 - [ ] About **45–90 minutes** for the first setup
 
 You do **not** need to know how to code.
@@ -158,16 +158,13 @@ Open the **Status** property → Edit options. Create these exact options:
 
 ## Step 4 — Create two helper pages in Notion
 
-1. Create a page named **Master CV**.  
-   Paste the distilled Markdown from `scripts/distill_cv.py` (not the raw LaTeX).  
-   The page must have four separate headings: **EDUCATION**, **CERTIFICATIONS**, **LANGUAGES**, **SKILLS**.  
-   Do not dump school, certs, and skills under one combined title — ATS and Haiku both need those headings.
+1. Skip a Notion **Master CV** page — Haiku distills `secrets/master_cv.tex` at runtime. Keep four `\section*` headings in the `.tex`: **EDUCATION**, **CERTIFICATIONS**, **LANGUAGES**, **SKILLS**.
 2. Create a page named **Style & Learnings**.  
    Paste short writing rules (tone, phrases to avoid, what “good” bullets look like).  
    Keep it short (about 10–20 rules).  
    Only paste `style_learnings.md` from distill if you ran distill **with a CSV**. Without a CSV that file is a placeholder.
 
-When you change `secrets/master_cv.tex`, re-run distill and replace the Master CV page. Details: [`SETUP.md`](SETUP.md#master-cv-ats).
+When you change `secrets/master_cv.tex`, ingest re-distills it at runtime. No Notion Master CV paste. Details: [`SETUP.md`](SETUP.md#master-cv-ats).
 
 ---
 
@@ -176,7 +173,6 @@ When you change `secrets/master_cv.tex`, re-run distill and replace the Master C
 For **each** of these, open the page → `…` / **Connections** / **Connect to** → choose `JD Flow`:
 
 - the **Applications** database
-- the **Master CV** page
 - the **Style & Learnings** page
 
 If you skip this, n8n will show “object not found” or permission errors.
@@ -185,7 +181,7 @@ If you skip this, n8n will show “object not found” or permission errors.
 
 ## Step 6 — Copy Notion IDs (important)
 
-You need three IDs for the secrets file.
+You need two IDs for the secrets file (plus the Claude key).
 
 ### Database ID (Applications)
 
@@ -206,8 +202,8 @@ You need three IDs for the secrets file.
 Write down:
 
 - Applications database ID  
-- Master CV page ID  
 - Style & Learnings page ID  
+- (Master CV page ID unused)  
 
 ---
 
@@ -226,7 +222,7 @@ Your project has a private folder named `secrets` (it should not be uploaded to 
 ```json
 {
   "applications_db_id": "PASTE_APPLICATIONS_DATABASE_ID",
-  "master_cv_page_id": "PASTE_MASTER_CV_PAGE_ID",
+  "master_cv_page_id": "",
   "style_learnings_page_id": "PASTE_STYLE_PAGE_ID",
   "anthropic_api_key": "PASTE_CLAUDE_API_KEY"
 }
@@ -240,11 +236,7 @@ Your project has a private folder named `secrets` (it should not be uploaded to 
 
    That file must keep **EDUCATION**, **CERTIFICATIONS**, **LANGUAGES**, and **SKILLS** as four `\section*` titles (never one combined list). Use ASCII hyphens in dates (`2014 - 2015`) and keep the `lmodern` + `cmap` packages so job-site PDF parsers can read words like Effective / Certificate.
 
-6. Make sure this file exists (cover-letter storytelling rules):
-
-`/home/mario/Documents/n8n/Nuevo trabajo/secrets/storytelling.md`
-
-If `storytelling.md` is missing, copy the version from the project or ask someone to recreate it before using Phase 2.
+6. Cover-letter `storytelling.md` is unused in v1 (Phase 3 off).
 
 ---
 
@@ -313,7 +305,7 @@ ssh localhost
 `/home/mario/Documents/n8n/Nuevo trabajo/JD Flow.json`
 
 3. Open the imported workflow named **JD Flow**.
-4. Open **Sonnet Phase 2** and confirm the prompt says to keep EDUCATION, CERTIFICATIONS, LANGUAGES, and SKILLS as separate sections.
+4. Open **Sonnet Phase 2** and confirm the prompt contains `latex_cv_patches` and tells it to keep EDUCATION, CERTIFICATIONS, LANGUAGES, and SKILLS as separate sections.
 5. For every red / warning Notion node: select credential **Notion account**.
 6. For every SSH node: select credential **SSH localhost**.
 7. Click **Save**.
@@ -383,7 +375,7 @@ Success for Phase 1.
 7. Popup should show **Ready to Apply** and file paths.
 8. Check:
    - Notion Status = `Ready to Apply`
-   - Files in `/home/mario/Downloads/` ending with `_CV.tex` and `_CoverLetter.tex`
+   - Files in `/home/mario/Downloads/` ending with `_CV.tex` (no cover letter in v1)
 
 ### If you see Already filed
 
@@ -413,7 +405,7 @@ The URL was already in Notion.
 | --- | --- |
 | Skipped | Weak fit; no tailored CV generated |
 | Needs Context | Waiting for your answers |
-| Generating | Phase 2/3 is running |
+| Generating | Phase 2 is writing the CV |
 | Ready to Apply | Files generated; review and apply |
 | Proceed Phase 2 | Old manual trigger; prefer the extension button |
 
@@ -477,7 +469,7 @@ Fix:
 1. Check `secrets/master_cv.tex` (and the Downloads `_CV.tex`) for those four `\section*` titles.
 2. Compile with `pdflatex`, then `pdftotext -layout … | sed -n '/EDUCATION/,$p'`.
 3. You must see `Effective`, `Certificate`, `Proficient` (not `Ective` / `Certicate`). If ligatures are broken, keep `\usepackage{lmodern}` and `\usepackage{cmap}` in the preamble.
-4. Re-distill and update the Notion Master CV page so Haiku/Phase 2 see the same headings.
+4. Re-run ingest so distill picks up the `.tex`. No Notion Master CV paste.
 5. Open **Sonnet Phase 2** and confirm it is told not to merge those sections.
 
 Full commands: [`SETUP.md`](SETUP.md#master-cv-ats).
@@ -495,10 +487,10 @@ Full commands: [`SETUP.md`](SETUP.md#master-cv-ats).
 You are fully set up when all of these are true:
 
 - [ ] Claude key and Notion IDs are in `secrets/notion_ids.json`
-- [ ] `master_cv.tex` and `storytelling.md` exist in `secrets/`
-- [ ] Master CV (tex + Notion page) has separate EDUCATION / CERTIFICATIONS / LANGUAGES / SKILLS headings
+- [ ] `master_cv.tex` exists in `secrets/` (`distill_cv.py --verify-json` ok)
+- [ ] Master CV `.tex` has separate EDUCATION / CERTIFICATIONS / LANGUAGES / SKILLS headings
 - [ ] Applications database has all required columns
-- [ ] Integration is connected to DB + Master CV + Style pages
+- [ ] Integration is connected to DB + Style page
 - [ ] n8n JD Flow is Active with Notion + SSH credentials attached
 - [ ] Chrome extension installed and webhook set to live `/webhook/job-ingest`
 - [ ] You completed one full pass: Send → answers → Continue → Downloads files
