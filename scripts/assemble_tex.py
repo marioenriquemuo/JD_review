@@ -6,6 +6,7 @@ import json
 import os
 import re
 import sys
+from datetime import date
 
 
 LETTER_START = "% LETTER_BODY"
@@ -158,6 +159,52 @@ def apply_letter(master_text, body):
     )
 
 
+def tex_escape(text):
+    out = str(text or "")
+    for old, new in (
+        ("\\", "\\textbackslash{}"),
+        ("&", "\\&"),
+        ("%", "\\%"),
+        ("$", "\\$"),
+        ("#", "\\#"),
+        ("_", "\\_"),
+    ):
+        out = out.replace(old, new)
+    return out
+
+
+HEADER_LINE_RE = re.compile(
+    r"^((?:\\noindent\s+)?\\textbf\{(Date|To|Company|Location|Position):\}\s*).*$",
+    re.M,
+)
+
+
+def letter_header_values(payload):
+    today = date.today()
+    letter_date = str(payload.get("letter_date") or "").strip()
+    if not letter_date:
+        letter_date = "%s %s, %s" % (today.strftime("%B"), today.day, today.year)
+    return {
+        "Date": letter_date,
+        "To": str(payload.get("letter_to") or "Hiring Team").strip(),
+        "Company": str(payload.get("company") or "").strip(),
+        "Location": str(payload.get("location") or "").strip(),
+        "Position": str(payload.get("job_title") or "").strip(),
+    }
+
+
+def apply_letter_header(text, payload):
+    values = letter_header_values(payload)
+
+    def repl(match):
+        value = values.get(match.group(2)) or ""
+        if not value:
+            return match.group(0)
+        return match.group(1) + tex_escape(value) + " \\\\"
+
+    return HEADER_LINE_RE.sub(repl, text)
+
+
 # --- Output paths ---
 
 def slug(value):
@@ -228,7 +275,34 @@ def splice_preamble(master, generated):
     return pre + BEGIN_DOC + "\n" + body + "\n" + END_DOC + "\n"
 
 
-# --- Full write (Phase 2/3) ---
+def letter_out_path(out_dir, company, title):
+    return os.path.join(out_dir, "%s_%s_CoverLetter.tex" % (company, title))
+
+
+def write_letter_only(payload, out_dir, letter_master=""):
+    body = _letter_body(payload)
+    if not str(body).strip():
+        raise ValueError("latex_cover_letter is empty")
+    letter_src = ""
+    if letter_master and os.path.isfile(letter_master):
+        with open(letter_master, "r") as handle:
+            letter_src = handle.read()
+    if LETTER_START in letter_src and LETTER_END in letter_src:
+        letter_text = apply_letter_header(apply_letter(letter_src, body), payload)
+        master_for_write = letter_master
+    else:
+        letter_text = wrap_letter(body)
+        master_for_write = ""
+    if not letter_text.endswith("\n"):
+        letter_text += "\n"
+    os.makedirs(out_dir, exist_ok=True)
+    company = slug(payload.get("company"))
+    title = slug(payload.get("job_title"))
+    path = letter_out_path(out_dir, company, title)
+    _write(path, letter_text, master_for_write)
+    preview = letter_text if len(letter_text) <= 1900 else letter_text[:1899] + "\u2026"
+    return {"letter_path": path, "letter_preview": preview}
+
 
 def write_full(payload, out_dir, master_path="", letter_master=""):
     cv_text = str(payload.get("cv_tex") or "")
@@ -278,7 +352,25 @@ def main():
         action="store_true",
         help="Apply mode: write the CV copy only (no cover letter)",
     )
+    parser.add_argument(
+        "--letter-only",
+        action="store_true",
+        help="Write cover letter body into the master letter; do not write a CV",
+    )
     args = parser.parse_args()
+
+    if args.letter_only:
+        if not args.out_dir:
+            raise SystemExit("--letter-only needs --out-dir")
+        try:
+            raw = sys.stdin.read()
+            payload = json.loads(raw) if raw.strip() else {}
+            result = write_letter_only(payload, args.out_dir, args.letter)
+            sys.stdout.write(json.dumps(result) + "\n")
+        except Exception as exc:
+            sys.stdout.write(json.dumps({"error": str(exc)}) + "\n")
+            raise SystemExit(1)
+        return
 
     if args.write_full:
         if not args.out_dir:

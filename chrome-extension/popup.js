@@ -2,6 +2,7 @@ const statusEl = document.getElementById("status");
 const sendBtn = document.getElementById("send");
 const pdfBtn = document.getElementById("pdf");
 const resumeBtn = document.getElementById("resume");
+const letterBtn = document.getElementById("letter");
 
 function formatStatus(body) {
   if (!body || typeof body !== "object") {
@@ -30,7 +31,7 @@ function formatStatus(body) {
     const title = body.job_title || "";
     const who = [company, title].filter(Boolean).join(" — ");
     let line =
-      "Needs Context saved.\n1) Fill Candidate Answers in Notion\n2) Click Continue Phase 2 (any tab is fine).";
+      "Needs Context saved.\n1) Fill Candidate Answers in Notion\n2) Click Continue Phase 2 (any tab is fine).\n3) After Ready to Apply, set Status to Write Cover Letter, then click Write cover letter.";
     if (who) line = who + "\n" + line;
     return line;
   }
@@ -48,6 +49,9 @@ function formatStatus(body) {
     if (who) line = who + "\n" + line;
     if (body.cv_path) line += "\nCV: " + body.cv_path;
     if (body.letter_path) line += "\nLetter: " + body.letter_path;
+    if (!body.letter_path) {
+      line += "\nSet Notion Status to Write Cover Letter (one row only), then click Write cover letter.";
+    }
     return line;
   }
   return status;
@@ -70,6 +74,7 @@ function setBusy(busy, label) {
   sendBtn.disabled = busy;
   pdfBtn.disabled = busy;
   resumeBtn.disabled = busy;
+  if (letterBtn) letterBtn.disabled = busy;
   if (busy) statusEl.textContent = label || "Working…";
 }
 
@@ -84,7 +89,9 @@ function handleIngestResult(result) {
   }
   if (
     result.body &&
-    (result.body.status === "needs_context" || result.body.status === "duplicate")
+    (result.body.status === "needs_context" ||
+      result.body.status === "duplicate" ||
+      result.body.status === "ready_to_apply")
   ) {
     rememberResume(result.body);
   }
@@ -107,14 +114,29 @@ resumeBtn.addEventListener("click", function () {
   setBusy(true, "Generating CV…");
   chrome.runtime.sendMessage({ type: "RESUME_TAB" }, function (result) {
     setBusy(false);
-    if (chrome.runtime.lastError) {
-      statusEl.textContent = chrome.runtime.lastError.message;
-      return;
-    }
-    if (!result || !result.ok) {
-      statusEl.textContent = (result && result.error) || "Request failed";
-      return;
-    }
-    statusEl.textContent = formatStatus(result.body);
+    handleResumeResult(result);
   });
 });
+
+letterBtn.addEventListener("click", function () {
+  setBusy(true, "Generating letter…");
+  chrome.runtime.sendMessage({ type: "LETTER_TAB" }, function (result) {
+    setBusy(false);
+    handleResumeResult(result);
+  });
+});
+
+function handleResumeResult(result) {
+  if (chrome.runtime.lastError) {
+    statusEl.textContent = chrome.runtime.lastError.message;
+    return;
+  }
+  if (!result || !result.ok) {
+    statusEl.textContent = (result && result.error) || "Request failed";
+    return;
+  }
+  if (result.body && result.body.status === "ready_to_apply") {
+    rememberResume(result.body);
+  }
+  statusEl.textContent = formatStatus(result.body);
+}

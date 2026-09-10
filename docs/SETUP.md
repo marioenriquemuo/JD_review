@@ -36,7 +36,7 @@ mkdir -p "$PROJECT/secrets"
 cp /path/to/cv.tex "$PROJECT/secrets/master_cv.tex"
 ```
 
-After **Continue Phase 2**, the patched CV lands in `/home/mario/Downloads/{company}_{job_title}_CV.tex`. No cover letter in v1.
+After **Continue Phase 2**, the patched CV lands in `/home/mario/Downloads/{company}_{job_title}_CV.tex`. After **Write cover letter**, `{company}_{job_title}_CoverLetter.tex` is written the same way (requires `secrets/master_letter.tex` and `secrets/storytelling.md`).
 
 ### Master CV (ATS)
 
@@ -51,7 +51,7 @@ Required `\section*` titles (each on its own line, never merged):
 
 Date ranges use an ASCII hyphen (`2014 - 2015`), not LaTeX `--` (en-dashes often extract as a gap). Preamble must include `lmodern` + `cmap` so `fi` ligatures extract as `Effective` / `Certificate` / `Proficient`, not `Ective` / `Certicate`.
 
-Phase 2 (`Sonnet Phase 2` in [`JD Flow.json`](../JD Flow.json)) returns line patches only. It may reorder certifications to match the JD; degree entries stay fixed; it must not nest or merge those four sections. `assemble_tex.py --cv-only` applies patches and restores missing `\begin{itemize}` / `\end{itemize}`.
+Phase 2 (`Sonnet Phase 2` in [`JD Flow.json`](../JD Flow.json)) returns line patches only. It may reorder certifications to match the JD; degree entries stay fixed; it must not nest or merge those four sections. `assemble_tex.py --cv-only` applies patches and restores missing `\begin{itemize}` / `\end{itemize}`. Phase 3 is opt-in: Sonnet returns `{ "latex_cover_letter": "<body>" }` only; `assemble_tex.py --letter-only` splices `secrets/master_letter.tex`.
 
 Compile and check extractable text before uploading a PDF to an ATS:
 
@@ -81,7 +81,7 @@ Put the key in `$PROJECT/secrets/notion_ids.json` as `anthropic_api_key`. Claude
 
 1. [notion.so/my-integrations](https://www.notion.so/my-integrations) → **New integration** (internal). Copy the token.
 2. Create database **Applications** with the properties in [README.md](../README.md) (title = Job Title).
-3. **Status** select must include exactly: `Skipped`, `Needs Context`, `Generating`, `Proceed Phase 2`, `Ready to Apply`.
+3. **Status** select must include exactly: `Skipped`, `Needs Context`, `Generating`, `Proceed Phase 2`, `Ready to Apply`, `Write Cover Letter`.
 4. Add **Candidate notes** (Text / rich_text) if missing.
 5. Create page **Style & Learnings**. Paste tone rules (optional distill `--csv` draft). Share the Applications DB and this page with the integration. A Notion Master CV page is unused (source of truth is `secrets/master_cv.tex`).
 6. Share the database and the Style page with the integration (**Connect to**).
@@ -126,7 +126,8 @@ Expect `{ "status": "skipped" }` or `{ "status": "needs_context" }` (the webhook
 
 - First run: popup shows `skipped` or `needs_context`. Notion **Skipped** or **Needs Context**.
 - Same `url` again: popup `Already filed.`
-- After **Candidate Answers** + extension **Continue Phase 2**: Downloads `{company}_{title}_CV.tex` (no cover letter) and Notion **Ready to Apply**.
+- After **Candidate Answers** + extension **Continue Phase 2**: Downloads `{company}_{title}_CV.tex` and Notion **Ready to Apply**.
+- After **Write cover letter**: Downloads `{company}_{title}_CoverLetter.tex`; Status stays **Ready to Apply**. Fails with Continue Phase 2 first if you skipped Phase 2.
 
 ---
 
@@ -146,6 +147,7 @@ To allow a non-localhost n8n URL, add it to `host_permissions` in [`chrome-exten
 ## Checklist
 
 - [ ] `secrets/master_cv.tex` present; `distill_cv.py --verify-json` returns `"ok": true`
+- [ ] For letters: `secrets/master_letter.tex` (`% LETTER_BODY` markers) and `secrets/storytelling.md`
 - [ ] Master CV `.tex` has separate EDUCATION / CERTIFICATIONS / LANGUAGES / SKILLS
 - [ ] `pdftotext` of the compiled PDF shows those four headings and `Effective` / `Certificate` / `Proficient`
 - [ ] **Sonnet Phase 2** prompt includes `latex_cv_patches` and Preserve EDUCATION… (re-import `JD Flow.json` if not)

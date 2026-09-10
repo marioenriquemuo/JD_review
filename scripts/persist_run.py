@@ -33,9 +33,16 @@ def main():
         payload = json.loads(sys.stdin.read())
         page_id = safe_id(payload.get("page_id") or args.page_id)
         path = os.path.join(args.runs_dir, page_id + ".json")
-        payload["page_id"] = page_id
+        existing = {}
+        if os.path.isfile(path):
+            with open(path, "r") as handle:
+                existing = json.load(handle)
+            if not isinstance(existing, dict):
+                existing = {}
+        existing.update(payload)
+        existing["page_id"] = page_id
         with open(path, "w") as handle:
-            json.dump(payload, handle, ensure_ascii=False)
+            json.dump(existing, handle, ensure_ascii=False)
         print(json.dumps({"ok": True, "path": path, "page_id": page_id}))
         return
 

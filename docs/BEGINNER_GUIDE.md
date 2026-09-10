@@ -9,7 +9,8 @@ When you finish, you will be able to:
 2. Click **Send job to n8n** or **Upload PDF**.
 3. Answer a few questions in Notion.
 4. Click **Continue Phase 2**.
-5. Get a tailored CV (LaTeX) in your Downloads folder. No cover letter in v1.
+5. Get a tailored CV (LaTeX) in your Downloads folder.
+6. Optional: click **Write cover letter** after Ready to Apply.
 
 ---
 
@@ -21,7 +22,7 @@ Think of a small post office:
 | --- | --- | --- |
 | Chrome extension | A button in your browser | Sends the job page to n8n |
 | n8n | An automation app on your computer | Runs the steps automatically |
-| Claude (Anthropic) | An AI service you pay for by usage | Scores the job (Haiku) and patches the CV (Sonnet) |
+| Claude (Anthropic) | An AI service you pay for by usage | Scores the job (Haiku), patches the CV (Sonnet), optional cover-letter body (Sonnet) |
 | Notion | Your filing cabinet (online database) | Stores each job, questions, and answers |
 | Your CV files | Files on your computer | The “master” resume the AI is allowed to use |
 
@@ -46,7 +47,7 @@ You do **not** need to know how to code.
 
 ---
 
-## Big picture: two buttons you will use every day
+## Big picture: buttons you will use every day
 
 After setup, your daily work is only this:
 
@@ -59,6 +60,7 @@ After setup, your daily work is only this:
 5. Click extension → “Continue Phase 2”
 6. Wait until the popup says Ready to Apply
 7. Open the .tex files in Downloads
+8. If you want a letter: click “Write cover letter”
 ```
 
 **Upload PDF** works only if the PDF has selectable text. Scanned/image PDFs are not supported.
@@ -148,6 +150,7 @@ Open the **Status** property → Edit options. Create these exact options:
 - `Generating`
 - `Proceed Phase 2` (optional / legacy; the extension button is preferred)
 - `Ready to Apply`
+- `Write Cover Letter`
 
 ### 3.4 Salary Flag options
 
@@ -236,7 +239,10 @@ Your project has a private folder named `secrets` (it should not be uploaded to 
 
    That file must keep **EDUCATION**, **CERTIFICATIONS**, **LANGUAGES**, and **SKILLS** as four `\section*` titles (never one combined list). Use ASCII hyphens in dates (`2014 - 2015`) and keep the `lmodern` + `cmap` packages so job-site PDF parsers can read words like Effective / Certificate.
 
-6. Cover-letter `storytelling.md` is unused in v1 (Phase 3 off).
+6. For cover letters, also place:
+
+   - `/home/mario/Documents/n8n/Nuevo trabajo/secrets/master_letter.tex` (with `% LETTER_BODY` / `% END_LETTER_BODY`)
+   - `/home/mario/Documents/n8n/Nuevo trabajo/secrets/storytelling.md`
 
 ---
 
@@ -375,7 +381,8 @@ Success for Phase 1.
 7. Popup should show **Ready to Apply** and file paths.
 8. Check:
    - Notion Status = `Ready to Apply`
-   - Files in `/home/mario/Downloads/` ending with `_CV.tex` (no cover letter in v1)
+   - Files in `/home/mario/Downloads/` ending with `_CV.tex`
+   - Optional: click **Write cover letter** for `_CoverLetter.tex`
 
 ### If you see Already filed
 
@@ -397,7 +404,8 @@ The URL was already in Notion.
    - Answer in Notion **Candidate Answers** (short, factual, no exaggeration).
    - Click **Continue Phase 2**.
 4. Compile the Downloads `_CV.tex` to PDF (`pdflatex`). Upload that PDF to the job site, not the `.tex`.
-5. Review before applying. You are still responsible for accuracy. Confirm Education and Certifications auto-filled; field-of-study may still need a small manual tweak.
+5. Optional: **Write cover letter** — first set Notion Status to **Write Cover Letter** on that one row, then click the button. Compile `_CoverLetter.tex`.
+6. Review before applying. You are still responsible for accuracy. Confirm Education and Certifications auto-filled; field-of-study may still need a small manual tweak.
 
 ## What each Notion Status means
 
@@ -405,8 +413,9 @@ The URL was already in Notion.
 | --- | --- |
 | Skipped | Weak fit; no tailored CV generated |
 | Needs Context | Waiting for your answers |
-| Generating | Phase 2 is writing the CV |
+| Generating | Phase 2 or letter write is in progress |
 | Ready to Apply | Files generated; review and apply |
+| Write Cover Letter | You marked this row for a letter; then click **Write cover letter** |
 | Proceed Phase 2 | Old manual trigger; prefer the extension button |
 
 ## Where your answers go
@@ -478,6 +487,7 @@ Full commands: [`SETUP.md`](SETUP.md#master-cv-ats).
 
 - Weak jobs should stay **Skipped** (cheap).
 - Only click **Continue Phase 2** for roles you truly want.
+- **Write cover letter** is a second paid Sonnet call; skip it when you do not need a letter.
 - Keep Anthropic spend limits on.
 
 ---
@@ -494,6 +504,7 @@ You are fully set up when all of these are true:
 - [ ] n8n JD Flow is Active with Notion + SSH credentials attached
 - [ ] Chrome extension installed and webhook set to live `/webhook/job-ingest`
 - [ ] You completed one full pass: Send → answers → Continue → Downloads files
+- [ ] Optional letter: `master_letter.tex` + `storytelling.md`, then **Write cover letter**
 
 ---
 

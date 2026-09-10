@@ -24,8 +24,9 @@ Imagine a post office:
 6. **If score &lt; 70** = **Skipped**. Popup says skipped.
 7. **If score ≥ 70** = **Haiku Phase 1** audits gaps and asks you questions → Notion **Needs Context**.
 8. **You** fill **Candidate Answers**, then click **Continue Phase 2**.
-9. **Sonnet Phase 2** returns line patches; Python writes the CV `.tex`. No cover letter in v1.
+9. **Sonnet Phase 2** returns line patches; Python writes the CV `.tex`. Continue stays CV-only.
 10. File lands in **Downloads**. Notion becomes **Ready to Apply** with a LaTeX CV preview.
+11. Optional: **Write cover letter** → Sonnet letter body → Python splices `master_letter.tex` → Downloads `_CoverLetter.tex`.
 
 You click → Notion asks questions → you answer → Downloads gets real tailored `.tex` files.
 
@@ -105,16 +106,16 @@ Database title property name: **Job Title** (type **Title**).
 | Location | Text | — |
 | Skills | Text | — |
 | Fit Score | Number | number format is fine |
-| Status | Select | `Skipped`, `Needs Context`, `Generating`, `Proceed Phase 2`, `Ready to Apply` |
+| Status | Select | `Skipped`, `Needs Context`, `Generating`, `Proceed Phase 2`, `Ready to Apply`, `Write Cover Letter` |
 | Rationale | Text | — |
 | Salary Range | Text | — |
 | Salary Flag | Select | `extracted`, `UNVERIFIED Estimate` |
 | Candidate notes | Text | Phase 1 questions (seeded) |
 | Candidate Answers | Text | Your replies |
 | LaTex CV | Text | Preview ≤1900 chars (full file in Downloads) |
-| LaTex Cover Letter | Text | Unused in v1 (left empty) |
+| LaTex Cover Letter | Text | Preview after **Write cover letter** |
 
-**LaTex CV** is a preview only. Phase 2 writes the full `.tex` to Downloads. Cover letter is not generated in v1.
+**LaTex CV** is a preview only. Phase 2 writes the full `.tex` to Downloads. Cover letter is a second click after Ready to Apply.
 
 ---
 
@@ -156,10 +157,15 @@ Read left to right.
 | Haiku Phase 1 | Gap audit + questions JSON. |
 | Create Needs Context | New Notion row, Status = Needs Context. |
 | Persist Run State | Saves Phase 1 JSON under `secrets/runs/`. |
-| Webhook Resume | Continue Phase 2. |
+| Webhook Resume | Continue Phase 2 or **Write cover letter** (`write_letter: true`). |
+| Letter by Status? | Letter click searches Status = Write Cover Letter (exactly one row). |
+| Write Letter? | After Merge Run State: false = Phase 2 CV; true = Phase 3 letter (no P2 rerun). |
 | Read Master Tex Resume | `assemble_tex.py --number --cap 0`. |
 | Sonnet Phase 2 | Returns `latex_cv_patches` only. |
 | Write Full Tex | `assemble_tex.py --cv-only` (patches + repair itemize) → Downloads. |
+| Persist Phase 2 Output | Merges `latex_cv_patches` + `cv_path` into the run JSON. |
+| Sonnet Phase 3 | Opt-in. Returns `{ latex_cover_letter }` body only. |
+| Write Letter Tex | `assemble_tex.py --letter-only` → Downloads `_CoverLetter.tex`. |
 
 ---
 
@@ -196,7 +202,7 @@ Put `anthropic_api_key` in `$PROJECT/secrets/notion_ids.json` with the Notion ID
 
 ### Step 5 — Confirm Claude HTTP nodes
 
-Open **Haiku Triage**, **Haiku Phase 1**, and **Sonnet Phase 2**. Each should POST to `https://api.anthropic.com/v1/messages` with header `x-api-key` from Secret IDs. They already send `anthropic-version: 2023-06-01`.
+Open **Haiku Triage**, **Haiku Phase 1**, **Sonnet Phase 2**, and **Sonnet Phase 3**. Each should POST to `https://api.anthropic.com/v1/messages` with header `x-api-key` from Secret IDs. They already send `anthropic-version: 2023-06-01`.
 
 ### Step 6 — Notion integration token
 
@@ -212,7 +218,7 @@ In Notion, **New page** → type `/database` → **Table – Full page**. Name i
 
 Add the properties from the table above. Names must match **exactly** (including spaces and spelling): `Job URL`, `Fit Score`, `Salary Flag`, `LaTex CV`, `LaTex Cover Letter`, etc.
 
-Status options: `Skipped`, `Needs Context`, `Generating`, `Proceed Phase 2`, `Ready to Apply`.  
+Status options: `Skipped`, `Needs Context`, `Generating`, `Proceed Phase 2`, `Ready to Apply`, `Write Cover Letter`.  
 Salary Flag options: `extracted` and `UNVERIFIED Estimate`.
 
 ### Step 8 — Create Style & Learnings and the local master CV
@@ -228,9 +234,20 @@ mkdir -p /home/mario/Documents/n8n/Nuevo trabajo/secrets
 cp /path/to/your.tex /home/mario/Documents/n8n/Nuevo trabajo/secrets/master_cv.tex
 ```
 
-Continue Phase 2 writes only:
+Continue Phase 2 writes:
 
 `/home/mario/Downloads/{company}_{job_title}_CV.tex`
+
+**Write cover letter** (after Ready to Apply) also needs:
+
+```bash
+cp /path/to/letter.tex /home/mario/Documents/n8n/Nuevo trabajo/secrets/master_letter.tex
+cp /path/to/storytelling.md /home/mario/Documents/n8n/Nuevo trabajo/secrets/storytelling.md
+```
+
+`master_letter.tex` should contain `% LETTER_BODY` / `% END_LETTER_BODY` markers. Letter file:
+
+`/home/mario/Downloads/{company}_{job_title}_CoverLetter.tex`
 
 **Share / Connect** the Applications database **and Style & Learnings** with your integration. If you skip this, n8n gets 404.
 
@@ -238,7 +255,7 @@ Continue Phase 2 writes only:
 
 Put `applications_db_id`, `style_learnings_page_id`, and `anthropic_api_key` in `secrets/notion_ids.json`. `master_cv_page_id` is optional/unused.
 
-Click each red/warning Notion node → pick credential **Notion account**. Click each SSH node → **SSH localhost** (Load Secret IDs, Distill Master CV, Persist Run State, Write Full Tex, Read Master Tex Resume).
+Click each red/warning Notion node → pick credential **Notion account**. Click each SSH node → **SSH localhost** (Load Secret IDs, Distill Master CV, Persist Run State, Persist Phase 2 Output, Write Full Tex, Write Letter Tex, Read Master Tex Resume, Read Storytelling, Read Patched CV).
 
 Nodes that need Notion:
 

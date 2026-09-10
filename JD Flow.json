@@ -749,7 +749,7 @@
     },
     {
       "parameters": {
-        "jsCode": "function propText(page, name) {\n  const props = page.properties || page;\n  const p = props[name];\n  if (p == null) return '';\n  if (typeof p === 'string') return p;\n  if (p.select && p.select.name) return p.select.name;\n  if (typeof p.select === 'string') return p.select;\n  if (p.status && p.status.name) return p.status.name;\n  if (Array.isArray(p.rich_text)) return p.rich_text.map(function (t) { return t.plain_text || ''; }).join('');\n  if (Array.isArray(p.title)) return p.title.map(function (t) { return t.plain_text || ''; }).join('');\n  if (p.number != null) return String(p.number);\n  if (p.url) return p.url;\n  if (p.name) return String(p.name);\n  if (p.plain_text) return String(p.plain_text);\n  return '';\n}\nfunction pageIdOf(page) {\n  let id = page.id || page.pageId || page.page_id || '';\n  if (!id && page.raw_page) id = page.raw_page.id || '';\n  return String(id || '').replace(/-/g, '').toLowerCase();\n}\nconst page = $input.item.json;\nlet status = propText(page, 'Status');\nif (!status && typeof page.Status === 'string') status = page.Status;\nstatus = String(status || '').trim();\nconst answers = (propText(page, 'Candidate Answers') || propText(page, 'Candidate answers') || '').trim();\nconst notes = propText(page, 'Candidate notes').trim();\nconst page_id = pageIdOf(page);\nif (!/^[0-9a-f]{32}$/.test(page_id)) {\n  throw new Error('Resume page has no id. Keys=' + Object.keys(page).slice(0, 20).join(','));\n}\nreturn { json: {\n  page_id: page_id,\n  status: status,\n  candidate_answers: answers,\n  candidate_notes: notes,\n  raw_page: page\n} };\n",
+        "jsCode": "function propText(page, name) {\n  const props = page.properties || page;\n  const p = props[name];\n  if (p == null) return '';\n  if (typeof p === 'string') return p;\n  if (p.select && p.select.name) return p.select.name;\n  if (typeof p.select === 'string') return p.select;\n  if (p.status && p.status.name) return p.status.name;\n  if (p.value && typeof p.value === 'string') return p.value;\n  if (Array.isArray(p.rich_text)) return p.rich_text.map(function (t) { return t.plain_text || ''; }).join('');\n  if (Array.isArray(p.title)) return p.title.map(function (t) { return t.plain_text || ''; }).join('');\n  if (p.number != null) return String(p.number);\n  if (p.url) return p.url;\n  if (p.name) return String(p.name);\n  if (p.plain_text) return String(p.plain_text);\n  return '';\n}\nfunction statusOf(page) {\n  let s = propText(page, 'Status') || propText(page, 'status');\n  if (!s && typeof page.Status === 'string') s = page.Status;\n  if (!s && page.Status && page.Status.name) s = page.Status.name;\n  return String(s || '').trim();\n}\nfunction pageIdOf(page) {\n  let id = page.id || page.pageId || page.page_id || '';\n  if (!id && page.raw_page) id = page.raw_page.id || '';\n  return String(id || '').replace(/-/g, '').toLowerCase();\n}\nconst page = $input.item.json;\nconst status = statusOf(page);\nconst answers = (propText(page, 'Candidate Answers') || propText(page, 'Candidate answers') || '').trim();\nconst notes = propText(page, 'Candidate notes').trim();\nconst page_id = pageIdOf(page);\nif (!/^[0-9a-f]{32}$/.test(page_id)) {\n  throw new Error('Resume page has no id. Keys=' + Object.keys(page).slice(0, 20).join(','));\n}\nreturn { json: {\n  page_id: page_id,\n  status: status,\n  candidate_answers: answers,\n  candidate_notes: notes,\n  raw_page: page\n} };\n",
         "mode": "runOnceForEachItem"
       },
       "type": "n8n-nodes-base.code",
@@ -840,7 +840,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const prev = $('Resume Context').first().json;\nconst rawOut = String($json.stdout || $json.data || '').trim();\nconst rawErr = String($json.stderr || '');\nconst match = rawOut.match(/\\{[\\s\\S]*\\}/);\nif (!match) {\n  throw new Error('persist_run.py read failed. page_id=' + (prev.page_id || '') + ' stderr=' + rawErr.slice(0, 300) + ' stdout=' + rawOut.slice(0, 200));\n}\nconst run = JSON.parse(match[0]);\nif (run.error) throw new Error(run.error);\nconst answers = String(prev.candidate_answers || '').trim();\nconst notes = String(prev.candidate_notes || '').trim();\nreturn { json: Object.assign({}, run, {\n  page_id: prev.page_id,\n  candidate_answers: answers,\n  candidate_notes: notes,\n  candidate_context: answers || notes || '',\n  anthropic_api_key: prev.anthropic_api_key,\n  applications_db_id: prev.applications_db_id,\n  master_cv_page_id: prev.master_cv_page_id,\n  style_learnings_page_id: prev.style_learnings_page_id\n}) };\n"
+        "jsCode": "const prev = $('Resume Context').first().json;\nconst pack = $('Pack Resume').first().json;\nconst rawOut = String($json.stdout || $json.data || '').trim();\nconst rawErr = String($json.stderr || '');\nconst match = rawOut.match(/\\{[\\s\\S]*\\}/);\nif (!match) {\n  throw new Error('persist_run.py read failed. page_id=' + (prev.page_id || '') + ' stderr=' + rawErr.slice(0, 300) + ' stdout=' + rawOut.slice(0, 200));\n}\nconst run = JSON.parse(match[0]);\nif (run.error) throw new Error(run.error);\nconst answers = String(prev.candidate_answers || '').trim();\nconst notes = String(prev.candidate_notes || '').trim();\nreturn { json: Object.assign({}, run, {\n  page_id: prev.page_id,\n  candidate_answers: answers,\n  candidate_notes: notes,\n  candidate_context: answers || notes || '',\n  anthropic_api_key: prev.anthropic_api_key,\n  applications_db_id: prev.applications_db_id,\n  master_cv_page_id: prev.master_cv_page_id,\n  style_learnings_page_id: prev.style_learnings_page_id,\n  write_letter: !!pack.write_letter\n}) };\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -858,8 +858,8 @@
       "type": "n8n-nodes-base.ssh",
       "typeVersion": 1,
       "position": [
-        820,
-        520
+        1540,
+        760
       ],
       "id": "cf717d15-c499-4650-a3e0-b0e639b16919",
       "name": "Read Storytelling",
@@ -956,27 +956,27 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 8000, thinking: { type: 'disabled' }, system: \"You are an Executive Career Strategist. PHASE 3: Draft a highly targeted cover letter in LaTeX. Cross-reference the updated CV, the Job Description, the Phase 1 audit, Candidate Answers, and the storytelling guidelines. Maintain a professional, authoritative, concise tone. Copy the MASTER letter preamble, packages, colors, and name/contact header. Replace Date/To/Company/Position and the letter body only. Do not switch templates. Use storytelling structure; do not list traits. Open with one hook: a fact from the JD, a problem the JD names, or one metric already in the updated CV. Never open with I am writing to apply. Use 3 to 4 short paragraphs, about 250 to 400 words. Include one evidenced metric from the updated CV. Do not invent employers, dates, metrics, or skills. Use Candidate Answers only as facts; if they are empty, use only the updated CV. If a gap remains after Candidate Answers, do not fake it, do not apologize, and do not mention it unless the answers give a truthful bridge. Close with a specific contribution to this company and role plus a clear next step. Address the real company and role from the inputs \\u2014 never keep a previous company's header. Output ONLY a JSON object, no markdown fences. Keys: letter_tex (string: FULL compilable LaTeX including \\\\\\\\documentclass and \\\\\\\\begin{document}). Escape LaTeX special characters ($, &, %, #, _).\", messages: [{ role: 'user', content: $json.phase3_user }] }) }}",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 2500, thinking: { type: 'disabled' }, system: \"You are an Executive Career Strategist. PHASE 3: Draft a highly targeted cover letter BODY in LaTeX. Follow STORYTELLING GUIDELINES in the user message, in order. Do not list traits. Do not open with I am writing to apply. Do not open with a JD quote or a metric as the first sentence. Paragraph 1 HOOK: an unexpected early choice or obsession from the CV or Candidate Answers. Paragraph 2 MECHANISM then BRIDGE: what you actually did, then why that obsession is the superpower THIS role needs (name the company's core problem). Paragraph 3 PROOF: one concrete career moment with one evidenced metric from the updated CV. Paragraph 4 CLOSE: specific contribution to THIS company and role plus a clear next step. 3 to 4 short paragraphs, about 250 to 400 words. Python splices the body into the master letter and updates Date/To/Company/Location/Position \\u2014 output body only, no preamble, no \\\\\\\\documentclass, no \\\\\\\\begin{document}, no Date/To/Company header. Do not invent employers, dates, metrics, or skills. Use Candidate Answers only as facts; if they are empty, use only the updated CV. If a gap remains, do not fake it, do not apologize, and do not mention it unless the answers give a truthful bridge. Output ONLY a JSON object, no markdown fences. Keys: latex_cover_letter (string: letter body only). Escape LaTeX special characters ($, &, %, #, _).\", messages: [{ role: 'user', content: $json.phase3_user }] }) }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1780,
-        520
+        2020,
+        760
       ],
       "id": "9494705a-85b1-4ada-a714-6788224c0969",
       "name": "Sonnet Phase 3"
     },
     {
       "parameters": {
-        "jsCode": "function repairJson(s) {\n  let out = '';\n  let inString = false;\n  let escaped = false;\n  for (let i = 0; i < s.length; i++) {\n    const c = s[i];\n    const code = s.charCodeAt(i);\n    if (!inString) {\n      if (c === '\"') inString = true;\n      out += c;\n      continue;\n    }\n    if (escaped) {\n      out += c;\n      escaped = false;\n      continue;\n    }\n    if (c === '\\\\') {\n      out += c;\n      escaped = true;\n      continue;\n    }\n    if (c === '\"') {\n      out += c;\n      inString = false;\n      continue;\n    }\n    if (code < 32) {\n      if (c === '\\n') out += '\\\\n';\n      else if (c === '\\r') out += '\\\\r';\n      else if (c === '\\t') out += '\\\\t';\n      else out += '\\\\u' + ('0000' + code.toString(16)).slice(-4);\n      continue;\n    }\n    out += c;\n  }\n  return out;\n}\nfunction cap(s) {\n  s = String(s || '');\n  return s.length <= 1900 ? s : s.slice(0, 1899) + '\\u2026';\n}\nconst item = $input.item.json;\nconst content = item.content;\nconst textBlock = Array.isArray(content) ? content.find(function (b) { return b && b.type === 'text' && b.text; }) : null;\nconst text = (textBlock && textBlock.text) || '';\nconst match = String(text).match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('Sonnet Phase 3 did not return JSON');\nconst parsed = JSON.parse(repairJson(match[0]));\nconst prev = $('Parse Phase 2').first().json;\nconst cv_tex = String(prev.cv_tex || '');\nconst letter_tex = String(parsed.letter_tex || '');\nif (!cv_tex.trim()) throw new Error('Phase 2 cv_tex missing before write');\nif (!letter_tex.includes('\\\\documentclass') && !letter_tex.includes('documentclass')) {\n  throw new Error('Phase 3 letter_tex missing documentclass');\n}\nconst payload = {\n  cv_tex: cv_tex,\n  letter_tex: letter_tex,\n  company: prev.company || '',\n  job_title: prev.job_title || ''\n};\nconst write_b64 = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64');\nif (!write_b64) throw new Error('write_b64 encoding failed');\nreturn { json: Object.assign({}, prev, {\n  letter_tex: letter_tex,\n  latex_cv: cap(cv_tex),\n  latex_cover_letter: cap(letter_tex),\n  write_b64: write_b64\n}) };\n"
+        "jsCode": "function repairJson(s) {\n  let out = '';\n  let inString = false;\n  let escaped = false;\n  for (let i = 0; i < s.length; i++) {\n    const c = s[i];\n    const code = s.charCodeAt(i);\n    if (!inString) {\n      if (c === '\"') inString = true;\n      out += c;\n      continue;\n    }\n    if (escaped) {\n      out += c;\n      escaped = false;\n      continue;\n    }\n    if (c === '\\\\') {\n      out += c;\n      escaped = true;\n      continue;\n    }\n    if (c === '\"') {\n      out += c;\n      inString = false;\n      continue;\n    }\n    if (code < 32) {\n      if (c === '\\n') out += '\\\\n';\n      else if (c === '\\r') out += '\\\\r';\n      else if (c === '\\t') out += '\\\\t';\n      else out += '\\\\u' + ('0000' + code.toString(16)).slice(-4);\n      continue;\n    }\n    out += c;\n  }\n  return out;\n}\nfunction cap(s) {\n  s = String(s || '');\n  return s.length <= 1900 ? s : s.slice(0, 1899) + '\\u2026';\n}\nconst item = $input.item.json;\nconst content = item.content;\nconst textBlock = Array.isArray(content) ? content.find(function (b) { return b && b.type === 'text' && b.text; }) : null;\nconst text = (textBlock && textBlock.text) || '';\nconst match = String(text).match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('Sonnet Phase 3 did not return JSON');\nconst parsed = JSON.parse(repairJson(match[0]));\nconst prev = $('Build Phase 3 Prompt').first().json;\nconst body = String(parsed.latex_cover_letter || '').trim();\nif (!body) throw new Error('Phase 3 latex_cover_letter empty');\nif (body.indexOf('\\\\documentclass') !== -1 || body.indexOf('documentclass') !== -1) {\n  throw new Error('Phase 3 latex_cover_letter must be body only (no documentclass)');\n}\nconst payload = {\n  latex_cover_letter: body,\n  company: prev.company || '',\n  job_title: prev.job_title || '',\n  location: prev.location || '',\n  letter_to: 'Hiring Team'\n};\nconst write_b64 = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64');\nconst usage = item.usage || {};\nreturn { json: Object.assign({}, prev, {\n  latex_cover_letter: cap(body),\n  write_b64: write_b64,\n  usage_phase3: {\n    input_tokens: Number(usage.input_tokens) || 0,\n    output_tokens: Number(usage.output_tokens) || 0\n  }\n}) };\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2020,
-        520
+        2260,
+        760
       ],
       "id": "ad1c3fc9-a305-4711-9944-a2f70adbb652",
       "name": "Parse Phase 3"
@@ -1002,7 +1002,7 @@
     },
     {
       "parameters": {
-        "jsCode": "function cap(s) {\n  s = String(s || '');\n  return s.length <= 1900 ? s : s.slice(0, 1899) + '\\u2026';\n}\nconst j = $input.item.json;\nconst stdout = String(j.stdout || j.data || '');\nconst stderr = String(j.stderr || '');\nconst match = String(stdout).match(/\\{[\\s\\S]*\\}/);\nif (!match) {\n  throw new Error('assemble_tex --cv-only returned no JSON. stdout=' + stdout.slice(0, 200) + ' stderr=' + stderr.slice(0, 300));\n}\nconst parsed = JSON.parse(match[0]);\nif (parsed.error) throw new Error(parsed.error + (stderr ? ' | stderr=' + stderr.slice(0, 200) : ''));\nconst prev = $('Parse Phase 2').first().json;\nif (!String(parsed.cv_path || '').trim()) throw new Error('assemble_tex returned no cv_path');\nconst paths = 'CV file: ' + parsed.cv_path;\nreturn { json: Object.assign({}, prev, {\n  cv_path: parsed.cv_path,\n  letter_path: parsed.letter_path || '',\n  paths_md: paths,\n  latex_cv: cap(parsed.cv_preview || ''),\n  latex_cover_letter: ''\n}) };\n"
+        "jsCode": "function cap(s) {\n  s = String(s || '');\n  return s.length <= 1900 ? s : s.slice(0, 1899) + '\\u2026';\n}\nconst j = $input.item.json;\nconst stdout = String(j.stdout || j.data || '');\nconst stderr = String(j.stderr || '');\nconst match = String(stdout).match(/\\{[\\s\\S]*\\}/);\nif (!match) {\n  throw new Error('assemble_tex --cv-only returned no JSON. stdout=' + stdout.slice(0, 200) + ' stderr=' + stderr.slice(0, 300));\n}\nconst parsed = JSON.parse(match[0]);\nif (parsed.error) throw new Error(parsed.error + (stderr ? ' | stderr=' + stderr.slice(0, 200) : ''));\nconst prev = $('Parse Phase 2').first().json;\nif (!String(parsed.cv_path || '').trim()) throw new Error('assemble_tex returned no cv_path');\nconst paths = 'CV file: ' + parsed.cv_path;\nconst persist = {\n  page_id: prev.page_id,\n  latex_cv_patches: prev.latex_cv_patches,\n  cv_path: parsed.cv_path,\n  company: prev.company || '',\n  job_title: prev.job_title || ''\n};\nreturn { json: Object.assign({}, prev, {\n  cv_path: parsed.cv_path,\n  letter_path: parsed.letter_path || '',\n  paths_md: paths,\n  latex_cv: cap(parsed.cv_preview || ''),\n  latex_cover_letter: '',\n  persist_b64: Buffer.from(JSON.stringify(persist), 'utf8').toString('base64')\n}) };\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1032,10 +1032,6 @@
             {
               "key": "LaTex CV|rich_text",
               "textContent": "={{ $json.latex_cv }}"
-            },
-            {
-              "key": "LaTex Cover Letter|rich_text",
-              "textContent": "={{ $json.latex_cover_letter }}"
             }
           ]
         },
@@ -1044,7 +1040,7 @@
       "type": "n8n-nodes-base.notion",
       "typeVersion": 2.2,
       "position": [
-        2740,
+        2980,
         520
       ],
       "id": "502bf949-86eb-4a1f-a8cc-c1de4087241f",
@@ -1094,7 +1090,7 @@
       "type": "n8n-nodes-base.notion",
       "typeVersion": 2.2,
       "position": [
-        2980,
+        3220,
         520
       ],
       "id": "e0e32c50-564a-452e-85da-9fe4d485ed98",
@@ -1108,7 +1104,7 @@
     },
     {
       "parameters": {
-        "content": "# JD Flow (Phase 1\u20132, CV-only)\n\n**Ingest:** POST /webhook/job-ingest \u2192 Needs Context\n**Resume:** Extension **Continue Phase 2** \u2192 POST /webhook/job-resume\n  (looks up Job URL, reads Candidate Answers, writes patched CV)\n\nMaster CV: secrets/master_cv.tex only (runtime distill).\nNo cover letter in v1.\nNotion: Candidate notes = questions; Candidate Answers = your replies.\n",
+        "content": "# JD Flow (Phase 1–2 + opt-in letter)\n\n**Ingest:** POST /webhook/job-ingest → Needs Context\n**Resume:** Extension **Continue Phase 2** → POST /webhook/job-resume\n  (looks up Job URL, reads Candidate Answers, writes patched CV)\n**Letter:** set Notion Status = Write Cover Letter, then **Write cover letter**\n  (same webhook, write_letter: true — finds that row, does not re-run Phase 2)\n\nMaster CV: secrets/master_cv.tex only (runtime distill).\nLetter: secrets/master_letter.tex + secrets/storytelling.md\nPython updates Date/To/Company/Location/Position.\nNotion: Candidate notes = questions; Candidate Answers = your replies.\n",
         "height": 460,
         "width": 380
       },
@@ -1160,7 +1156,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const j = $input.item.json;\nconst src = (j.body && (j.body.url || j.body.page_id)) ? j.body : j;\nconst url = String(src.url || '').trim();\nconst page_id = String(src.page_id || '').replace(/-/g, '').toLowerCase().trim();\nif (!page_id && !url) throw new Error('job-resume requires page_id or url');\nreturn { json: { url: url, page_id: page_id, resume_by: page_id ? 'page_id' : 'url' } };\n"
+        "jsCode": "const j = $input.item.json;\nconst body = (j.body && typeof j.body === 'object') ? j.body : {};\nconst src = Object.assign({}, j, body);\nconst url = String(src.url || '').trim();\nconst page_id = String(src.page_id || '').replace(/-/g, '').toLowerCase().trim();\nif (!page_id && !url) throw new Error('job-resume requires page_id or url');\nconst raw = src.write_letter;\nconst write_letter = raw === true || raw === 1 || String(raw == null ? '' : raw).trim().toLowerCase() === 'true';\nreturn { json: { url: url, page_id: page_id, resume_by: page_id ? 'page_id' : 'url', write_letter: write_letter } };\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1173,7 +1169,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const ingest = $('Pack Resume').first().json;\nconst raw = String($json.stdout || $json.data || '').trim();\nconst match = raw.match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('load_secret_ids.py returned no JSON');\nconst ids = JSON.parse(match[0]);\nif (!ids.applications_db_id || !ids.style_learnings_page_id || !ids.anthropic_api_key) {\n  throw new Error('Resume Secret IDs missing required fields from secrets/notion_ids.json');\n}\nreturn { json: Object.assign({}, ingest, ids) };\n"
+        "jsCode": "const ingest = $('Pack Resume').first().json;\nconst raw = String($json.stdout || $json.data || '').trim();\nconst match = raw.match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('load_secret_ids.py returned no JSON');\nconst ids = JSON.parse(match[0]);\nif (!ids.applications_db_id || !ids.style_learnings_page_id || !ids.anthropic_api_key) {\n  throw new Error('Resume Secret IDs missing required fields from secrets/notion_ids.json');\n}\nconst write_letter = ingest.write_letter === true || ingest.write_letter === 1 || String(ingest.write_letter || '').trim().toLowerCase() === 'true';\nreturn { json: Object.assign({}, ingest, ids, { write_letter: write_letter }) };\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1266,12 +1262,12 @@
     },
     {
       "parameters": {
-        "jsCode": "const prev = $('Parse Write Full').first().json;\nreturn { json: {\n  status: 'ready_to_apply',\n  company: prev.company || '',\n  job_title: prev.job_title || '',\n  cv_path: prev.cv_path || '',\n  letter_path: prev.letter_path || '',\n  usage_triage: prev.usage_triage || {},\n  usage_phase1: prev.usage_phase1 || {},\n  usage_phase2: prev.usage_phase2 || {}\n} };\n"
+        "jsCode": "function from(name) {\n  try { return $(name).first().json; } catch (e) { return null; }\n}\nconst prev = from('Parse Write Letter') || from('Parse Write Full');\nif (!prev) throw new Error('no write result');\nreturn { json: {\n  status: 'ready_to_apply',\n  page_id: prev.page_id || '',\n  company: prev.company || '',\n  job_title: prev.job_title || '',\n  cv_path: prev.cv_path || '',\n  letter_path: prev.letter_path || '',\n  usage_triage: prev.usage_triage || {},\n  usage_phase1: prev.usage_phase1 || {},\n  usage_phase2: prev.usage_phase2 || {},\n  usage_phase3: prev.usage_phase3 || {}\n} };\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3220,
+        3460,
         520
       ],
       "id": "93b9dcee-67a0-4362-aa78-65c7cc53882b",
@@ -1286,7 +1282,7 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        3460,
+        3700,
         520
       ],
       "id": "0c266544-ee52-42ca-b242-559b91c6b9ee",
@@ -1364,6 +1360,340 @@
       ],
       "id": "c9b66e64-cc20-4f45-91e9-04bc8f411fb4",
       "name": "Pack Duplicate Response"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "write-letter",
+              "leftValue": "={{ ($json.write_letter === true || String($json.write_letter).toLowerCase() === 'true') ? 'yes' : 'no' }}",
+              "rightValue": "yes",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        820,
+        520
+      ],
+      "id": "4f4e5952-a6bc-4704-b71e-78e0a48ce1aa",
+      "name": "Write Letter?"
+    },
+    {
+      "parameters": {
+        "jsCode": "let usedStatusSearch = false;\ntry {\n  usedStatusSearch = !!($('Pack Letter Page').first().json && $('Pack Letter Page').first().json.id);\n} catch (e) {\n  usedStatusSearch = false;\n}\nconst status = String($('Extract Resume Page').first().json.status || '').trim();\nif (!usedStatusSearch && status !== 'Write Cover Letter') {\n  throw new Error('Set Status to Write Cover Letter on exactly one Notion row, then click Write cover letter. (got ' + JSON.stringify(status || '(empty)') + ')');\n}\nconst ROOT = '/home/mario/Documents/n8n/Nuevo trabajo';\nconst py = \"'\" + ROOT + \"/.venv/bin/python'\";\nfunction shq(s) { return JSON.stringify(String(s)); }\nconst run = $('Merge Run State').first().json;\nconst patches = run.latex_cv_patches;\nconst cv_path = String(run.cv_path || '').trim();\nconst hasPatches = Array.isArray(patches) && patches.length;\nif (!hasPatches && !cv_path) {\n  throw new Error('Continue Phase 2 first');\n}\nconst fallbackSrc = \"import json,sys; sys.path.insert(0, '\" + ROOT + \"/scripts'); import assemble_tex as a; p=json.load(sys.stdin); m=open('\" + ROOT + \"/secrets/master_cv.tex').read(); sys.stdout.write(a.repair_lists(a.apply_patches(m, p.get('latex_cv_patches') or [])))\";\nlet cmd = '';\nif (hasPatches) {\n  const b64 = Buffer.from(JSON.stringify({latex_cv_patches: patches}), 'utf8').toString('base64');\n  const fallback = 'printf %s ' + shq(b64) + ' | base64 -d | ' + py + ' -c ' + shq(fallbackSrc);\n  if (cv_path) {\n    cmd = 'if test -f ' + shq(cv_path) + '; then cat ' + shq(cv_path) + '; else ' + fallback + '; fi';\n  } else {\n    cmd = fallback;\n  }\n} else {\n  cmd = 'cat ' + shq(cv_path);\n}\nreturn { json: Object.assign({}, run, { read_cv_cmd: cmd }) };\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1060,
+        760
+      ],
+      "id": "ef94edbe-3c1c-4849-b1b9-fcf6b812192c",
+      "name": "Guard Letter Ready"
+    },
+    {
+      "parameters": {
+        "command": "={{ $json.read_cv_cmd }}"
+      },
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        1300,
+        760
+      ],
+      "id": "3e7cb78d-a3aa-4ac8-8432-88eaceef5222",
+      "name": "Read Patched CV",
+      "credentials": {
+        "sshPassword": {
+          "id": "nM6jdLaHV8O6GLPF",
+          "name": "SSH localhost"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "function documentBody(tex) {\n  const s = String(tex || '');\n  const marker = '\\\\begin{document}';\n  const begin = s.indexOf(marker);\n  const endMarker = '\\\\end{document}';\n  const end = s.lastIndexOf(endMarker);\n  if (begin === -1) return s.trim();\n  const start = begin + marker.length;\n  if (end === -1 || end < start) return s.slice(start).trim();\n  return s.slice(start, end).trim();\n}\nconst run = $('Merge Run State').first().json;\nconst cvRaw = String($('Read Patched CV').first().json.stdout || $('Read Patched CV').first().json.data || '');\nif (!cvRaw.trim()) throw new Error('patched CV empty');\nconst story = String($json.stdout || $json.data || '');\nif (!story.trim()) throw new Error('storytelling.md empty');\nconst audit = [\n  'Critical missing keywords: ' + (run.critical_missing_keywords || []).join('; '),\n  'Impact alignment: ' + (run.impact_alignment || []).join('; '),\n  'Strategic positioning: ' + (run.strategic_positioning || ''),\n  'Questions asked: ' + (run.questions || []).join('; ')\n].join('\\n');\nconst phase3_user = [\n  'STORYTELLING GUIDELINES (follow this order: Hook, Mechanism, Bridge, Proof, Close):',\n  story,\n  '',\n  'REQUIRED BEATS:',\n  '1. HOOK = unexpected early choice or obsession (not a JD quote).',\n  '2. MECHANISM = what you actually did.',\n  '3. BRIDGE = why that is the superpower THIS role needs.',\n  '4. PROOF = one evidenced metric from the patched CV.',\n  '5. CLOSE = this company + this role + next step.',\n  '',\n  'COMPANY: ' + (run.company || ''),\n  'ROLE: ' + (run.job_title || ''),\n  'LOCATION: ' + (run.location || ''),\n  '',\n  'PATCHED CV DOCUMENT BODY:',\n  documentBody(cvRaw),\n  '',\n  'JOB DESCRIPTION:',\n  run.clean_md || '',\n  '',\n  'PHASE 1 AUDIT:',\n  audit,\n  '',\n  'CANDIDATE ANSWERS (answers; may be empty):',\n  run.candidate_context || '(none)'\n].join('\\n');\nreturn { json: Object.assign({}, run, {\n  cv_path: run.cv_path || '',\n  phase3_user: phase3_user\n}) };\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1780,
+        760
+      ],
+      "id": "5c2acce0-d425-4d40-a71a-a5a949feda83",
+      "name": "Build Phase 3 Prompt"
+    },
+    {
+      "parameters": {
+        "command": "={{ 'printf %s ' + JSON.stringify($json.write_b64) + \" | base64 -d | '/home/mario/Documents/n8n/Nuevo trabajo/.venv/bin/python' '/home/mario/Documents/n8n/Nuevo trabajo/scripts/assemble_tex.py' --letter-only --letter '/home/mario/Documents/n8n/Nuevo trabajo/secrets/master_letter.tex' --out-dir '/home/mario/Downloads'\" }}"
+      },
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        2500,
+        760
+      ],
+      "id": "af339715-8643-4ae4-bc11-ea9a472e6a51",
+      "name": "Write Letter Tex",
+      "credentials": {
+        "sshPassword": {
+          "id": "nM6jdLaHV8O6GLPF",
+          "name": "SSH localhost"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "function cap(s) {\n  s = String(s || '');\n  return s.length <= 1900 ? s : s.slice(0, 1899) + '\\u2026';\n}\nconst j = $input.item.json;\nconst stdout = String(j.stdout || j.data || '');\nconst stderr = String(j.stderr || '');\nconst match = String(stdout).match(/\\{[\\s\\S]*\\}/);\nif (!match) {\n  throw new Error('assemble_tex --letter-only returned no JSON. stdout=' + stdout.slice(0, 200) + ' stderr=' + stderr.slice(0, 300));\n}\nconst parsed = JSON.parse(match[0]);\nif (parsed.error) throw new Error(parsed.error + (stderr ? ' | stderr=' + stderr.slice(0, 200) : ''));\nconst prev = $('Parse Phase 3').first().json;\nif (!String(parsed.letter_path || '').trim()) throw new Error('assemble_tex returned no letter_path');\nconst letter_preview = cap(parsed.letter_preview || prev.latex_cover_letter || '');\nreturn { json: Object.assign({}, prev, {\n  letter_path: parsed.letter_path,\n  paths_md: 'Letter file: ' + parsed.letter_path,\n  latex_cover_letter: letter_preview\n}) };\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2740,
+        760
+      ],
+      "id": "19054cc6-4258-4f4f-8387-02c3540a2681",
+      "name": "Parse Write Letter"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $json.page_id }}",
+          "mode": "id"
+        },
+        "simple": false,
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Status|select",
+              "selectValue": "Ready to Apply"
+            },
+            {
+              "key": "LaTex Cover Letter|rich_text",
+              "textContent": "={{ $json.latex_cover_letter }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        2980,
+        760
+      ],
+      "id": "f0881591-7ef9-44c2-9a47-c16119e98518",
+      "name": "Update Cover Letter",
+      "credentials": {
+        "notionApi": {
+          "id": "PVbozrs4FE83DBwK",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "block",
+        "operation": "append",
+        "blockId": {
+          "__rl": true,
+          "value": "={{ $('Parse Write Letter').item.json.page_id }}",
+          "mode": "id"
+        },
+        "blockUi": {
+          "blockValues": [
+            {
+              "type": "heading_2",
+              "textContent": "Generated files"
+            },
+            {
+              "textContent": "={{ $('Parse Write Letter').item.json.paths_md }}"
+            },
+            {
+              "type": "heading_2",
+              "textContent": "LaTeX Cover Letter preview"
+            },
+            {
+              "textContent": "={{ $('Parse Write Letter').item.json.latex_cover_letter }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        3220,
+        760
+      ],
+      "id": "11154c4c-5f8b-4a31-b3e3-16ff19a53256",
+      "name": "Append Letter Preview",
+      "credentials": {
+        "notionApi": {
+          "id": "PVbozrs4FE83DBwK",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "={{ 'printf %s ' + JSON.stringify($json.persist_b64) + \" | base64 -d | '/home/mario/Documents/n8n/Nuevo trabajo/.venv/bin/python' '/home/mario/Documents/n8n/Nuevo trabajo/scripts/persist_run.py' --runs-dir '/home/mario/Documents/n8n/Nuevo trabajo/secrets/runs' --write\" }}"
+      },
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        2620,
+        520
+      ],
+      "id": "edf31733-008c-4726-88d4-a903f4dc81f4",
+      "name": "Persist Phase 2 Output",
+      "credentials": {
+        "sshPassword": {
+          "id": "nM6jdLaHV8O6GLPF",
+          "name": "SSH localhost"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const prev = $('Parse Write Full').first().json;\nreturn { json: prev };\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2740,
+        520
+      ],
+      "id": "697cc2e2-abf1-481d-aea8-3d0484588a5e",
+      "name": "Restore After Persist P2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "letter-status",
+              "leftValue": "={{ ($('Pack Resume').first().json.write_letter === true || String($('Pack Resume').first().json.write_letter).toLowerCase() === 'true') ? 'yes' : 'no' }}",
+              "rightValue": "yes",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -140,
+        680
+      ],
+      "id": "f4b9cbae-5aaa-4967-a8f3-992bc6d4023f",
+      "name": "Letter by Status?"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "={{ $('Resume Secrets').item.json.applications_db_id }}",
+          "mode": "id"
+        },
+        "returnAll": true,
+        "simple": false,
+        "filterType": "json",
+        "filterJson": "={{ JSON.stringify({ property: 'Status', select: { equals: 'Write Cover Letter' } }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        100,
+        760
+      ],
+      "id": "f7f074fa-7a2e-47dd-96cd-7fe824b51047",
+      "name": "Search Letter Status",
+      "alwaysOutputData": true,
+      "credentials": {
+        "notionApi": {
+          "id": "PVbozrs4FE83DBwK",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const pages = $input.all().filter(function (item) { return item.json && item.json.id; });\nif (!pages.length) {\n  throw new Error('Set Status to Write Cover Letter on exactly one Notion row, then click Write cover letter.');\n}\nif (pages.length > 1) {\n  throw new Error('Multiple rows are Write Cover Letter. Leave only one on that status.');\n}\nreturn { json: pages[0].json };\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        340,
+        760
+      ],
+      "id": "8938214d-2212-4949-be68-8fd37937afa8",
+      "name": "Pack Letter Page"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "skip-gen",
+              "leftValue": "={{ ($('Pack Resume').first().json.write_letter === true || String($('Pack Resume').first().json.write_letter).toLowerCase() === 'true') ? 'yes' : 'no' }}",
+              "rightValue": "yes",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        700,
+        400
+      ],
+      "id": "33680d6e-50d3-4515-8acd-d2ebbc177f35",
+      "name": "Skip Generating?"
     }
   ],
   "pinData": {},
@@ -1701,7 +2031,7 @@
       "main": [
         [
           {
-            "node": "Set Generating",
+            "node": "Skip Generating?",
             "type": "main",
             "index": 0
           }
@@ -1745,7 +2075,7 @@
       "main": [
         [
           {
-            "node": "Read Master Tex Resume",
+            "node": "Write Letter?",
             "type": "main",
             "index": 0
           }
@@ -1756,7 +2086,7 @@
       "main": [
         [
           {
-            "node": "Build Phase 2 Prompt",
+            "node": "Build Phase 3 Prompt",
             "type": "main",
             "index": 0
           }
@@ -1811,7 +2141,7 @@
       "main": [
         [
           {
-            "node": "Write Full Tex",
+            "node": "Write Letter Tex",
             "type": "main",
             "index": 0
           }
@@ -1833,7 +2163,7 @@
       "main": [
         [
           {
-            "node": "Update Ready to Apply",
+            "node": "Persist Phase 2 Output",
             "type": "main",
             "index": 0
           }
@@ -1899,7 +2229,7 @@
       "main": [
         [
           {
-            "node": "Has Page Id?",
+            "node": "Letter by Status?",
             "type": "main",
             "index": 0
           }
@@ -1991,6 +2321,181 @@
         [
           {
             "node": "Respond Duplicate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Letter?": {
+      "main": [
+        [
+          {
+            "node": "Guard Letter Ready",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Read Master Tex Resume",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guard Letter Ready": {
+      "main": [
+        [
+          {
+            "node": "Read Patched CV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Patched CV": {
+      "main": [
+        [
+          {
+            "node": "Read Storytelling",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Phase 3 Prompt": {
+      "main": [
+        [
+          {
+            "node": "Sonnet Phase 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Letter Tex": {
+      "main": [
+        [
+          {
+            "node": "Parse Write Letter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Write Letter": {
+      "main": [
+        [
+          {
+            "node": "Update Cover Letter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Cover Letter": {
+      "main": [
+        [
+          {
+            "node": "Append Letter Preview",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append Letter Preview": {
+      "main": [
+        [
+          {
+            "node": "Pack Resume Ready",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Persist Phase 2 Output": {
+      "main": [
+        [
+          {
+            "node": "Restore After Persist P2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Restore After Persist P2": {
+      "main": [
+        [
+          {
+            "node": "Update Ready to Apply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Letter by Status?": {
+      "main": [
+        [
+          {
+            "node": "Search Letter Status",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Has Page Id?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Letter Status": {
+      "main": [
+        [
+          {
+            "node": "Pack Letter Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pack Letter Page": {
+      "main": [
+        [
+          {
+            "node": "Extract Resume Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Skip Generating?": {
+      "main": [
+        [
+          {
+            "node": "Resume Context",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set Generating",
             "type": "main",
             "index": 0
           }

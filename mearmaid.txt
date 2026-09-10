@@ -22,22 +22,36 @@ flowchart TB
         RN["Respond needs_context"]
   end
  subgraph n8n_Resume["n8n Resume - Phase 2 CV-only"]
-        T["Webhook /job-resume<br/>extension Continue Phase 2"]
+        T["Webhook /job-resume"]
         GEN["Set Status Generating"]
         LR["Load run JSON"]
+        WL{"write_letter?"}
         NUM["SSH: assemble_tex --number"]
         P2["Claude Sonnet<br/>Phase 2 latex_cv_patches"]
         W["SSH: assemble_tex --cv-only"]
+        PS["Persist patches + cv_path"]
         U["Notion: Ready to Apply<br/>LaTex CV preview"]
+  end
+ subgraph n8n_Letter["n8n Phase 3 letter - opt-in"]
+        STU["Notion Status = Write Cover Letter"]
+        G3["Guard: Continue Phase 2 first"]
+        CAT["cat cv_path"]
+        ST["SSH: storytelling.md"]
+        P3["Claude Sonnet Hook/Mechanism/Bridge/Proof"]
+        WLW["SSH: assemble_tex --letter-only<br/>updates Date/To/Company/Location/Position"]
+        UL["Notion: LaTex Cover Letter<br/>Status back to Ready to Apply"]
   end
  subgraph Secrets["Local secrets/ gitignored"]
         SID["notion_ids.json"]
         TEX["master_cv.tex"]
+        LET["master_letter.tex"]
+        STYMD["storytelling.md"]
         RUNS["runs/{page_id}.json"]
   end
  subgraph Output["Output"]
         K["Notion: Applications DB"]
         DL["~/Downloads<br/>company_job_CV.tex"]
+        DLL["~/Downloads<br/>company_job_CoverLetter.tex"]
   end
     A -- Click extension --> B
     B --> C
@@ -66,11 +80,26 @@ flowchart TB
     T --> GEN
     GEN --> LR
     RUNS --> LR
-    LR --> NUM
+    LR --> WL
+    WL -- false --> NUM
     TEX --> NUM
     NUM --> P2
     P2 --> W
     TEX --> W
-    W --> DL
-    W --> U
+    W --> PS
+    PS --> RUNS
+    PS --> DL
+    PS --> U
     U --> K
+    letterBtn["You set Status Write Cover Letter<br/>then click Write cover letter"] --> T
+    WL -- true --> STU
+    STU --> G3
+    G3 --> CAT
+    CAT --> ST
+    STYMD --> ST
+    ST --> P3
+    P3 --> WLW
+    LET --> WLW
+    WLW --> DLL
+    WLW --> UL
+    UL --> K

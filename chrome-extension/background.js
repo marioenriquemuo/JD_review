@@ -19,7 +19,15 @@ chrome.runtime.onMessage.addListener(function (message, _sender, sendResponse) {
     return true;
   }
   if (message.type === "RESUME_TAB") {
-    resumeActiveTab()
+    resumeActiveTab(false)
+      .then(sendResponse)
+      .catch(function (err) {
+        sendResponse({ ok: false, error: String(err && err.message ? err.message : err) });
+      });
+    return true;
+  }
+  if (message.type === "LETTER_TAB") {
+    resumeActiveTab(true)
       .then(sendResponse)
       .catch(function (err) {
         sendResponse({ ok: false, error: String(err && err.message ? err.message : err) });
@@ -59,7 +67,7 @@ async function ingestActiveTab() {
   return postIngest(payload);
 }
 
-async function resumeActiveTab() {
+async function resumeActiveTab(writeLetter) {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   const stored = await chrome.storage.sync.get({ webhookUrl: DEFAULT_WEBHOOK });
   const local = await chrome.storage.local.get({ lastResume: null });
@@ -67,7 +75,8 @@ async function resumeActiveTab() {
   const resumeUrl = resumeUrlFromIngest(stored.webhookUrl || DEFAULT_WEBHOOK);
   const body = {
     url: (tab && tab.url) || last.url || "",
-    page_id: last.page_id || ""
+    page_id: last.page_id || "",
+    write_letter: !!writeLetter
   };
   if (!body.page_id && !body.url) {
     throw new Error("No saved application. Send the job first.");
