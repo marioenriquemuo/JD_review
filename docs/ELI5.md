@@ -164,7 +164,8 @@ Read left to right.
 | Sonnet Phase 2 | Returns `latex_cv_patches` only. |
 | Write Full Tex | `assemble_tex.py --cv-only` (patches + repair itemize) → Downloads. |
 | Persist Phase 2 Output | Merges `latex_cv_patches` + `cv_path` into the run JSON. |
-| Sonnet Phase 3 | Opt-in. Returns `{ latex_cover_letter }` body only. |
+| Sonnet Phase 3 | Opt-in. Rewrites master letter body (hook, bridge, 3 themed bullets, close). |
+| Read Master Letter | `cat secrets/master_letter.tex` — structure template for Phase 3. |
 | Write Letter Tex | `assemble_tex.py --letter-only` → Downloads `_CoverLetter.tex`. |
 
 ---
@@ -255,7 +256,7 @@ cp /path/to/storytelling.md /home/mario/Documents/n8n/Nuevo trabajo/secrets/stor
 
 Put `applications_db_id`, `style_learnings_page_id`, and `anthropic_api_key` in `secrets/notion_ids.json`. `master_cv_page_id` is optional/unused.
 
-Click each red/warning Notion node → pick credential **Notion account**. Click each SSH node → **SSH localhost** (Load Secret IDs, Distill Master CV, Persist Run State, Persist Phase 2 Output, Write Full Tex, Write Letter Tex, Read Master Tex Resume, Read Storytelling, Read Patched CV).
+Click each red/warning Notion node → pick credential **Notion account**. Click each SSH node → **SSH localhost** (Load Secret IDs, Distill Master CV, Persist Run State, Persist Phase 2 Output, Write Full Tex, Write Letter Tex, Read Master Tex Resume, Read Storytelling, Read Master Letter, Read Patched CV).
 
 Nodes that need Notion:
 

@@ -956,7 +956,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 2500, thinking: { type: 'disabled' }, system: \"You are an Executive Career Strategist. PHASE 3: Draft a highly targeted cover letter BODY in LaTeX. Follow STORYTELLING GUIDELINES in the user message, in order. Do not list traits. Do not open with I am writing to apply. Do not open with a JD quote or a metric as the first sentence. Paragraph 1 HOOK: an unexpected early choice or obsession from the CV or Candidate Answers. Paragraph 2 MECHANISM then BRIDGE: what you actually did, then why that obsession is the superpower THIS role needs (name the company's core problem). Paragraph 3 PROOF: one concrete career moment with one evidenced metric from the updated CV. Paragraph 4 CLOSE: specific contribution to THIS company and role plus a clear next step. 3 to 4 short paragraphs, about 250 to 400 words. Python splices the body into the master letter and updates Date/To/Company/Location/Position \\u2014 output body only, no preamble, no \\\\\\\\documentclass, no \\\\\\\\begin{document}, no Date/To/Company header. Do not invent employers, dates, metrics, or skills. Use Candidate Answers only as facts; if they are empty, use only the updated CV. If a gap remains, do not fake it, do not apologize, and do not mention it unless the answers give a truthful bridge. Output ONLY a JSON object, no markdown fences. Keys: latex_cover_letter (string: letter body only). Escape LaTeX special characters ($, &, %, #, _).\", messages: [{ role: 'user', content: $json.phase3_user }] }) }}",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 3500, thinking: { type: 'disabled' }, system: \"You are an Executive Career Strategist. PHASE 3: Rewrite the MASTER LETTER BODY for THIS company and role. Copy its LaTeX structure and storytelling shape exactly. Required shape: (1) HOOK paragraph starting with Early in my career... using only a documented origin from the CV (Industrial Designer, operations, analytics, or whatever the CV actually says). Do not invent childhood stories, radios, hobbies, or origin myths absent from the CV and Candidate Answers. (2) BRIDGE paragraph: THIS company's mission or core problem, then your matching scope. (3) Signpost + itemize of EXACTLY three \\\\item \\\\textbf{Theme:} bullets. Each theme is a JD priority; each bullet cites employers and metrics already in the patched CV. (4) CLOSE paragraph: environment fit + specific help for THIS company + invite conversation. LaTeX rules: start every paragraph with \\\\noindent; put \\\\vspace{8pt} between blocks; keep \\\\begin{itemize}...\\\\end{itemize}. Output the letter body only. No preamble, no \\\\documentclass, no \\\\begin{document}, no Date/To/Company/Dear/Sincerely lines. Do not copy the previous company's facts (they are structure only). Do not invent employers, dates, metrics, or skills. If Candidate Answers are empty, use only the patched CV. If a gap remains, do not fake it and do not apologize. Output ONLY a JSON object, no markdown fences. Keys: latex_cover_letter (string: letter body only). Escape LaTeX special characters ($, &, %, #, _).\", messages: [{ role: 'user', content: $json.phase3_user }] }) }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -970,7 +970,7 @@
     },
     {
       "parameters": {
-        "jsCode": "function repairJson(s) {\n  let out = '';\n  let inString = false;\n  let escaped = false;\n  for (let i = 0; i < s.length; i++) {\n    const c = s[i];\n    const code = s.charCodeAt(i);\n    if (!inString) {\n      if (c === '\"') inString = true;\n      out += c;\n      continue;\n    }\n    if (escaped) {\n      out += c;\n      escaped = false;\n      continue;\n    }\n    if (c === '\\\\') {\n      out += c;\n      escaped = true;\n      continue;\n    }\n    if (c === '\"') {\n      out += c;\n      inString = false;\n      continue;\n    }\n    if (code < 32) {\n      if (c === '\\n') out += '\\\\n';\n      else if (c === '\\r') out += '\\\\r';\n      else if (c === '\\t') out += '\\\\t';\n      else out += '\\\\u' + ('0000' + code.toString(16)).slice(-4);\n      continue;\n    }\n    out += c;\n  }\n  return out;\n}\nfunction cap(s) {\n  s = String(s || '');\n  return s.length <= 1900 ? s : s.slice(0, 1899) + '\\u2026';\n}\nconst item = $input.item.json;\nconst content = item.content;\nconst textBlock = Array.isArray(content) ? content.find(function (b) { return b && b.type === 'text' && b.text; }) : null;\nconst text = (textBlock && textBlock.text) || '';\nconst match = String(text).match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('Sonnet Phase 3 did not return JSON');\nconst parsed = JSON.parse(repairJson(match[0]));\nconst prev = $('Build Phase 3 Prompt').first().json;\nconst body = String(parsed.latex_cover_letter || '').trim();\nif (!body) throw new Error('Phase 3 latex_cover_letter empty');\nif (body.indexOf('\\\\documentclass') !== -1 || body.indexOf('documentclass') !== -1) {\n  throw new Error('Phase 3 latex_cover_letter must be body only (no documentclass)');\n}\nconst payload = {\n  latex_cover_letter: body,\n  company: prev.company || '',\n  job_title: prev.job_title || '',\n  location: prev.location || '',\n  letter_to: 'Hiring Team'\n};\nconst write_b64 = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64');\nconst usage = item.usage || {};\nreturn { json: Object.assign({}, prev, {\n  latex_cover_letter: cap(body),\n  write_b64: write_b64,\n  usage_phase3: {\n    input_tokens: Number(usage.input_tokens) || 0,\n    output_tokens: Number(usage.output_tokens) || 0\n  }\n}) };\n"
+        "jsCode": "function repairJson(s) {\n  let out = '';\n  let inString = false;\n  let escaped = false;\n  for (let i = 0; i < s.length; i++) {\n    const c = s[i];\n    const code = s.charCodeAt(i);\n    if (!inString) {\n      if (c === '\"') inString = true;\n      out += c;\n      continue;\n    }\n    if (escaped) {\n      out += c;\n      escaped = false;\n      continue;\n    }\n    if (c === '\\\\') {\n      out += c;\n      escaped = true;\n      continue;\n    }\n    if (c === '\"') {\n      out += c;\n      inString = false;\n      continue;\n    }\n    if (code < 32) {\n      if (c === '\\n') out += '\\\\n';\n      else if (c === '\\r') out += '\\\\r';\n      else if (c === '\\t') out += '\\\\t';\n      else out += '\\\\u' + ('0000' + code.toString(16)).slice(-4);\n      continue;\n    }\n    out += c;\n  }\n  return out;\n}\nfunction cap(s) {\n  s = String(s || '');\n  return s.length <= 1900 ? s : s.slice(0, 1899) + '\\u2026';\n}\nconst item = $input.item.json;\nconst content = item.content;\nconst textBlock = Array.isArray(content) ? content.find(function (b) { return b && b.type === 'text' && b.text; }) : null;\nconst text = (textBlock && textBlock.text) || '';\nconst match = String(text).match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('Sonnet Phase 3 did not return JSON');\nconst parsed = JSON.parse(repairJson(match[0]));\nconst prev = $('Build Phase 3 Prompt').first().json;\nconst body = String(parsed.latex_cover_letter || '').trim();\nif (!body) throw new Error('Phase 3 latex_cover_letter empty');\nif (body.indexOf('\\\\documentclass') !== -1 || body.indexOf('documentclass') !== -1) {\n  throw new Error('Phase 3 latex_cover_letter must be body only (no documentclass)');\n}\nconst payload = {\n  latex_cover_letter: body,\n  company: prev.company || '',\n  job_title: prev.job_title || '',\n  location: prev.location || '',\n  letter_to: ('Hiring Team' + (prev.job_title ? ', ' + prev.job_title : ''))\n};\nconst write_b64 = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64');\nconst usage = item.usage || {};\nreturn { json: Object.assign({}, prev, {\n  latex_cover_letter: cap(body),\n  write_b64: write_b64,\n  usage_phase3: {\n    input_tokens: Number(usage.input_tokens) || 0,\n    output_tokens: Number(usage.output_tokens) || 0\n  }\n}) };\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1428,7 +1428,7 @@
     },
     {
       "parameters": {
-        "jsCode": "function documentBody(tex) {\n  const s = String(tex || '');\n  const marker = '\\\\begin{document}';\n  const begin = s.indexOf(marker);\n  const endMarker = '\\\\end{document}';\n  const end = s.lastIndexOf(endMarker);\n  if (begin === -1) return s.trim();\n  const start = begin + marker.length;\n  if (end === -1 || end < start) return s.slice(start).trim();\n  return s.slice(start, end).trim();\n}\nconst run = $('Merge Run State').first().json;\nconst cvRaw = String($('Read Patched CV').first().json.stdout || $('Read Patched CV').first().json.data || '');\nif (!cvRaw.trim()) throw new Error('patched CV empty');\nconst story = String($json.stdout || $json.data || '');\nif (!story.trim()) throw new Error('storytelling.md empty');\nconst audit = [\n  'Critical missing keywords: ' + (run.critical_missing_keywords || []).join('; '),\n  'Impact alignment: ' + (run.impact_alignment || []).join('; '),\n  'Strategic positioning: ' + (run.strategic_positioning || ''),\n  'Questions asked: ' + (run.questions || []).join('; ')\n].join('\\n');\nconst phase3_user = [\n  'STORYTELLING GUIDELINES (follow this order: Hook, Mechanism, Bridge, Proof, Close):',\n  story,\n  '',\n  'REQUIRED BEATS:',\n  '1. HOOK = unexpected early choice or obsession (not a JD quote).',\n  '2. MECHANISM = what you actually did.',\n  '3. BRIDGE = why that is the superpower THIS role needs.',\n  '4. PROOF = one evidenced metric from the patched CV.',\n  '5. CLOSE = this company + this role + next step.',\n  '',\n  'COMPANY: ' + (run.company || ''),\n  'ROLE: ' + (run.job_title || ''),\n  'LOCATION: ' + (run.location || ''),\n  '',\n  'PATCHED CV DOCUMENT BODY:',\n  documentBody(cvRaw),\n  '',\n  'JOB DESCRIPTION:',\n  run.clean_md || '',\n  '',\n  'PHASE 1 AUDIT:',\n  audit,\n  '',\n  'CANDIDATE ANSWERS (answers; may be empty):',\n  run.candidate_context || '(none)'\n].join('\\n');\nreturn { json: Object.assign({}, run, {\n  cv_path: run.cv_path || '',\n  phase3_user: phase3_user\n}) };\n"
+        "jsCode": "function documentBody(tex) {\n  const s = String(tex || '');\n  const marker = '\\\\begin{document}';\n  const begin = s.indexOf(marker);\n  const endMarker = '\\\\end{document}';\n  const end = s.lastIndexOf(endMarker);\n  if (begin === -1) return s.trim();\n  const start = begin + marker.length;\n  if (end === -1 || end < start) return s.slice(start).trim();\n  return s.slice(start, end).trim();\n}\nfunction letterTemplate(tex) {\n  const s = String(tex || '');\n  const a = '% LETTER_BODY';\n  const b = '% END_LETTER_BODY';\n  const i = s.indexOf(a);\n  const j = s.indexOf(b);\n  if (i === -1 || j === -1 || j < i) return s.trim();\n  return s.slice(i + a.length, j).trim();\n}\nconst run = $('Merge Run State').first().json;\nconst cvRaw = String($('Read Patched CV').first().json.stdout || $('Read Patched CV').first().json.data || '');\nif (!cvRaw.trim()) throw new Error('patched CV empty');\nconst story = String($('Read Storytelling').first().json.stdout || $('Read Storytelling').first().json.data || '');\nif (!story.trim()) throw new Error('storytelling.md empty');\nconst masterLetter = String($json.stdout || $json.data || '');\nconst template = letterTemplate(masterLetter);\nif (!template) throw new Error('master_letter.tex has no LETTER_BODY');\nconst audit = [\n  'Critical missing keywords: ' + (run.critical_missing_keywords || []).join('; '),\n  'Impact alignment: ' + (run.impact_alignment || []).join('; '),\n  'Strategic positioning: ' + (run.strategic_positioning || ''),\n  'Questions asked: ' + (run.questions || []).join('; ')\n].join('\\n');\nconst phase3_user = [\n  'MASTER LETTER BODY (structure template — keep this LaTeX skeleton; replace company, role, and proof with THIS job):',\n  template,\n  '',\n  'STORYTELLING GUIDELINES:',\n  story,\n  '',\n  'REWRITE RULES:',\n  '- Same four blocks: career-origin hook, company bridge, three themed itemize bullets, close.',\n  '- Keep \\\\noindent and \\\\vspace{8pt}. Keep exactly three \\\\item \\\\textbf{Theme:} bullets.',\n  '- Hook must come from the patched CV (early career / documented obsession). Do not invent childhood.',\n  '- Do not reuse the template company, role, or location.',\n  '',\n  'COMPANY: ' + (run.company || ''),\n  'ROLE: ' + (run.job_title || ''),\n  'LOCATION: ' + (run.location || ''),\n  '',\n  'PATCHED CV DOCUMENT BODY:',\n  documentBody(cvRaw),\n  '',\n  'JOB DESCRIPTION:',\n  run.clean_md || '',\n  '',\n  'PHASE 1 AUDIT:',\n  audit,\n  '',\n  'CANDIDATE ANSWERS (answers; may be empty):',\n  run.candidate_context || '(none)'\n].join('\\n');\nreturn { json: Object.assign({}, run, {\n  cv_path: run.cv_path || '',\n  phase3_user: phase3_user\n}) };\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1694,6 +1694,25 @@
       ],
       "id": "33680d6e-50d3-4515-8acd-d2ebbc177f35",
       "name": "Skip Generating?"
+    },
+    {
+      "parameters": {
+        "command": "cat '/home/mario/Documents/n8n/Nuevo trabajo/secrets/master_letter.tex'"
+      },
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        1660,
+        760
+      ],
+      "id": "3b9a8a96-40f5-431f-b673-1191fe7a4194",
+      "name": "Read Master Letter",
+      "credentials": {
+        "sshPassword": {
+          "id": "nM6jdLaHV8O6GLPF",
+          "name": "SSH localhost"
+        }
+      }
     }
   ],
   "pinData": {},
@@ -2086,7 +2105,7 @@
       "main": [
         [
           {
-            "node": "Build Phase 3 Prompt",
+            "node": "Read Master Letter",
             "type": "main",
             "index": 0
           }
@@ -2496,6 +2515,17 @@
         [
           {
             "node": "Set Generating",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Master Letter": {
+      "main": [
+        [
+          {
+            "node": "Build Phase 3 Prompt",
             "type": "main",
             "index": 0
           }
