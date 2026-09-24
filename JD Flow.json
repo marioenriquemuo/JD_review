@@ -96,7 +96,7 @@
     },
     {
       "parameters": {
-        "command": "={{ 'echo ' + JSON.stringify($json.pdf_payload_b64) + \" | base64 -d | '/home/mario/Documents/n8n/Nuevo trabajo/.venv/bin/python' '/home/mario/Documents/n8n/Nuevo trabajo/scripts/extract_pdf.py'\" }}"
+        "command": "={{ 'echo ' + JSON.stringify($json.pdf_payload_b64) + \" | base64 -d | '/home/mario/dev/n8n-automation/.venv/bin/python' '/home/mario/dev/n8n-automation/scripts/extract_pdf.py'\" }}"
       },
       "type": "n8n-nodes-base.ssh",
       "typeVersion": 1,
@@ -129,7 +129,7 @@
     },
     {
       "parameters": {
-        "command": "'/home/mario/Documents/n8n/Nuevo trabajo/.venv/bin/python' '/home/mario/Documents/n8n/Nuevo trabajo/scripts/load_secret_ids.py' '/home/mario/Documents/n8n/Nuevo trabajo/secrets/notion_ids.json'"
+        "command": "'/home/mario/dev/n8n-automation/.venv/bin/python' '/home/mario/dev/n8n-automation/scripts/load_secret_ids.py' '/home/mario/dev/n8n-automation/secrets/notion_ids.json'"
       },
       "type": "n8n-nodes-base.ssh",
       "typeVersion": 1,
@@ -242,7 +242,7 @@
     },
     {
       "parameters": {
-        "command": "'/home/mario/Documents/n8n/Nuevo trabajo/.venv/bin/python' '/home/mario/Documents/n8n/Nuevo trabajo/scripts/distill_cv.py' --tex '/home/mario/Documents/n8n/Nuevo trabajo/secrets/master_cv.tex' --verify-json"
+        "command": "'/home/mario/dev/n8n-automation/.venv/bin/python' '/home/mario/dev/n8n-automation/scripts/distill_cv.py' --tex '/home/mario/dev/n8n-automation/secrets/master_cv.tex' --verify-json"
       },
       "type": "n8n-nodes-base.ssh",
       "typeVersion": 1,
@@ -502,7 +502,7 @@
     },
     {
       "parameters": {
-        "command": "cat '/home/mario/Documents/n8n/Nuevo trabajo/secrets/master_cv.tex'"
+        "command": "cat '/home/mario/dev/n8n-automation/secrets/master_cv.tex'"
       },
       "type": "n8n-nodes-base.ssh",
       "typeVersion": 1,
@@ -702,7 +702,7 @@
     },
     {
       "parameters": {
-        "command": "={{ 'echo ' + JSON.stringify($json.run_b64) + \" | base64 -d | '/home/mario/Documents/n8n/Nuevo trabajo/.venv/bin/python' '/home/mario/Documents/n8n/Nuevo trabajo/scripts/persist_run.py' --runs-dir '/home/mario/Documents/n8n/Nuevo trabajo/secrets/runs' --write\" }}"
+        "command": "={{ 'echo ' + JSON.stringify($json.run_b64) + \" | base64 -d | '/home/mario/dev/n8n-automation/.venv/bin/python' '/home/mario/dev/n8n-automation/scripts/persist_run.py' --runs-dir '/home/mario/dev/n8n-automation/secrets/runs' --write\" }}"
       },
       "type": "n8n-nodes-base.ssh",
       "typeVersion": 1,
@@ -789,7 +789,7 @@
     },
     {
       "parameters": {
-        "command": "'/home/mario/Documents/n8n/Nuevo trabajo/.venv/bin/python' '/home/mario/Documents/n8n/Nuevo trabajo/scripts/load_secret_ids.py' '/home/mario/Documents/n8n/Nuevo trabajo/secrets/notion_ids.json'"
+        "command": "'/home/mario/dev/n8n-automation/.venv/bin/python' '/home/mario/dev/n8n-automation/scripts/load_secret_ids.py' '/home/mario/dev/n8n-automation/secrets/notion_ids.json'"
       },
       "type": "n8n-nodes-base.ssh",
       "typeVersion": 1,
@@ -821,7 +821,7 @@
     },
     {
       "parameters": {
-        "command": "={{ \"'/home/mario/Documents/n8n/Nuevo trabajo/.venv/bin/python' '/home/mario/Documents/n8n/Nuevo trabajo/scripts/persist_run.py' --runs-dir '/home/mario/Documents/n8n/Nuevo trabajo/secrets/runs' --read --page-id \" + String($json.page_id || '').replace(/-/g, '').toLowerCase() }}"
+        "command": "={{ \"'/home/mario/dev/n8n-automation/.venv/bin/python' '/home/mario/dev/n8n-automation/scripts/persist_run.py' --runs-dir '/home/mario/dev/n8n-automation/secrets/runs' --read --page-id \" + String($json.page_id || '').replace(/-/g, '').toLowerCase() }}"
       },
       "type": "n8n-nodes-base.ssh",
       "typeVersion": 1,
@@ -853,7 +853,7 @@
     },
     {
       "parameters": {
-        "command": "cat '/home/mario/Documents/n8n/Nuevo trabajo/secrets/storytelling.md'"
+        "command": "cat '/home/mario/dev/n8n-automation/secrets/storytelling.md'"
       },
       "type": "n8n-nodes-base.ssh",
       "typeVersion": 1,
@@ -983,7 +983,7 @@
     },
     {
       "parameters": {
-        "command": "={{ 'printf %s ' + JSON.stringify($json.write_b64) + \" | base64 -d | '/home/mario/Documents/n8n/Nuevo trabajo/.venv/bin/python' '/home/mario/Documents/n8n/Nuevo trabajo/scripts/assemble_tex.py' --master '/home/mario/Documents/n8n/Nuevo trabajo/secrets/master_cv.tex' --out-dir '/home/mario/Downloads' --cv-only\" }}"
+        "command": "={{ 'printf %s ' + JSON.stringify($json.write_b64) + \" | base64 -d | '/home/mario/dev/n8n-automation/.venv/bin/python' '/home/mario/dev/n8n-automation/scripts/assemble_tex.py' --master '/home/mario/dev/n8n-automation/secrets/master_cv.tex' --out-dir '/home/mario/Downloads' --cv-only\" }}"
       },
       "type": "n8n-nodes-base.ssh",
       "typeVersion": 1,
@@ -1119,7 +1119,7 @@
     },
     {
       "parameters": {
-        "command": "'/home/mario/Documents/n8n/Nuevo trabajo/.venv/bin/python' '/home/mario/Documents/n8n/Nuevo trabajo/scripts/assemble_tex.py' --number --cap 0 --master '/home/mario/Documents/n8n/Nuevo trabajo/secrets/master_cv.tex'"
+        "command": "'/home/mario/dev/n8n-automation/.venv/bin/python' '/home/mario/dev/n8n-automation/scripts/assemble_tex.py' --number --cap 0 --master '/home/mario/dev/n8n-automation/secrets/master_cv.tex'"
       },
       "type": "n8n-nodes-base.ssh",
       "typeVersion": 1,
@@ -1396,7 +1396,7 @@
     },
     {
       "parameters": {
-        "jsCode": "let usedStatusSearch = false;\ntry {\n  usedStatusSearch = !!($('Pack Letter Page').first().json && $('Pack Letter Page').first().json.id);\n} catch (e) {\n  usedStatusSearch = false;\n}\nconst status = String($('Extract Resume Page').first().json.status || '').trim();\nif (!usedStatusSearch && status !== 'Write Cover Letter') {\n  throw new Error('Set Status to Write Cover Letter on exactly one Notion row, then click Write cover letter. (got ' + JSON.stringify(status || '(empty)') + ')');\n}\nconst ROOT = '/home/mario/Documents/n8n/Nuevo trabajo';\nconst py = \"'\" + ROOT + \"/.venv/bin/python'\";\nfunction shq(s) { return JSON.stringify(String(s)); }\nconst run = $('Merge Run State').first().json;\nconst patches = run.latex_cv_patches;\nconst cv_path = String(run.cv_path || '').trim();\nconst hasPatches = Array.isArray(patches) && patches.length;\nif (!hasPatches && !cv_path) {\n  throw new Error('Continue Phase 2 first');\n}\nconst fallbackSrc = \"import json,sys; sys.path.insert(0, '\" + ROOT + \"/scripts'); import assemble_tex as a; p=json.load(sys.stdin); m=open('\" + ROOT + \"/secrets/master_cv.tex').read(); sys.stdout.write(a.repair_lists(a.apply_patches(m, p.get('latex_cv_patches') or [])))\";\nlet cmd = '';\nif (hasPatches) {\n  const b64 = Buffer.from(JSON.stringify({latex_cv_patches: patches}), 'utf8').toString('base64');\n  const fallback = 'printf %s ' + shq(b64) + ' | base64 -d | ' + py + ' -c ' + shq(fallbackSrc);\n  if (cv_path) {\n    cmd = 'if test -f ' + shq(cv_path) + '; then cat ' + shq(cv_path) + '; else ' + fallback + '; fi';\n  } else {\n    cmd = fallback;\n  }\n} else {\n  cmd = 'cat ' + shq(cv_path);\n}\nreturn { json: Object.assign({}, run, { read_cv_cmd: cmd }) };\n"
+        "jsCode": "let usedStatusSearch = false;\ntry {\n  usedStatusSearch = !!($('Pack Letter Page').first().json && $('Pack Letter Page').first().json.id);\n} catch (e) {\n  usedStatusSearch = false;\n}\nconst status = String($('Extract Resume Page').first().json.status || '').trim();\nif (!usedStatusSearch && status !== 'Write Cover Letter') {\n  throw new Error('Set Status to Write Cover Letter on exactly one Notion row, then click Write cover letter. (got ' + JSON.stringify(status || '(empty)') + ')');\n}\nconst ROOT = '/home/mario/dev/n8n-automation';\nconst py = \"'\" + ROOT + \"/.venv/bin/python'\";\nfunction shq(s) { return JSON.stringify(String(s)); }\nconst run = $('Merge Run State').first().json;\nconst patches = run.latex_cv_patches;\nconst cv_path = String(run.cv_path || '').trim();\nconst hasPatches = Array.isArray(patches) && patches.length;\nif (!hasPatches && !cv_path) {\n  throw new Error('Continue Phase 2 first');\n}\nconst fallbackSrc = \"import json,sys; sys.path.insert(0, '\" + ROOT + \"/scripts'); import assemble_tex as a; p=json.load(sys.stdin); m=open('\" + ROOT + \"/secrets/master_cv.tex').read(); sys.stdout.write(a.repair_lists(a.apply_patches(m, p.get('latex_cv_patches') or [])))\";\nlet cmd = '';\nif (hasPatches) {\n  const b64 = Buffer.from(JSON.stringify({latex_cv_patches: patches}), 'utf8').toString('base64');\n  const fallback = 'printf %s ' + shq(b64) + ' | base64 -d | ' + py + ' -c ' + shq(fallbackSrc);\n  if (cv_path) {\n    cmd = 'if test -f ' + shq(cv_path) + '; then cat ' + shq(cv_path) + '; else ' + fallback + '; fi';\n  } else {\n    cmd = fallback;\n  }\n} else {\n  cmd = 'cat ' + shq(cv_path);\n}\nreturn { json: Object.assign({}, run, { read_cv_cmd: cmd }) };\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1441,7 +1441,7 @@
     },
     {
       "parameters": {
-        "command": "={{ 'printf %s ' + JSON.stringify($json.write_b64) + \" | base64 -d | '/home/mario/Documents/n8n/Nuevo trabajo/.venv/bin/python' '/home/mario/Documents/n8n/Nuevo trabajo/scripts/assemble_tex.py' --letter-only --letter '/home/mario/Documents/n8n/Nuevo trabajo/secrets/master_letter.tex' --out-dir '/home/mario/Downloads'\" }}"
+        "command": "={{ 'printf %s ' + JSON.stringify($json.write_b64) + \" | base64 -d | '/home/mario/dev/n8n-automation/.venv/bin/python' '/home/mario/dev/n8n-automation/scripts/assemble_tex.py' --letter-only --letter '/home/mario/dev/n8n-automation/secrets/master_letter.tex' --out-dir '/home/mario/Downloads'\" }}"
       },
       "type": "n8n-nodes-base.ssh",
       "typeVersion": 1,
@@ -1555,7 +1555,7 @@
     },
     {
       "parameters": {
-        "command": "={{ 'printf %s ' + JSON.stringify($json.persist_b64) + \" | base64 -d | '/home/mario/Documents/n8n/Nuevo trabajo/.venv/bin/python' '/home/mario/Documents/n8n/Nuevo trabajo/scripts/persist_run.py' --runs-dir '/home/mario/Documents/n8n/Nuevo trabajo/secrets/runs' --write\" }}"
+        "command": "={{ 'printf %s ' + JSON.stringify($json.persist_b64) + \" | base64 -d | '/home/mario/dev/n8n-automation/.venv/bin/python' '/home/mario/dev/n8n-automation/scripts/persist_run.py' --runs-dir '/home/mario/dev/n8n-automation/secrets/runs' --write\" }}"
       },
       "type": "n8n-nodes-base.ssh",
       "typeVersion": 1,
@@ -1697,7 +1697,7 @@
     },
     {
       "parameters": {
-        "command": "cat '/home/mario/Documents/n8n/Nuevo trabajo/secrets/master_letter.tex'"
+        "command": "cat '/home/mario/dev/n8n-automation/secrets/master_letter.tex'"
       },
       "type": "n8n-nodes-base.ssh",
       "typeVersion": 1,

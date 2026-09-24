@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: n8n_local
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - NODE_ENV=production
+      - GENERIC_TIMEZONE=America/Bogota
+      # Optimización de almacenamiento en disco: evitar guardar ejecuciones exitosas
+      - EXECUTIONS_DATA_SAVE_ON_SUCCESS=none
+      - EXECUTIONS_DATA_SAVE_ON_ERROR=all
+      - EXECUTIONS_DATA_PRUNE=true
+      - EXECUTIONS_DATA_MAX_AGE=168h
+    volumes:
+      # Data de n8n mapeada al almacenamiento externo
+      - /home/mario/external_storage/n8n_data:/home/node/.n8n
+      # Lectura/Escritura directa a datasets y proyectos dev
+      - /home/mario/external_storage/datasets:/files/datasets
+      - /home/mario/dev:/files/dev
