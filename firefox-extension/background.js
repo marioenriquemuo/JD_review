@@ -1,39 +1,18 @@
 const DEFAULT_WEBHOOK = "http://localhost:5678/webhook/job-ingest";
 
-chrome.runtime.onMessage.addListener(function (message, _sender, sendResponse) {
-  if (!message) return;
-  if (message.type === "INGEST_TAB") {
-    ingestActiveTab()
-      .then(sendResponse)
-      .catch(function (err) {
-        sendResponse({ ok: false, error: String(err && err.message ? err.message : err) });
-      });
-    return true;
-  }
-  if (message.type === "INGEST_PDF") {
-    ingestPdf(message.filename, message.bytes)
-      .then(sendResponse)
-      .catch(function (err) {
-        sendResponse({ ok: false, error: String(err && err.message ? err.message : err) });
-      });
-    return true;
-  }
-  if (message.type === "RESUME_TAB") {
-    resumeActiveTab(false)
-      .then(sendResponse)
-      .catch(function (err) {
-        sendResponse({ ok: false, error: String(err && err.message ? err.message : err) });
-      });
-    return true;
-  }
-  if (message.type === "LETTER_TAB") {
-    resumeActiveTab(true)
-      .then(sendResponse)
-      .catch(function (err) {
-        sendResponse({ ok: false, error: String(err && err.message ? err.message : err) });
-      });
-    return true;
-  }
+function asError(err) {
+  return { ok: false, error: String(err && err.message ? err.message : err) };
+}
+
+browser.runtime.onMessage.addListener(function (message) {
+  if (!message || !message.type) return;
+  let run = null;
+  if (message.type === "INGEST_TAB") run = ingestActiveTab();
+  else if (message.type === "INGEST_PDF") run = ingestPdf(message.filename, message.bytes);
+  else if (message.type === "RESUME_TAB") run = resumeActiveTab(false);
+  else if (message.type === "LETTER_TAB") run = resumeActiveTab(true);
+  if (!run) return;
+  return run.catch(asError);
 });
 
 function resumeUrlFromIngest(ingestUrl) {
@@ -46,17 +25,17 @@ function resumeUrlFromIngest(ingestUrl) {
 }
 
 async function ingestActiveTab() {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
   if (!tab || tab.id == null) {
     throw new Error("No active tab");
   }
-  const results = await chrome.scripting.executeScript({
+  const results = await browser.scripting.executeScript({
     target: { tabId: tab.id },
     files: ["extract.js"]
   });
   const payload = results && results[0] && results[0].result;
   if (!payload || !payload.html) {
-    const inline = await chrome.scripting.executeScript({
+    const inline = await browser.scripting.executeScript({
       target: { tabId: tab.id },
       func: function () {
         return { url: location.href, html: document.body ? document.body.innerHTML : "" };
@@ -68,9 +47,9 @@ async function ingestActiveTab() {
 }
 
 async function resumeActiveTab(writeLetter) {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  const stored = await chrome.storage.sync.get({ webhookUrl: DEFAULT_WEBHOOK });
-  const local = await chrome.storage.local.get({ lastResume: null });
+  const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+  const stored = await browser.storage.sync.get({ webhookUrl: DEFAULT_WEBHOOK });
+  const local = await browser.storage.local.get({ lastResume: null });
   const last = local.lastResume || {};
   const resumeUrl = resumeUrlFromIngest(stored.webhookUrl || DEFAULT_WEBHOOK);
   const body = {
@@ -133,7 +112,7 @@ async function ingestPdf(filename, byteList) {
 }
 
 async function postIngest(payload) {
-  const stored = await chrome.storage.sync.get({ webhookUrl: DEFAULT_WEBHOOK });
+  const stored = await browser.storage.sync.get({ webhookUrl: DEFAULT_WEBHOOK });
   const webhookUrl = stored.webhookUrl || DEFAULT_WEBHOOK;
   const reqBody = payload.pdf_b64
     ? { url: payload.url, pdf_b64: payload.pdf_b64, filename: payload.filename || "" }

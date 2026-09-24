@@ -37,7 +37,7 @@ function formatStatus(body) {
 
 function rememberResume(body) {
   if (!body || !body.page_id) return;
-  chrome.storage.local.set({
+  browser.storage.local.set({
     lastResume: {
       page_id: String(body.page_id).replace(/-/g, "").toLowerCase(),
       url: body.url || "",
@@ -49,10 +49,6 @@ function rememberResume(body) {
 }
 
 function handleIngestResult(result) {
-  if (chrome.runtime.lastError) {
-    statusEl.textContent = chrome.runtime.lastError.message;
-    return;
-  }
   if (!result || !result.ok) {
     statusEl.textContent = (result && result.error) || "Request failed";
     return;
@@ -79,13 +75,16 @@ pdfFile.addEventListener("change", function () {
   };
   reader.onload = function () {
     const bytes = new Uint8Array(reader.result);
-    chrome.runtime.sendMessage(
-      { type: "INGEST_PDF", filename: file.name, bytes: Array.from(bytes) },
-      function (result) {
+    browser.runtime
+      .sendMessage({ type: "INGEST_PDF", filename: file.name, bytes: Array.from(bytes) })
+      .then(function (result) {
         pdfFile.disabled = false;
         handleIngestResult(result);
-      }
-    );
+      })
+      .catch(function (err) {
+        pdfFile.disabled = false;
+        statusEl.textContent = String(err && err.message ? err.message : err);
+      });
   };
   reader.readAsArrayBuffer(file);
 });

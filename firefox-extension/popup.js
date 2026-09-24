@@ -59,7 +59,7 @@ function formatStatus(body) {
 
 function rememberResume(body) {
   if (!body || !body.page_id) return;
-  chrome.storage.local.set({
+  browser.storage.local.set({
     lastResume: {
       page_id: String(body.page_id).replace(/-/g, "").toLowerCase(),
       url: body.url || "",
@@ -79,10 +79,6 @@ function setBusy(busy, label) {
 }
 
 function handleIngestResult(result) {
-  if (chrome.runtime.lastError) {
-    statusEl.textContent = chrome.runtime.lastError.message;
-    return;
-  }
   if (!result || !result.ok) {
     statusEl.textContent = (result && result.error) || "Request failed";
     return;
@@ -98,21 +94,27 @@ function handleIngestResult(result) {
   statusEl.textContent = formatStatus(result.body);
 }
 
+function send(type) {
+  return browser.runtime.sendMessage({ type: type }).catch(function (err) {
+    return { ok: false, error: String(err && err.message ? err.message : err) };
+  });
+}
+
 sendBtn.addEventListener("click", function () {
   setBusy(true, "Scoring…");
-  chrome.runtime.sendMessage({ type: "INGEST_TAB" }, function (result) {
+  send("INGEST_TAB").then(function (result) {
     setBusy(false);
     handleIngestResult(result);
   });
 });
 
 pdfBtn.addEventListener("click", function () {
-  chrome.tabs.create({ url: chrome.runtime.getURL("upload.html") });
+  browser.tabs.create({ url: browser.runtime.getURL("upload.html") });
 });
 
 resumeBtn.addEventListener("click", function () {
   setBusy(true, "Generating CV…");
-  chrome.runtime.sendMessage({ type: "RESUME_TAB" }, function (result) {
+  send("RESUME_TAB").then(function (result) {
     setBusy(false);
     handleResumeResult(result);
   });
@@ -120,17 +122,13 @@ resumeBtn.addEventListener("click", function () {
 
 letterBtn.addEventListener("click", function () {
   setBusy(true, "Generating letter…");
-  chrome.runtime.sendMessage({ type: "LETTER_TAB" }, function (result) {
+  send("LETTER_TAB").then(function (result) {
     setBusy(false);
     handleResumeResult(result);
   });
 });
 
 function handleResumeResult(result) {
-  if (chrome.runtime.lastError) {
-    statusEl.textContent = chrome.runtime.lastError.message;
-    return;
-  }
   if (!result || !result.ok) {
     statusEl.textContent = (result && result.error) || "Request failed";
     return;
