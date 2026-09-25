@@ -1,0 +1,8 @@
+{
+  "name": "n8n-automation",
+  "private": true,
+  "description": "Local tooling for signing the Firefox JD Flow Ingest add-on (web-ext).",
+  "dependencies": {
+    "web-ext": "^10.7.0"
+  }
+}

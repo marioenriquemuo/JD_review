@@ -1,6 +1,6 @@
 # How to set up and use JD Flow (beginner guide)
 
-This guide is for people who are **new** to n8n, Notion integrations, and Chrome extensions.  
+This guide is for people who are **new** to n8n, Notion integrations, and browser extensions (Chrome or Firefox).  
 Follow the steps **in order**. Do not skip ahead.
 
 When you finish, you will be able to:
@@ -328,24 +328,41 @@ Live webhook URLs:
 
 ---
 
-## Step 11 — Install the Chrome extension
+## Step 11 — Install the browser extension (Chrome or Firefox)
 
-1. Open Chrome and go to: `chrome://extensions`
+Use **one** browser. Full Firefox signing steps: [`docs/SETUP.md`](SETUP.md#5b-firefox-permanent-signed-xpi).
+
+### Chrome (unpacked)
+
+1. Open Chrome → `chrome://extensions`
 2. Turn on **Developer mode** (top right).
 3. Click **Load unpacked**.
-4. Select this folder:
-
-`/home/mario/Documents/n8n/Nuevo trabajo/chrome-extension`
-
+4. Select `$PROJECT/chrome-extension`
 5. Pin the extension to the toolbar (puzzle icon → pin).
-6. Open extension **Options** (or “Webhook options” in the popup).
-7. Set webhook URL to:
+6. Open extension **Options**. Set webhook:
 
 `http://localhost:5678/webhook/job-ingest`
 
-8. Save.
+7. Save. After source changes: **Reload** on `chrome://extensions`.
 
-If you change the extension files later, return to `chrome://extensions` and click **Reload** on JD Flow Ingest.
+### Firefox (permanent)
+
+1. Sign the add-on (needs AMO API key once — see SETUP §5b):
+
+```bash
+cd "$PROJECT"
+npm install
+npx web-ext sign --channel=unlisted \
+  --source-dir=firefox-extension \
+  --api-key="YOUR_JWT_ISSUER" \
+  --api-secret="YOUR_JWT_SECRET"
+```
+
+2. Firefox → `about:addons` → gear → **Install Add-on From File…**
+3. Choose `$PROJECT/web-ext-artifacts/*.xpi` (the signed file only).
+4. Open **Options** → same webhook URL as Chrome → Save.
+
+Do **not** install `firefox-extension.zip` or a renamed unsigned `.xpi` — Firefox will reject them.
 
 ---
 
@@ -502,7 +519,7 @@ You are fully set up when all of these are true:
 - [ ] Applications database has all required columns
 - [ ] Integration is connected to DB + Style page
 - [ ] n8n JD Flow is Active with Notion + SSH credentials attached
-- [ ] Chrome extension installed and webhook set to live `/webhook/job-ingest`
+- [ ] Chrome **or** Firefox extension installed; webhook set to live `/webhook/job-ingest`
 - [ ] You completed one full pass: Send → answers → Continue → Downloads files
 - [ ] Optional letter: `master_letter.tex` + `storytelling.md`, then **Write cover letter**
 

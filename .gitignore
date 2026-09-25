@@ -7,3 +7,20 @@ __pycache__/
 *.pyc
 .cursor/
 *.log
+
+# Node / web-ext (Firefox signing)
+node_modules/
+web-ext-artifacts/
+*.xpi
+firefox-extension.zip
+firefox-extension/.amo-upload-uuid
+.web-extension-id
+*.pem
+
+# AMO / web-ext API credentials (never commit)
+.web-ext-api-key
+.web-ext-api-secret
+web-ext-config.js
+**/credentials.json
+**/api-keys.json
+**/*jwt*secret*

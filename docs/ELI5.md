@@ -16,7 +16,7 @@ You do **not** need to install n8n again.
 
 Imagine a post office:
 
-1. **Chrome extension** = you drop a letter (the job page) in the slot.
+1. **Browser extension** (Chrome or Firefox) = you drop a letter (the job page) in the slot.
 2. **n8n webhook** = the slot. It **waits** for scoring, then tells the popup skipped / duplicate / needs context.
 3. **Parse Clean MD** = throws away ads/menus and keeps the job text.
 4. **Notion search** = “Did we already file this exact job URL?” If yes, stop. Costs nothing.
@@ -89,7 +89,7 @@ Do these in the order of the steps below. Do not paste API keys into this repo.
 - [ ] Page **Style & Learnings**, shared with the integration
 - [ ] IDs in `secrets/notion_ids.json` (`applications_db_id`, `style_learnings_page_id`)
 - [ ] Notion + SSH credentials attached
-- [ ] Chrome extension loaded unpacked
+- [ ] Chrome extension loaded unpacked **or** Firefox signed `.xpi` installed (see `docs/SETUP.md` §5b)
 - [ ] One test send, then (only then) turn **Active** on
 
 ---
@@ -272,17 +272,16 @@ This n8n build does **not** include the Execute Command node. **Clean HTML** is 
 
 If you still see a node with a **?** and “Install this node”, delete it and use a Code node named **Clean HTML** instead (see the chat walkthrough).
 
-### Step 11 — Load the Chrome extension
+### Step 11 — Load the browser extension
 
-1. Chrome → `chrome://extensions`
-2. **Developer mode** on
-3. **Load unpacked** → folder  
-   `/home/mario/Documents/n8n/Nuevo trabajo/chrome-extension`
-4. Extension **Details → Extension options**
-5. While testing:  
-   `http://localhost:5678/webhook-test/job-ingest`  
-   After Active is on:  
-   `http://localhost:5678/webhook/job-ingest`
+**Chrome:** `chrome://extensions` → **Developer mode** → **Load unpacked** → `$PROJECT/chrome-extension`.
+
+**Firefox (permanent):** sign with `web-ext` then install the `.xpi` from `web-ext-artifacts/` — full steps in [`docs/SETUP.md`](SETUP.md#5b-firefox-permanent-signed-xpi).
+
+Then: extension **Options** → while testing use  
+`http://localhost:5678/webhook-test/job-ingest`  
+After Active is on:  
+`http://localhost:5678/webhook/job-ingest`
 
 ### Step 12 — One test run (still not Active)
 

@@ -1,6 +1,6 @@
 # Automated Job Analysis & Asset Engine
 
-Manual ingest of a job posting via a Chrome extension. n8n deduplicates against Notion for $0, triages with Claude Haiku, runs a **Phase 1 semantic gap audit** (Haiku), then **pauses** for your Candidate notes. **Continue Phase 2** applies Sonnet **line patches** to `secrets/master_cv.tex`; Python writes the CV. **Write cover letter** is a second click after Ready to Apply (Sonnet letter body only; Python splices `secrets/master_letter.tex`).
+Manual ingest of a job posting via a **Chrome** or **Firefox** extension. n8n deduplicates against Notion for $0, triages with Claude Haiku, runs a **Phase 1 semantic gap audit** (Haiku), then **pauses** for your Candidate notes. **Continue Phase 2** applies Sonnet **line patches** to `secrets/master_cv.tex`; Python writes the CV. **Write cover letter** is a second click after Ready to Apply (Sonnet letter body only; Python splices `secrets/master_letter.tex`).
 
 API keys, Notion tokens, and Notion page/DB IDs are **not** stored in the workflow export. They live in gitignored [`secrets/notion_ids.json`](secrets/notion_ids.json) and load at runtime via SSH (**Load Secret IDs**). Import [`JD Flow.json`](JD Flow.json) and attach **Notion account** + **SSH localhost** locally.
 
@@ -19,7 +19,7 @@ Source graph: [`mearmaid.txt`](mearmaid.txt). Setup: [`docs/SETUP.md`](docs/SETU
 ## Flow
 
 ```text
-Chrome extension (URL + HTML, or Upload PDF)
+Chrome / Firefox extension (URL + HTML, or Upload PDF)
   → n8n Webhook POST /webhook/job-ingest  (waits; responseNode)
   → Pack Ingest
        pdf_b64 → extract_pdf.py → { url, clean_md }

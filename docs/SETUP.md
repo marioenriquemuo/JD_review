@@ -131,16 +131,62 @@ Expect `{ "status": "skipped" }` or `{ "status": "needs_context" }` (the webhook
 
 ---
 
-## 5. Chrome extension
+## 5. Browser extension (Chrome or Firefox)
+
+Use **one** browser. Both talk to the same n8n webhooks.
+
+### Shared webhook options
+
+Extension **Options**. Set webhook URL:
+
+- Active workflow: `http://localhost:5678/webhook/job-ingest`
+- Testing in editor: `http://localhost:5678/webhook-test/job-ingest`
+
+Then: open a job posting → click the extension → **Send job to n8n**.  
+Popup shows `Scoring…` then `Skipped…` / `Already filed…` / `Needs Context…`.
+
+To allow a non-localhost n8n URL, add it to `host_permissions` in the browser’s `manifest.json` and reload/re-sign the extension.
+
+### 5a. Chrome (unpacked)
 
 1. Chrome → `chrome://extensions` → **Developer mode** → **Load unpacked** → select `$PROJECT/chrome-extension` (reload if already loaded).
-2. Extension **Details → Extension options**. Set webhook URL:
-   - Active workflow: `http://localhost:5678/webhook/job-ingest`
-   - Testing in editor: `http://localhost:5678/webhook-test/job-ingest`
-3. Open a job posting → click the extension → **Send job to n8n**.
-4. Popup shows `Scoring…` then `Skipped…` / `Already filed…` / `Needs Context…`.
+2. Set webhook URL (see above).
 
-To allow a non-localhost n8n URL, add it to `host_permissions` in [`chrome-extension/manifest.json`](../chrome-extension/manifest.json) and reload the extension.
+### 5b. Firefox (permanent signed `.xpi`)
+
+Regular Firefox rejects unsigned add-ons. Sign once with Mozilla, then install the `.xpi`.
+
+**One-time: AMO API credentials**
+
+1. Sign in at [addons.mozilla.org](https://addons.mozilla.org).
+2. Open [API Keys](https://addons.mozilla.org/developers/addon/api/key/).
+3. **Generate** → copy **JWT issuer** (`--api-key`) and **JWT secret** (`--api-secret`). Do not commit these.
+
+**Sign**
+
+```bash
+cd "$PROJECT"
+npm install
+npx web-ext sign --channel=unlisted \
+  --source-dir=firefox-extension \
+  --api-key="YOUR_JWT_ISSUER" \
+  --api-secret="YOUR_JWT_SECRET"
+```
+
+Signed file lands in `$PROJECT/web-ext-artifacts/*.xpi` (gitignored).
+
+**Install**
+
+1. Firefox → `about:addons` → gear → **Install Add-on From File…**
+2. Pick the `.xpi` from `web-ext-artifacts/` (not `firefox-extension.zip` and not a renamed unsigned `.xpi`).
+3. Confirm; pin **JD Flow Ingest** if desired.
+4. Set webhook URL (see above).
+
+After source changes: bump `version` in `firefox-extension/manifest.json`, re-sign, reinstall the new `.xpi`.
+
+**Dev-only (not permanent):** `about:debugging` → This Firefox → **Load Temporary Add-on** → pick `firefox-extension/manifest.json`. Gone on browser restart.
+
+**Dev Edition / Nightly unsigned alternative:** set `xpinstall.signatures.required` to `false` in `about:config`, then install an unsigned `.xpi`. Prefer the signed path for regular Firefox.
 
 ---
 
@@ -157,4 +203,4 @@ To allow a non-localhost n8n URL, add it to `host_permissions` in [`chrome-exten
 - [ ] Applications DB + Style & Learnings shared with the integration
 - [ ] Import latest `JD Flow.json`; Notion + SSH credentials attached
 - [ ] Workflow **Active**; extension uses `/webhook/job-ingest`
-- [ ] Reload Chrome extension so popup status messages update
+- [ ] Chrome **or** Firefox extension installed; reload / re-sign after updates
