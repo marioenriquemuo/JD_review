@@ -31,7 +31,7 @@ function formatStatus(body) {
     const title = body.job_title || "";
     const who = [company, title].filter(Boolean).join(" — ");
     let line =
-      "Needs Context saved.\n1) Fill Candidate Answers in Notion\n2) Click Continue Phase 2 (any tab is fine).\n3) After Ready to Apply, set Status to Write Cover Letter, then click Write cover letter.";
+      "Needs Context saved.\n1) Fill Candidate Answers in Notion\n2) Set Status to Proceed Phase 2 on that one row, then click Continue Phase 2.\n3) After Ready to Apply, set Status to Write Cover Letter, then click Write cover letter.";
     if (who) line = who + "\n" + line;
     return line;
   }

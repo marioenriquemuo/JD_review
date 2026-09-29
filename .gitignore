@@ -24,3 +24,4 @@ web-ext-config.js
 **/credentials.json
 **/api-keys.json
 **/*jwt*secret*
+graphify-out/

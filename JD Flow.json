@@ -749,8 +749,7 @@
     },
     {
       "parameters": {
-        "jsCode": "function propText(page, name) {\n  const props = page.properties || page;\n  const p = props[name];\n  if (p == null) return '';\n  if (typeof p === 'string') return p;\n  if (p.select && p.select.name) return p.select.name;\n  if (typeof p.select === 'string') return p.select;\n  if (p.status && p.status.name) return p.status.name;\n  if (p.value && typeof p.value === 'string') return p.value;\n  if (Array.isArray(p.rich_text)) return p.rich_text.map(function (t) { return t.plain_text || ''; }).join('');\n  if (Array.isArray(p.title)) return p.title.map(function (t) { return t.plain_text || ''; }).join('');\n  if (p.number != null) return String(p.number);\n  if (p.url) return p.url;\n  if (p.name) return String(p.name);\n  if (p.plain_text) return String(p.plain_text);\n  return '';\n}\nfunction statusOf(page) {\n  let s = propText(page, 'Status') || propText(page, 'status');\n  if (!s && typeof page.Status === 'string') s = page.Status;\n  if (!s && page.Status && page.Status.name) s = page.Status.name;\n  return String(s || '').trim();\n}\nfunction pageIdOf(page) {\n  let id = page.id || page.pageId || page.page_id || '';\n  if (!id && page.raw_page) id = page.raw_page.id || '';\n  return String(id || '').replace(/-/g, '').toLowerCase();\n}\nconst page = $input.item.json;\nconst status = statusOf(page);\nconst answers = (propText(page, 'Candidate Answers') || propText(page, 'Candidate answers') || '').trim();\nconst notes = propText(page, 'Candidate notes').trim();\nconst page_id = pageIdOf(page);\nif (!/^[0-9a-f]{32}$/.test(page_id)) {\n  throw new Error('Resume page has no id. Keys=' + Object.keys(page).slice(0, 20).join(','));\n}\nreturn { json: {\n  page_id: page_id,\n  status: status,\n  candidate_answers: answers,\n  candidate_notes: notes,\n  raw_page: page\n} };\n",
-        "mode": "runOnceForEachItem"
+        "jsCode": "function propText(page, name) {\n  const props = page.properties || page;\n  const p = props[name];\n  if (p == null) return '';\n  if (typeof p === 'string') return p;\n  if (p.select && p.select.name) return p.select.name;\n  if (typeof p.select === 'string') return p.select;\n  if (p.status && p.status.name) return p.status.name;\n  if (p.value && typeof p.value === 'string') return p.value;\n  if (Array.isArray(p.rich_text)) return p.rich_text.map(function (t) { return t.plain_text || ''; }).join('');\n  if (Array.isArray(p.title)) return p.title.map(function (t) { return t.plain_text || ''; }).join('');\n  if (p.number != null) return String(p.number);\n  if (p.url) return p.url;\n  if (p.name) return String(p.name);\n  if (p.plain_text) return String(p.plain_text);\n  return '';\n}\nfunction statusOf(page) {\n  let s = propText(page, 'Status') || propText(page, 'status');\n  if (!s && typeof page.Status === 'string') s = page.Status;\n  if (!s && page.Status && page.Status.name) s = page.Status.name;\n  return String(s || '').trim();\n}\nfunction pageIdOf(page) {\n  let id = page.id || page.pageId || page.page_id || '';\n  if (!id && page.raw_page) id = page.raw_page.id || '';\n  return String(id || '').replace(/-/g, '').toLowerCase();\n}\nconst incoming = $input.all().filter(function (item) { return item.json && item.json.id; });\nif (incoming.length !== 1) {\n  throw new Error(incoming.length ? 'Multiple rows are Proceed Phase 2. Leave only one on that status.' : 'Set Status to Proceed Phase 2 on exactly one Notion row, then click Continue Phase 2.');\n}\nconst page = incoming[0].json;\nconst status = statusOf(page);\nconst answers = (propText(page, 'Candidate Answers') || propText(page, 'Candidate answers') || '').trim();\nconst notes = propText(page, 'Candidate notes').trim();\nconst page_id = pageIdOf(page);\nif (!/^[0-9a-f]{32}$/.test(page_id)) {\n  throw new Error('Resume page has no id. Keys=' + Object.keys(page).slice(0, 20).join(','));\n}\nreturn { json: {\n  page_id: page_id,\n  status: status,\n  candidate_answers: answers,\n  candidate_notes: notes,\n  raw_page: page\n} };\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1156,7 +1155,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const j = $input.item.json;\nconst body = (j.body && typeof j.body === 'object') ? j.body : {};\nconst src = Object.assign({}, j, body);\nconst url = String(src.url || '').trim();\nconst page_id = String(src.page_id || '').replace(/-/g, '').toLowerCase().trim();\nif (!page_id && !url) throw new Error('job-resume requires page_id or url');\nconst raw = src.write_letter;\nconst write_letter = raw === true || raw === 1 || String(raw == null ? '' : raw).trim().toLowerCase() === 'true';\nreturn { json: { url: url, page_id: page_id, resume_by: page_id ? 'page_id' : 'url', write_letter: write_letter } };\n"
+        "jsCode": "const j = $input.item.json;\nconst body = (j.body && typeof j.body === 'object') ? j.body : {};\nconst src = Object.assign({}, j, body);\nconst url = String(src.url || '').trim();\nconst page_id = String(src.page_id || '').replace(/-/g, '').toLowerCase().trim();\nif (!page_id && !url) throw new Error('job-resume requires page_id or url');\nconst raw = src.write_letter;\nconst write_letter = raw === true || raw === 1 || String(raw == null ? '' : raw).trim().toLowerCase() === 'true';\nreturn { json: { url: url, page_id: '', resume_by: 'status', write_letter: write_letter } };\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1189,10 +1188,9 @@
           "value": "={{ $('Resume Secrets').item.json.applications_db_id }}",
           "mode": "id"
         },
-        "returnAll": "={{ false }}",
-        "limit": "={{ 1 }}",
+        "returnAll": true,
         "filterType": "json",
-        "filterJson": "={{ JSON.stringify({ property: 'Job URL', url: { equals: $json.url } }) }}",
+        "filterJson": "={{ JSON.stringify({ property: 'Status', select: { equals: 'Proceed Phase 2' } }) }}",
         "options": {}
       },
       "type": "n8n-nodes-base.notion",
@@ -1248,7 +1246,7 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ JSON.stringify({ status: 'not_found', message: 'No Notion row for this Job URL. Open the original job tab, or Send job once so Continue can use the saved page.' }) }}",
+        "responseBody": "={{ JSON.stringify({ status: 'not_found', message: 'Set Status to Proceed Phase 2 on exactly one Notion row, then click Continue Phase 2.' }) }}",
         "options": {}
       },
       "type": "n8n-nodes-base.respondToWebhook",
