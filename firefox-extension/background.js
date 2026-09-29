@@ -4,6 +4,29 @@ function asError(err) {
   return { ok: false, error: String(err && err.message ? err.message : err) };
 }
 
+// ponytail: storage.session heartbeat. Firefox kills this event page after 30s idle, and an open fetch does not count. onChanged is what resets the timer (bug 1851373).
+browser.storage.session.onChanged.addListener(function () {});
+
+function keepAlive(promise) {
+  const key = "keepAlive";
+  function beat() {
+    browser.storage.session.set({ [key]: Date.now() }).catch(function () {});
+  }
+  beat();
+  const timer = setInterval(beat, 10000);
+  function stop() {
+    clearInterval(timer);
+    browser.storage.session.remove(key).catch(function () {});
+  }
+  return promise.then(function (result) {
+    stop();
+    return result;
+  }, function (err) {
+    stop();
+    throw err;
+  });
+}
+
 browser.runtime.onMessage.addListener(function (message) {
   if (!message || !message.type) return;
   let run = null;
@@ -12,7 +35,7 @@ browser.runtime.onMessage.addListener(function (message) {
   else if (message.type === "RESUME_TAB") run = resumeActiveTab(false);
   else if (message.type === "LETTER_TAB") run = resumeActiveTab(true);
   if (!run) return;
-  return run.catch(asError);
+  return keepAlive(run).catch(asError);
 });
 
 function resumeUrlFromIngest(ingestUrl) {
