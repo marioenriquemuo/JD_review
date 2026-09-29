@@ -189,7 +189,10 @@
           "id": "PVbozrs4FE83DBwK",
           "name": "Notion account"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -320,7 +323,10 @@
         0
       ],
       "id": "f51f4ddf-877a-47bc-918b-cb683023ea00",
-      "name": "Haiku Triage"
+      "name": "Haiku Triage",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -485,7 +491,10 @@
           "id": "PVbozrs4FE83DBwK",
           "name": "Notion account"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -566,7 +575,10 @@
         0
       ],
       "id": "85ec6d92-cca0-45c9-b5f1-e51805b8538e",
-      "name": "Haiku Phase 1"
+      "name": "Haiku Phase 1",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -784,7 +796,10 @@
           "id": "PVbozrs4FE83DBwK",
           "name": "Notion account"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -916,7 +931,10 @@
         520
       ],
       "id": "08549ec5-9aa5-4b78-812e-169f7d3228ee",
-      "name": "Sonnet Phase 2"
+      "name": "Sonnet Phase 2",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -965,7 +983,10 @@
         760
       ],
       "id": "9494705a-85b1-4ada-a714-6788224c0969",
-      "name": "Sonnet Phase 3"
+      "name": "Sonnet Phase 3",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -1049,7 +1070,10 @@
           "id": "PVbozrs4FE83DBwK",
           "name": "Notion account"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -1207,7 +1231,10 @@
           "id": "PVbozrs4FE83DBwK",
           "name": "Notion account"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -1344,7 +1371,10 @@
           "id": "PVbozrs4FE83DBwK",
           "name": "Notion account"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -1506,7 +1536,10 @@
           "id": "PVbozrs4FE83DBwK",
           "name": "Notion account"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -1645,7 +1678,10 @@
           "id": "PVbozrs4FE83DBwK",
           "name": "Notion account"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
