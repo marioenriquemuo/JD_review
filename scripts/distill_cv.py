@@ -159,7 +159,7 @@ def distill_csv(path):
         "## Rules",
         "- Tone: concise, specific, first person where a cover letter needs it.",
         "- Lead with metrics (%, $, time saved, scale) when the JD names that outcome.",
-        "- Mirror JD keywords in CV bullets; do not invent employers or dates.",
+        "- Name a tool already in the CV; do not copy a JD sentence. Do not invent employers or dates.",
         "- Cover letter: exactly 3 short paragraphs. No generic 'passionate about'.",
         "- Never dump raw application history into the letter.",
         "",
