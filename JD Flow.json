@@ -230,6 +230,38 @@
     },
     {
       "parameters": {
+        "jsCode": "const page = $('Search Job URL').first().json;\nconst prev = $('Secret IDs').first().json;\nfunction text(v) {\n  if (v == null) return '';\n  if (typeof v === 'string' || typeof v === 'number') return String(v);\n  return '';\n}\nconst page_id = String(page.id || page.pageId || '').replace(/-/g, '').toLowerCase();\nif (!/^[0-9a-f]{32}$/.test(page_id)) {\n  throw new Error('duplicate page has no id');\n}\nconst gaps = text(page.property_candidate_notes).split('\\n').map(function (s) {\n  return s.replace(/^[-*]\\s*/, '').trim();\n}).filter(Boolean);\nconst run = {\n  page_id: page_id,\n  url: prev.url || text(page.property_job_url),\n  clean_md: prev.clean_md || '',\n  company: text(page.property_company),\n  job_title: text(page.property_job_title) || text(page.name),\n  location: text(page.property_location),\n  skills: text(page.property_skills),\n  fit_score: Number(page.property_fit_score) || 0,\n  rationale: text(page.property_rationale),\n  gaps: text(page.property_candidate_notes),\n  critical_missing_keywords: gaps,\n  impact_alignment: [],\n  strategic_positioning: text(page.property_rationale),\n  questions: [],\n  audit_md: '',\n  style_rules: '',\n  usage_triage: {},\n  usage_phase1: {}\n};\nconst b64 = Buffer.from(JSON.stringify(run), 'utf8').toString('base64');\nconst path = '/home/mario/dev/n8n-automation/secrets/runs/' + page_id + '.json';\nconst command = 'if [ -f ' + JSON.stringify(path) + ' ]; then echo \\'{\"ok\":true,\"exists\":true}\\'; else echo ' + JSON.stringify(b64) + ' | base64 -d | \\'/home/mario/dev/n8n-automation/.venv/bin/python\\' \\'/home/mario/dev/n8n-automation/scripts/persist_run.py\\' --runs-dir \\'/home/mario/dev/n8n-automation/secrets/runs\\' --write; fi';\nreturn { json: { page_id: page_id, run_b64: b64, command: command } };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        580,
+        -220
+      ],
+      "id": "5793f689-9ff8-4efd-ba6f-36363143f8ff",
+      "name": "Pack Duplicate Run"
+    },
+    {
+      "parameters": {
+        "command": "={{ $json.command }}"
+      },
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        820,
+        -220
+      ],
+      "id": "8e8246cc-837b-4546-bffb-8172d33bb0ca",
+      "name": "Persist Duplicate Run",
+      "credentials": {
+        "sshPassword": {
+          "id": "nM6jdLaHV8O6GLPF",
+          "name": "SSH localhost"
+        }
+      }
+    },
+    {
+      "parameters": {
         "respondWith": "json",
         "responseBody": "={{ JSON.stringify($json) }}",
         "options": {}
@@ -237,7 +269,7 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        580,
+        1300,
         -220
       ],
       "id": "47494cef-4b03-4eab-b760-3e03064d7774",
@@ -439,12 +471,44 @@
     },
     {
       "parameters": {
-        "jsCode": "const j = $('Parse Triage').first().json;\nreturn { json: { status: 'skipped', fit_score: j.fit_score, rationale: j.rationale || '', company: j.company || '', job_title: j.job_title || '', usage_triage: j.usage_triage || {} } };"
+        "jsCode": "const triage = $('Parse Triage').first().json;\nconst page = $json;\nconst page_id = String(page.id || page.pageId || '').replace(/-/g, '').toLowerCase();\nif (!/^[0-9a-f]{32}$/.test(page_id)) {\n  throw new Error('Log Skipped returned no usable page id: ' + String(page.id || page.pageId || ''));\n}\nconst gaps = String(triage.gaps || '').split('\\n').map(function (s) {\n  return s.replace(/^[-*]\\s*/, '').trim();\n}).filter(Boolean);\nconst run = {\n  page_id: page_id,\n  url: triage.url,\n  clean_md: triage.clean_md,\n  company: triage.company,\n  job_title: triage.job_title,\n  location: triage.location,\n  skills: triage.skills,\n  fit_score: triage.fit_score,\n  rationale: triage.rationale,\n  gaps: triage.gaps,\n  salary_range: '',\n  salary_flag: '',\n  critical_missing_keywords: gaps,\n  impact_alignment: [],\n  strategic_positioning: triage.rationale || '',\n  questions: [],\n  audit_md: '',\n  style_rules: '',\n  usage_triage: triage.usage_triage || {},\n  usage_phase1: {}\n};\nreturn { json: { page_id: page_id, run_b64: Buffer.from(JSON.stringify(run), 'utf8').toString('base64') } };"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         2260,
+        -220
+      ],
+      "id": "e179d559-6338-416a-bde8-1c33a9251fb1",
+      "name": "Pack Skip Run"
+    },
+    {
+      "parameters": {
+        "command": "={{ 'echo ' + JSON.stringify($json.run_b64) + \" | base64 -d | '/home/mario/dev/n8n-automation/.venv/bin/python' '/home/mario/dev/n8n-automation/scripts/persist_run.py' --runs-dir '/home/mario/dev/n8n-automation/secrets/runs' --write\" }}"
+      },
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        2500,
+        -220
+      ],
+      "id": "2fdba995-81fb-4b1c-9ce6-092650cc85cb",
+      "name": "Persist Skip Run",
+      "credentials": {
+        "sshPassword": {
+          "id": "nM6jdLaHV8O6GLPF",
+          "name": "SSH localhost"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const j = $('Parse Triage').first().json;\nreturn { json: { status: 'skipped', fit_score: j.fit_score, rationale: j.rationale || '', company: j.company || '', job_title: j.job_title || '', usage_triage: j.usage_triage || {} } };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2740,
         -220
       ],
       "id": "058a1df5-ffbd-4019-aaa7-b26a24260807",
@@ -459,7 +523,7 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        2500,
+        2980,
         -220
       ],
       "id": "8be89047-f11a-40f3-868e-9837fdc25b08",
@@ -1378,13 +1442,13 @@
     },
     {
       "parameters": {
-        "jsCode": "const page = $json;\nconst page_id = String(page.id || page.pageId || '').replace(/-/g, '').toLowerCase();\nconst url = $('Secret IDs').first().json.url || '';\nreturn { json: {\n  status: 'duplicate',\n  page_id: page_id,\n  url: url,\n  message: 'Already filed. Click Continue Phase 2 to generate from Candidate Answers.'\n} };\n"
+        "jsCode": "const page = $('Search Job URL').first().json;\nconst page_id = String(page.id || page.pageId || '').replace(/-/g, '').toLowerCase();\nconst url = $('Secret IDs').first().json.url || '';\nreturn { json: {\n  status: 'duplicate',\n  page_id: page_id,\n  url: url,\n  message: 'Already filed. Click Continue Phase 2 to generate from Candidate Answers.'\n} };"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        580,
-        -272
+        1060,
+        -220
       ],
       "id": "c9b66e64-cc20-4f45-91e9-04bc8f411fb4",
       "name": "Pack Duplicate Response"
@@ -1456,7 +1520,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const TEXT_RULES = `# Writing rules\nFacts and named tools, employers, and metrics come only from the CV and Candidate Answers. No lesson, no \"this highlights\", no closer that repeats the bullet.\nVary sentence length in the same section: some under 8 words, some over 22. Do not target 10-15 words or a Flesch grade.\nDo not copy 5 or more words in a row from the job description or a company about-page. A keyword may appear only as a single tool or skill name already in the CV.\nDo not start neighboring bullets with the same verb.`;\nfunction documentBody(tex) {\n  const s = String(tex || '');\n  const marker = '\\\\begin{document}';\n  const begin = s.indexOf(marker);\n  const endMarker = '\\\\end{document}';\n  const end = s.lastIndexOf(endMarker);\n  if (begin === -1) return s.trim();\n  const start = begin + marker.length;\n  if (end === -1 || end < start) return s.slice(start).trim();\n  return s.slice(start, end).trim();\n}\nfunction letterTemplate(tex) {\n  const s = String(tex || '');\n  const a = '% LETTER_BODY';\n  const b = '% END_LETTER_BODY';\n  const i = s.indexOf(a);\n  const j = s.indexOf(b);\n  if (i === -1 || j === -1 || j < i) return s.trim();\n  return s.slice(i + a.length, j).trim();\n}\nconst run = $('Merge Run State').first().json;\nconst cvRaw = String($('Read Patched CV').first().json.stdout || $('Read Patched CV').first().json.data || '');\nif (!cvRaw.trim()) throw new Error('patched CV empty');\nconst story = String($('Read Storytelling').first().json.stdout || $('Read Storytelling').first().json.data || '');\nif (!story.trim()) throw new Error('storytelling.md empty');\nconst masterLetter = String($json.stdout || $json.data || '');\nconst template = letterTemplate(masterLetter);\nif (!template) throw new Error('master_letter.tex has no LETTER_BODY');\nconst audit = [\n  'Critical missing keywords: ' + (run.critical_missing_keywords || []).join('; '),\n  'Impact alignment: ' + (run.impact_alignment || []).join('; '),\n  'Strategic positioning: ' + (run.strategic_positioning || ''),\n  'Questions asked: ' + (run.questions || []).join('; ')\n].join('\\n');\nconst phase3_user = [\n  'MASTER LETTER BODY (structure template — keep this LaTeX skeleton; replace company, role, and proof with THIS job):',\n  template,\n  '',\n  'STORYTELLING GUIDELINES:',\n  story,\n  '',\n  'REWRITE RULES:',\n  '- Same four blocks: hook, company bridge, three themed itemize bullets, close.',\n  '- Keep \\\\noindent and \\\\vspace{8pt}. Keep exactly three \\\\item \\\\textbf{Theme:} bullets.',\n  '- Hook and theme labels use the candidate's wording, with proof from the patched CV. Do not invent childhood. Do not quote the company mission or copy JD headings.',\n  '- Do not reuse the template company, role, or location.',\n  '',\n  'COMPANY: ' + (run.company || ''),\n  'ROLE: ' + (run.job_title || ''),\n  'LOCATION: ' + (run.location || ''),\n  '',\n  'PATCHED CV DOCUMENT BODY:',\n  documentBody(cvRaw),\n  '',\n  'JOB DESCRIPTION:',\n  run.clean_md || '',\n  '',\n  'PHASE 1 AUDIT:',\n  audit,\n  '',\n  'CANDIDATE ANSWERS (answers; may be empty):',\n  run.candidate_context || '(none)',\n  '',\n  TEXT_RULES,\n  'OUTPUT FORMAT: the JSON-only output required by the system prompt overrides any output rule above.'\n].join('\\n');\nreturn { json: Object.assign({}, run, {\n  cv_path: run.cv_path || '',\n  phase3_user: phase3_user\n}) };\n"
+        "jsCode": "const TEXT_RULES = `# Writing rules\nFacts and named tools, employers, and metrics come only from the CV and Candidate Answers. No lesson, no \"this highlights\", no closer that repeats the bullet.\nVary sentence length in the same section: some under 8 words, some over 22. Do not target 10-15 words or a Flesch grade.\nDo not copy 5 or more words in a row from the job description or a company about-page. A keyword may appear only as a single tool or skill name already in the CV.\nDo not start neighboring bullets with the same verb.`;\nfunction documentBody(tex) {\n  const s = String(tex || '');\n  const marker = '\\\\begin{document}';\n  const begin = s.indexOf(marker);\n  const endMarker = '\\\\end{document}';\n  const end = s.lastIndexOf(endMarker);\n  if (begin === -1) return s.trim();\n  const start = begin + marker.length;\n  if (end === -1 || end < start) return s.slice(start).trim();\n  return s.slice(start, end).trim();\n}\nfunction letterTemplate(tex) {\n  const s = String(tex || '');\n  const a = '% LETTER_BODY';\n  const b = '% END_LETTER_BODY';\n  const i = s.indexOf(a);\n  const j = s.indexOf(b);\n  if (i === -1 || j === -1 || j < i) return s.trim();\n  return s.slice(i + a.length, j).trim();\n}\nconst run = $('Merge Run State').first().json;\nconst cvRaw = String($('Read Patched CV').first().json.stdout || $('Read Patched CV').first().json.data || '');\nif (!cvRaw.trim()) throw new Error('patched CV empty');\nconst story = String($('Read Storytelling').first().json.stdout || $('Read Storytelling').first().json.data || '');\nif (!story.trim()) throw new Error('storytelling.md empty');\nconst masterLetter = String($json.stdout || $json.data || '');\nconst template = letterTemplate(masterLetter);\nif (!template) throw new Error('master_letter.tex has no LETTER_BODY');\nconst audit = [\n  'Critical missing keywords: ' + (run.critical_missing_keywords || []).join('; '),\n  'Impact alignment: ' + (run.impact_alignment || []).join('; '),\n  'Strategic positioning: ' + (run.strategic_positioning || ''),\n  'Questions asked: ' + (run.questions || []).join('; ')\n].join('\\n');\nconst phase3_user = [\n  'MASTER LETTER BODY (structure template — keep this LaTeX skeleton; replace company, role, and proof with THIS job):',\n  template,\n  '',\n  'STORYTELLING GUIDELINES:',\n  story,\n  '',\n  'REWRITE RULES:',\n  '- Same four blocks: hook, company bridge, three themed itemize bullets, close.',\n  '- Keep \\\\noindent and \\\\vspace{8pt}. Keep exactly three \\\\item \\\\textbf{Theme:} bullets.',\n  '- Hook and theme labels use the candidate\\'s wording, with proof from the patched CV. Do not invent childhood. Do not quote the company mission or copy JD headings.',\n  '- Do not reuse the template company, role, or location.',\n  '',\n  'COMPANY: ' + (run.company || ''),\n  'ROLE: ' + (run.job_title || ''),\n  'LOCATION: ' + (run.location || ''),\n  '',\n  'PATCHED CV DOCUMENT BODY:',\n  documentBody(cvRaw),\n  '',\n  'JOB DESCRIPTION:',\n  run.clean_md || '',\n  '',\n  'PHASE 1 AUDIT:',\n  audit,\n  '',\n  'CANDIDATE ANSWERS (answers; may be empty):',\n  run.candidate_context || '(none)',\n  '',\n  TEXT_RULES,\n  'OUTPUT FORMAT: the JSON-only output required by the system prompt overrides any output rule above.'\n].join('\\n');\nreturn { json: Object.assign({}, run, {\n  cv_path: run.cv_path || '',\n  phase3_user: phase3_user\n}) };\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1872,7 +1936,7 @@
       "main": [
         [
           {
-            "node": "Pack Duplicate Response",
+            "node": "Pack Duplicate Run",
             "type": "main",
             "index": 0
           }
@@ -1963,7 +2027,7 @@
       "main": [
         [
           {
-            "node": "Pack Skip Response",
+            "node": "Pack Skip Run",
             "type": "main",
             "index": 0
           }
@@ -2560,6 +2624,50 @@
         [
           {
             "node": "Build Phase 3 Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pack Skip Run": {
+      "main": [
+        [
+          {
+            "node": "Persist Skip Run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Persist Skip Run": {
+      "main": [
+        [
+          {
+            "node": "Pack Skip Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pack Duplicate Run": {
+      "main": [
+        [
+          {
+            "node": "Persist Duplicate Run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Persist Duplicate Run": {
+      "main": [
+        [
+          {
+            "node": "Pack Duplicate Response",
             "type": "main",
             "index": 0
           }
