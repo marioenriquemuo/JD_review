@@ -70,9 +70,21 @@ TITLE_RES = tuple(
         r"\bdigital agency\b",
         r"\bdigital production\b",
         r"\bworkflow (consultant|automation)\b",
+        r"\bmarketing workflow\b",
         r"\bfractional\b.{0,40}\b(media|marketing|ad)\b",
         r"\b(cac|ltv)\b",
         r"\btraffic manager\b",
+        r"\bmedia implementation\b",
+        r"\binsights operations\b",
+        r"\bmarketing bi\b",
+        r"\bconversion rate optimization\b",
+        r"\bcro\b.{0,20}\boperations\b",
+        r"\bgrowth marketing (manager|director|lead)\b",
+        r"\bretention operations\b",
+        r"\bmedia planning (manager|director|lead)\b",
+        r"\bmedia strategy\b.{0,30}\boperations\b",
+        r"\bmedia buyer\b",
+        r"\bmarketing infrastructure\b",
     )
 )
 KEEP_RE = re.compile(
@@ -456,7 +468,17 @@ def workable_location(location):
 def workable_jobs(board):
     rows = []
     seen = set()
-    queries = ("marketing operations", "media operations", "ad operations")
+    queries = (
+        "marketing operations",
+        "media operations",
+        "ad operations",
+        "campaign delivery",
+        "marketing analytics",
+        "paid media",
+        "growth marketing",
+        "media planning",
+        "marketing workflow",
+    )
     for query in queries:
         token = ""
         # ponytail: 3 pages per query, raise if a search is still paging
@@ -553,7 +575,7 @@ def wwr_jobs(board):
 def remotive_jobs(board):
     rows = []
     seen = set()
-    for term in ("marketing", "operations"):
+    for term in ("marketing", "operations", "media"):
         data = get_json("https://remotive.com/api/remote-jobs?" + urllib.parse.urlencode({"search": term}))
         jobs = data.get("jobs") if isinstance(data, dict) else None
         if not isinstance(jobs, list):
@@ -762,6 +784,17 @@ def check():
         "MOps Lead",
         "Regional Analytics Manager",
         "Traffic Manager Advertising",
+        "Media Implementation Manager",
+        "Marketing Workflow & Process Optimization Manager",
+        "Reporting & Insights Operations Lead",
+        "Marketing BI & Data Governance Manager",
+        "Conversion Rate Optimization (CRO) Operations Manager",
+        "Growth Marketing Manager",
+        "Acquisition & Retention Operations Lead",
+        "Full-Funnel Media Planning Manager",
+        "Media Strategy & Operations Lead",
+        "Senior Media Buyer",
+        "Remote Marketing Infrastructure Consultant",
     )
     missed = [title for title in targets if not title_ok(title)]
     assert not missed, missed
@@ -772,6 +805,8 @@ def check():
         "Financial Reporting Manager",
         "Quality Assurance Engineer",
         "Operations Lead",
+        "Associate, Growth Marketing",
+        "Programmatic Operations Manager",
         "Data Engineer",
     ):
         assert not title_ok(title), title
