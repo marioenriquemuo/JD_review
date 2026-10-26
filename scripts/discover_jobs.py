@@ -57,7 +57,8 @@ TITLE_RES = tuple(
         r"\b(manager|director|lead) of analytics\b",
         r"\bdigital analytics\b",
         r"\bmarketing effectiveness\b",
-        r"\bmeasurement\b",
+        r"\bmeasurement\b.{0,40}\b(?:operations|marketing)\b",
+        r"\b(?:operations|marketing)\b.{0,40}\bmeasurement\b",
         r"\battribution\b",
         r"\bmarketing reporting\b",
         r"\bdata operations\b",
@@ -79,11 +80,13 @@ TITLE_RES = tuple(
         r"\bmarketing bi\b",
         r"\bconversion rate optimization\b",
         r"\bcro\b.{0,20}\boperations\b",
-        r"\bgrowth marketing (manager|director|lead)\b",
+        r"\bgrowth marketing\b.{0,40}\boperations\b",
+        r"\boperations\b.{0,40}\bgrowth marketing\b",
         r"\bretention operations\b",
         r"\bmedia planning (manager|director|lead)\b",
         r"\bmedia strategy\b.{0,30}\boperations\b",
-        r"\bmedia buyer\b",
+        r"\bmedia buyer\b.{0,40}\boperations\b",
+        r"\boperations\b.{0,40}\bmedia buyer\b",
         r"\bmarketing infrastructure\b",
     )
 )
@@ -646,17 +649,61 @@ def write_json(path, obj):
     tmp.replace(path)
 
 
-def write_report(rows, new_count, seen_count):
+def kept_blocks(text):
+    blocks = []
+    chunk = []
+    for line in text.splitlines():
+        if line.startswith("- "):
+            if chunk:
+                blocks.append("\n".join(chunk).rstrip())
+            chunk = [line]
+        elif chunk and line.strip():
+            chunk.append(line)
+        elif chunk and not line.strip():
+            blocks.append("\n".join(chunk).rstrip())
+            chunk = []
+    if chunk:
+        blocks.append("\n".join(chunk).rstrip())
+    return blocks
+
+
+def block_role_keys(blocks):
+    keys = set()
+    for block in blocks:
+        first = block.splitlines()[0]
+        match = re.search(r"\*\*(.+?)\*\*\s*\|\s*(.+)$", first)
+        if not match:
+            continue
+        title = re.sub(r"\s+", " ", match.group(1).strip().lower())
+        company = match.group(2).strip().lower()
+        keys.add((company, title))
+    return keys
+
+
+def block_urls(blocks):
+    urls = []
+    for block in blocks:
+        for line in block.splitlines():
+            stripped = line.strip()
+            if stripped.startswith("http"):
+                urls.append(stripped)
+    return urls
+
+
+def write_report(rows, new_count, seen_count, kept=()):
     lines = [
         "# Job discovery",
         "",
         f"New: {new_count}",
-        f"Shown: {len(rows)}",
+        f"Shown: {len(kept) + len(rows)}",
         f"Seen: {seen_count}",
         "",
     ]
-    if not rows:
+    if not kept and not rows:
         lines.append("No open title matches.")
+        lines.append("")
+    for block in kept:
+        lines.append(block)
         lines.append("")
     for row in rows:
         flag = "contractor" if row["contractor"] else "not-contractor"
@@ -673,14 +720,22 @@ def write_report(rows, new_count, seen_count):
     REPORT_PATH.write_text("\n".join(lines), encoding="utf-8")
 
 
-def fill_detail(job):
-    if job["ats"] == "greenhouse":
-        fill_greenhouse(job)
-    elif job["ats"] == "jazzhr":
-        fill_jazzhr(job)
+def fill_some(jobs, fill):
+    kept = []
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        futures = {pool.submit(fill, job): job for job in jobs}
+        for future in as_completed(futures):
+            job = futures[future]
+            try:
+                future.result()
+            except (urllib.error.URLError, RuntimeError, json.JSONDecodeError, TimeoutError, OSError) as exc:
+                print(f"skip {job['ats']} {job['url']}: {exc}", file=sys.stderr)
+                continue
+            kept.append(job)
+    return kept
 
 
-def match_rows(boards):
+def match_rows(boards, exclude=(), exclude_keys=()):
     found = []
     with ThreadPoolExecutor(max_workers=6) as pool:
         futures = {pool.submit(fetch_board, board): board for board in boards}
@@ -694,19 +749,11 @@ def match_rows(boards):
                 continue
             for job in jobs:
                 if title_ok(job["title"]) and job["url"]:
-                    found.append((label, job))
-    rows = []
-    with ThreadPoolExecutor(max_workers=6) as pool:
-        futures = {pool.submit(fill_detail, job): (label, job) for label, job in found}
-        for future in as_completed(futures):
-            label, job = futures[future]
-            try:
-                future.result()
-            except (urllib.error.URLError, RuntimeError, json.JSONDecodeError, TimeoutError, OSError) as exc:
-                print(f"skip {label} {job['url']}: {exc}", file=sys.stderr)
-                continue
-            job["contractor"] = contractor_flag(job["location"], job["text"])
-            rows.append(job)
+                    found.append(job)
+    # JazzHR list rows have no location. Rank needs the job page.
+    jazz = [job for job in found if job["ats"] == "jazzhr"]
+    rest = [job for job in found if job["ats"] != "jazzhr"]
+    rows = rest + fill_some(jazz, fill_jazzhr)
     deduped = []
     seen_urls = set()
     for row in rows:
@@ -714,13 +761,25 @@ def match_rows(boards):
             continue
         seen_urls.add(row["url"])
         deduped.append(row)
-    return select_rows(deduped)
+    if exclude or exclude_keys:
+        deduped = [
+            row for row in deduped
+            if row["url"] not in exclude and role_key(row) not in exclude_keys
+        ]
+    picked = select_rows(deduped)
+    # Greenhouse list already has location and date. Body is only for the 10 shown.
+    fill_some([job for job in picked if job["ats"] == "greenhouse"], fill_greenhouse)
+    for job in picked:
+        job["contractor"] = contractor_flag(job["location"], job["text"])
+    return picked
 
 
 def run():
     boards = load_json(BOARDS_PATH, "boards")
     seen = load_json(SEEN_PATH, "seen")
-    rows = match_rows(boards)
+    previous = REPORT_PATH.read_text(encoding="utf-8") if REPORT_PATH.exists() else ""
+    kept = kept_blocks(previous)
+    rows = match_rows(boards, set(block_urls(kept)), block_role_keys(kept))
     new_count = 0
     for row in rows:
         row["new"] = row["url"] not in seen
@@ -729,9 +788,9 @@ def run():
             seen[row["url"]] = posted
             new_count += 1
     write_json(SEEN_PATH, seen)
-    write_report(rows, new_count, len(seen))
+    write_report(rows, new_count, len(seen), kept)
     print(f"new: {new_count}")
-    print(f"shown: {len(rows)}")
+    print(f"shown: {len(kept) + len(rows)}")
     print(f"seen: {len(seen)}")
     print(f"report: {REPORT_PATH}")
 
@@ -789,11 +848,11 @@ def check():
         "Reporting & Insights Operations Lead",
         "Marketing BI & Data Governance Manager",
         "Conversion Rate Optimization (CRO) Operations Manager",
-        "Growth Marketing Manager",
+        "Growth Marketing Operations Manager",
         "Acquisition & Retention Operations Lead",
         "Full-Funnel Media Planning Manager",
         "Media Strategy & Operations Lead",
-        "Senior Media Buyer",
+        "Media Buyer Operations",
         "Remote Marketing Infrastructure Consultant",
     )
     missed = [title for title in targets if not title_ok(title)]
@@ -807,6 +866,11 @@ def check():
         "Operations Lead",
         "Associate, Growth Marketing",
         "Programmatic Operations Manager",
+        "Staff Product Manager, Ads Measurement",
+        "Senior Media Buyer",
+        "Senior Paid Social Media Buyer",
+        "Growth Marketing Manager",
+        "Senior Growth Marketing Manager - Home Services",
         "Data Engineer",
     ):
         assert not title_ok(title), title
@@ -910,6 +974,10 @@ def check():
         for i in range(12)
     ]
     assert len(select_rows(many)) == LIMIT
+    sample = "- already | x\n  Remote\n  https://example.com/a\n\n- NEW | y\n  https://example.com/b\n"
+    assert block_urls(kept_blocks(sample)) == ["https://example.com/a", "https://example.com/b"]
+    keyed = kept_blocks("- already | x | **Media Buyer Operations** | Acme\n  https://example.com/a\n")
+    assert block_role_keys(keyed) == {("acme", "media buyer operations")}
     print("check ok")
 
 
