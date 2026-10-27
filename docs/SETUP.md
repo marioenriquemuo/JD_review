@@ -93,7 +93,7 @@ In n8n: **Credentials → Notion API** → Internal integration token.
 
 Put IDs and the Claude key in `$PROJECT/secrets/notion_ids.json` (`applications_db_id`, `style_learnings_page_id`, `anthropic_api_key`; `master_cv_page_id` optional/unused). The workflow loads them at runtime via SSH (**Load Secret IDs**).
 
-Select the Notion credential on every Notion node. Select **SSH localhost** on Load Secret IDs / Distill Master CV / Persist Run State / Write Full Tex / Read Master Tex Resume.
+Select the Notion credential on every Notion node. Select **SSH localhost** on Load Secret IDs / Distill Master CV / Persist Run State / Write Full Tex / Read Master Tex Resume / Read Facts / Read Facts Resume.
 
 ---
 
@@ -193,6 +193,7 @@ After source changes: bump `version` in `firefox-extension/manifest.json`, re-si
 ## Checklist
 
 - [ ] `secrets/master_cv.tex` present; `distill_cv.py --verify-json` returns `"ok": true`
+- [ ] `secrets/facts.md` present and non-empty (Phase 1 and Phase 2 refuse to run without it)
 - [ ] For letters: `secrets/master_letter.tex` (`% LETTER_BODY` markers) and `secrets/storytelling.md`
 - [ ] Master CV `.tex` has separate EDUCATION / CERTIFICATIONS / LANGUAGES / SKILLS
 - [ ] `pdftotext` of the compiled PDF shows those four headings and `Effective` / `Certificate` / `Proficient`

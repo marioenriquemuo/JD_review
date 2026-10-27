@@ -418,8 +418,9 @@ The URL was already in Notion.
 1. Open the job posting tab.
 2. **Send job to n8n**.
 3. If **Needs Context**:
-   - Answer in Notion **Candidate Answers** (short, factual, no exaggeration).
-   - Click **Continue Phase 2**.
+   - If Candidate notes say `- none`, the fact card already covers the JD. Continue when you want the CV.
+   - Otherwise answer only the new gaps in **Candidate Answers** (short, factual, no exaggeration).
+   - Click **Continue Phase 2** on one row.
 4. Compile the Downloads `_CV.tex` to PDF (`pdflatex`). Upload that PDF to the job site, not the `.tex`.
 5. Optional: **Write cover letter** — first set Notion Status to **Write Cover Letter** on that one row, then click the button. Compile `_CoverLetter.tex`.
 6. Review before applying. You are still responsible for accuracy. Confirm Education and Certifications auto-filled; field-of-study may still need a small manual tweak.
@@ -437,10 +438,12 @@ The URL was already in Notion.
 
 ## Where your answers go
 
-- **Candidate notes** = questions written by the AI (you can leave them).
-- **Candidate Answers** = **your** replies. This is what Phase 2 reads.
+- **Candidate notes** = questions still missing after `secrets/facts.md`. `- none` means nothing new.
+- **Candidate Answers** = facts for this job only. Phase 2 also reads `secrets/facts.md`.
+- Lines under **Never claim** in that file stay off the CV.
+- After one coordinator CV is in Downloads, `python3 scripts/stamp_cv.py ~/Downloads/<source>_CV.tex` writes the other three Operator Equity titles. Notion status does not change.
 
-Empty answers are allowed, but then the CV can only use facts already in the master CV.
+Empty answers are allowed. The CV can then use the master CV and the fact card only.
 
 ---
 

@@ -16,7 +16,8 @@ flowchart TB
         G["Notion: Log Skipped"]
         RS["Respond skipped"]
         STY["Notion: Get Style Learnings"]
-        P1["Claude Haiku<br/>Phase 1 audit"]
+        RF["SSH: cat secrets/facts.md"]
+        P1["Claude Haiku<br/>Phase 1 audit<br/>0 to 5 new questions"]
         NC["Notion: Needs Context<br/>+ Candidate notes questions"]
         PR["SSH: Persist run JSON"]
         RN["Respond needs_context"]
@@ -27,6 +28,7 @@ flowchart TB
         LR["Load run JSON"]
         WL{"write_letter?"}
         NUM["SSH: assemble_tex --number"]
+        RF2["SSH: cat secrets/facts.md"]
         P2["Claude Sonnet<br/>Phase 2 latex_cv_patches"]
         W["SSH: assemble_tex --cv-only"]
         PS["Persist patches + cv_path"]
@@ -44,6 +46,7 @@ flowchart TB
  subgraph Secrets["Local secrets/ gitignored"]
         SID["notion_ids.json"]
         TEX["master_cv.tex"]
+        FACTS["facts.md"]
         LET["master_letter.tex"]
         STYMD["storytelling.md"]
         RUNS["runs/{page_id}.json"]
@@ -69,7 +72,9 @@ flowchart TB
     G --> RS
     RS --> B
     F -- YES --> STY
-    STY --> P1
+    STY --> RF
+    FACTS --> RF
+    RF --> P1
     P1 --> NC
     NC --> PR
     PR --> RUNS
@@ -83,7 +88,9 @@ flowchart TB
     LR --> WL
     WL -- false --> NUM
     TEX --> NUM
-    NUM --> P2
+    NUM --> RF2
+    FACTS --> RF2
+    RF2 --> P2
     P2 --> W
     TEX --> W
     W --> PS

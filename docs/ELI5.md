@@ -22,8 +22,8 @@ Imagine a post office:
 4. **Notion search** = “Did we already file this exact job URL?” If yes, stop. Costs nothing.
 5. **Haiku** = cheap intern who scores fit 0–100.
 6. **If score &lt; 70** = **Skipped**. Popup says skipped.
-7. **If score ≥ 70** = **Haiku Phase 1** audits gaps and asks you questions → Notion **Needs Context**.
-8. **You** fill **Candidate Answers**, then click **Continue Phase 2**.
+7. **If score ≥ 70** = **Haiku Phase 1** reads `secrets/facts.md` and asks only gaps that are not already there (zero to five). Notion **Needs Context**. `- none` means you have nothing new to type.
+8. **You** fill **Candidate Answers** for this job only, then click **Continue Phase 2** on one row.
 9. **Sonnet Phase 2** returns line patches; Python writes the CV `.tex`. Continue stays CV-only.
 10. File lands in **Downloads**. Notion becomes **Ready to Apply** with a LaTeX CV preview.
 11. Optional: **Write cover letter** → Sonnet letter body → Python splices `master_letter.tex` → Downloads `_CoverLetter.tex`.
@@ -153,15 +153,17 @@ Read left to right.
 | Log Skipped | New Notion row, Status = Skipped. |
 | Get Style Learnings | Downloads style rules (only if fit is high). |
 | Flatten Style | One `style_rules` string. |
-| Build Phase 1 Prompt | Derived CV markdown + JD + style. |
-| Haiku Phase 1 | Gap audit + questions JSON. |
+| Read Facts | SSH. `cat secrets/facts.md`. Empty or missing file stops the run. |
+| Build Phase 1 Prompt | Derived CV markdown + fact card + JD + style. |
+| Haiku Phase 1 | Gap audit. Questions JSON may be empty. |
 | Create Needs Context | New Notion row, Status = Needs Context. |
 | Persist Run State | Saves Phase 1 JSON under `secrets/runs/`. |
 | Webhook Resume | Continue Phase 2 or **Write cover letter** (`write_letter: true`). |
 | Letter by Status? | Letter click searches Status = Write Cover Letter (exactly one row). |
 | Write Letter? | After Merge Run State: false = Phase 2 CV; true = Phase 3 letter (no P2 rerun). |
 | Read Master Tex Resume | `assemble_tex.py --number --cap 0`. |
-| Sonnet Phase 2 | Returns `latex_cv_patches` only. |
+| Read Facts Resume | SSH. Same `secrets/facts.md` for Phase 2. |
+| Sonnet Phase 2 | Returns `latex_cv_patches` only. Uses the fact card and this row's answers. |
 | Write Full Tex | `assemble_tex.py --cv-only` (patches + repair itemize) → Downloads. |
 | Persist Phase 2 Output | Merges `latex_cv_patches` + `cv_path` into the run JSON. |
 | Sonnet Phase 3 | Opt-in. Rewrites master letter body (hook, bridge, 3 themed bullets, close). |

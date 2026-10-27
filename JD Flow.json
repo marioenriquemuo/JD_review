@@ -594,7 +594,26 @@
     },
     {
       "parameters": {
-        "jsCode": "const style = $('Flatten Style').first().json;\nconst phase1_user = [\n  'MASTER CV:',\n  style.cv_md || '',\n  '',\n  'JOB DESCRIPTION:',\n  style.clean_md || '',\n  '',\n  'STYLE & LEARNINGS (tone only; do not invent facts):',\n  style.style_rules || ''\n].join('\\n');\nreturn { json: Object.assign({}, style, { phase1_user: phase1_user }) };"
+        "command": "test -s '/home/mario/dev/n8n-automation/secrets/facts.md' && cat '/home/mario/dev/n8n-automation/secrets/facts.md'"
+      },
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        2500,
+        160
+      ],
+      "id": "c4f1a0e2-7b11-4d6e-9a33-1f8e2b6c0d41",
+      "name": "Read Facts",
+      "credentials": {
+        "sshPassword": {
+          "id": "nM6jdLaHV8O6GLPF",
+          "name": "SSH localhost"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const style = $('Flatten Style').first().json;\nconst facts = String($('Read Facts').first().json.stdout || $('Read Facts').first().json.data || '').trim();\nif (!facts) throw new Error('secrets/facts.md is empty');\nconst phase1_user = [\n  'MASTER CV:',\n  style.cv_md || '',\n  '',\n  'FACTS (already answered; do not ask these again):',\n  facts,\n  '',\n  'JOB DESCRIPTION:',\n  style.clean_md || '',\n  '',\n  'STYLE & LEARNINGS (tone only; do not invent facts):',\n  style.style_rules || ''\n].join('\\n');\nreturn { json: Object.assign({}, style, { phase1_user: phase1_user, facts: facts }) };"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -629,7 +648,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: 'claude-haiku-4-5', max_tokens: 2000, system: \"You are an Executive Career Strategist and Expert ATS Auditor. PHASE 1 ONLY: Semantic Gap Analysis. Do not rewrite the CV. Do not write a cover letter. No arbitrary percentage scores. Conduct a rigorous Semantic Gap Analysis. Do not invent employers, dates, metrics, or skills absent from the MASTER CV. Reply with ONLY a JSON object, no markdown fences. Keys: critical_missing_keywords (array of strings: hard skills/software/methodologies in the JD but absent in the CV), impact_alignment (array of strings: places the CV lists tasks instead of quantifiable outcomes), strategic_positioning (string: how narrative aligns with seniority/scope of the role), questions (array of 3 to 8 short strings: concrete questions to ask the candidate so gaps can be filled honestly), salary_range (string: numbers from the JD, or a market range estimate), salary_flag (string: exactly 'extracted' if the JD listed pay, otherwise 'UNVERIFIED Estimate').\", messages: [{ role: 'user', content: $json.phase1_user }] }) }}",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-haiku-4-5', max_tokens: 2000, system: \"You are an Executive Career Strategist and Expert ATS Auditor. PHASE 1 ONLY: Semantic Gap Analysis. Do not rewrite the CV. Do not write a cover letter. No arbitrary percentage scores. Conduct a rigorous Semantic Gap Analysis. Do not invent employers, dates, metrics, or skills absent from the MASTER CV. Reply with ONLY a JSON object, no markdown fences. Keys: critical_missing_keywords (array of strings: hard skills/software/methodologies in the JD but absent in the CV), impact_alignment (array of strings: places the CV lists tasks instead of quantifiable outcomes), strategic_positioning (string: how narrative aligns with seniority/scope of the role), questions (array of 0 to 5 short strings: only facts absent from FACTS and the MASTER CV; empty array when nothing is missing), salary_range (string: numbers from the JD, or a market range estimate), salary_flag (string: exactly 'extracted' if the JD listed pay, otherwise 'UNVERIFIED Estimate').\", messages: [{ role: 'user', content: $json.phase1_user }] }) }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -950,7 +969,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const TEXT_RULES = `# Writing rules\nFacts and named tools, employers, and metrics come only from the CV and Candidate Answers. No lesson, no \"this highlights\", no closer that repeats the bullet.\nMost sentences 12-22 words. At least two sentences under 8 words. No sentence over 32 words.\nShort words, and the small ones (the, a, of, and, to, for). No coined metaphor.\nIt is fine to repeat \"I ran\" or \"at WPP\". Do not hunt for a new verb every sentence.\nDo not open a block with \"Here is how\".\nDo not copy 5 or more words in a row from the job description or a company about-page. A keyword may appear only as a single tool or skill name already in the CV.\nDo not start neighboring bullets with the same verb.`;\nconst key = String($('Resume Secrets').first().json.anthropic_api_key || '').trim();\nif (!key) throw new Error('anthropic_api_key missing after Load Secret IDs Resume. Check secrets/notion_ids.json and SSH on Load Secret IDs Resume.');\nconst run = $('Merge Run State').first().json;\nconst numbered = String($json.stdout || $json.data || '');\nif (!numbered.trim()) throw new Error('numbered master CV empty');\nconst audit = [\n  'Critical missing keywords: ' + (run.critical_missing_keywords || []).join('; '),\n  'Impact alignment: ' + (run.impact_alignment || []).join('; '),\n  'Strategic positioning: ' + (run.strategic_positioning || ''),\n  'Questions asked: ' + (run.questions || []).join('; ')\n].join('\\n');\nconst phase2_user = [\n  'NUMBERED MASTER LATEX CV (L001: labels only; do not copy them into latex):',\n  numbered,\n  '',\n  'JOB DESCRIPTION:',\n  run.clean_md || '',\n  '',\n  'PHASE 1 AUDIT:',\n  audit,\n  '',\n  'CANDIDATE ANSWERS (answers; may be empty):',\n  run.candidate_context || '(none)',\n  '',\n  'STYLE & LEARNINGS:',\n  run.style_rules || '',\n  '',\n  TEXT_RULES,\n  'OUTPUT FORMAT: return JSON only, as the system prompt requires. The writing rules above still apply to the prose.'\n].join('\\n');\nreturn { json: Object.assign({}, run, { numbered_tex: numbered, phase2_user: phase2_user }) };\n"
+        "jsCode": "const TEXT_RULES = `# Writing rules\nFacts and named tools, employers, and metrics come only from the CV, FACTS, and Candidate Answers. No lesson, no \"this highlights\", no closer that repeats the bullet.\nMost sentences 12-22 words. At least two sentences under 8 words. No sentence over 32 words.\nShort words, and the small ones (the, a, of, and, to, for). No coined metaphor.\nIt is fine to repeat \"I ran\" or \"at WPP\". Do not hunt for a new verb every sentence.\nDo not open a block with \"Here is how\".\nDo not copy 5 or more words in a row from the job description or a company about-page. A keyword may appear only as a single tool or skill name already in the CV.\nDo not start neighboring bullets with the same verb.\nThe header title line may repeat the target job title.`;\nconst key = String($('Resume Secrets').first().json.anthropic_api_key || '').trim();\nif (!key) throw new Error('anthropic_api_key missing after Load Secret IDs Resume. Check secrets/notion_ids.json and SSH on Load Secret IDs Resume.');\nconst run = $('Merge Run State').first().json;\nconst numbered = String($('Read Master Tex Resume').first().json.stdout || $('Read Master Tex Resume').first().json.data || '');\nif (!numbered.trim()) throw new Error('numbered master CV empty');\nconst facts = String($json.stdout || $json.data || '').trim();\nif (!facts) throw new Error('secrets/facts.md is empty');\nconst audit = [\n  'Critical missing keywords: ' + (run.critical_missing_keywords || []).join('; '),\n  'Impact alignment: ' + (run.impact_alignment || []).join('; '),\n  'Strategic positioning: ' + (run.strategic_positioning || ''),\n  'Questions asked: ' + (run.questions || []).join('; ')\n].join('\\n');\nconst phase2_user = [\n  'NUMBERED MASTER LATEX CV (L001: labels only; do not copy them into latex):',\n  numbered,\n  '',\n  'TARGET JOB TITLE:',\n  run.job_title || '',\n  '',\n  'JOB DESCRIPTION:',\n  run.clean_md || '',\n  '',\n  'PHASE 1 AUDIT:',\n  audit,\n  '',\n  'FACTS (use these; lines under Never claim must not appear on the CV):',\n  facts,\n  '',\n  'CANDIDATE ANSWERS (facts for this job only; may be empty):',\n  run.candidate_context || '(none)',\n  '',\n  'STYLE & LEARNINGS:',\n  run.style_rules || '',\n  '',\n  TEXT_RULES,\n  'OUTPUT FORMAT: return JSON only, as the system prompt requires. The writing rules above still apply to the prose.'\n].join('\\n');\nreturn { json: Object.assign({}, run, { numbered_tex: numbered, phase2_user: phase2_user }) };\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -985,7 +1004,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 4000, thinking: { type: 'disabled' }, system: \"You are an Executive Career Strategist. PHASE 2: Return line-range patches for the numbered MASTER LATEX CV. Integrate Candidate Answers and Phase 1 audit findings. Rewrite the candidate's own line in the same register. Do not paste a JD requirement into a bullet. Keep metrics already in the master CV. Edit summary text, experience bullet text, and bullet order only. Do not copy the preamble. Do not switch templates. Preserve EDUCATION, CERTIFICATIONS, LANGUAGES, and SKILLS as separate sections. Never merge them. Never turn education into nested bullets. Cert order may follow the JD; degree entries stay fixed. Do not lie. Do not include anything the candidate has not explicitly said. Only use the MASTER LATEX CV and Candidate Answers. If Candidate Answers are empty, rewrite/reorder using only facts already in the master CV to better match JD keywords that are already evidenced \\u2014 never invent. Output ONLY a JSON object, no markdown fences. Keys: latex_cv_patches (array of {start_line integer, end_line integer, latex string}). start_line/end_line match the L000 labels. Do not include the L000 prefix in latex. Escape LaTeX special characters ($, &, %, #, _).\", messages: [{ role: 'user', content: $json.phase2_user }] }) }}",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 4000, thinking: { type: 'disabled' }, system: \"You are an Executive Career Strategist. PHASE 2: Return line-range patches for the numbered MASTER LATEX CV. Integrate Candidate Answers and Phase 1 audit findings. Rewrite the candidate's own line in the same register. Do not paste a JD requirement into a bullet. Keep metrics already in the master CV. Edit the bold header title line under the name, summary text, experience bullet text, and bullet order only. Always patch that header title line so it matches the target job title, using only roles and domains already in the CV. Do not invent seniority or a function. Do not change the name or contact line. The bold role that opens the professional summary must match the new header title. Do not copy the preamble. Do not switch templates. Preserve EDUCATION, CERTIFICATIONS, LANGUAGES, and SKILLS as separate sections. Never merge them. Never turn education into nested bullets. Cert order may follow the JD; degree entries stay fixed. Do not lie. Do not include anything the candidate has not explicitly said. Only use the MASTER LATEX CV, FACTS, and Candidate Answers. A line under Never claim must not appear on the CV, even if the job description asks for it. If Candidate Answers are empty, rewrite/reorder using only facts already in the master CV and FACTS to better match JD keywords that are already evidenced \\u2014 never invent. Output ONLY a JSON object, no markdown fences. Keys: latex_cv_patches (array of {start_line integer, end_line integer, latex string}). start_line/end_line match the L000 labels. Do not include the L000 prefix in latex. Escape LaTeX special characters ($, &, %, #, _).\", messages: [{ role: 'user', content: $json.phase2_user }] }) }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -1191,7 +1210,7 @@
     },
     {
       "parameters": {
-        "content": "# JD Flow (Phase 1–2 + opt-in letter)\n\n**Ingest:** POST /webhook/job-ingest → Needs Context\n**Resume:** Extension **Continue Phase 2** → POST /webhook/job-resume\n  (looks up Job URL, reads Candidate Answers, writes patched CV)\n**Letter:** set Notion Status = Write Cover Letter, then **Write cover letter**\n  (same webhook, write_letter: true — finds that row, does not re-run Phase 2)\n\nMaster CV: secrets/master_cv.tex only (runtime distill).\nLetter: secrets/master_letter.tex + secrets/storytelling.md\nPython updates Date/To/Company/Location/Position.\nNotion: Candidate notes = questions; Candidate Answers = your replies.\n",
+        "content": "# JD Flow (Phase 1–2 + opt-in letter)\n\n**Ingest:** POST /webhook/job-ingest → Needs Context\n**Resume:** Extension **Continue Phase 2** → POST /webhook/job-resume\n  (looks up Job URL, reads Candidate Answers, writes patched CV)\n**Letter:** set Notion Status = Write Cover Letter, then **Write cover letter**\n  (same webhook, write_letter: true — finds that row, does not re-run Phase 2)\n\nMaster CV: secrets/master_cv.tex only (runtime distill).\nFacts: secrets/facts.md (answered facts + Never claim). Missing file stops Phase 1 and Phase 2.\nLetter: secrets/master_letter.tex + secrets/storytelling.md\nPython updates Date/To/Company/Location/Position.\nNotion: Candidate notes = questions still missing; Candidate Answers = this job only.\nStamp: python3 scripts/stamp_cv.py on one coordinator CV. No Notion write.\n",
         "height": 460,
         "width": 380
       },
@@ -1216,6 +1235,25 @@
       ],
       "id": "9daedfc0-ffb1-4928-8142-621a2dad333e",
       "name": "Read Master Tex Resume",
+      "credentials": {
+        "sshPassword": {
+          "id": "nM6jdLaHV8O6GLPF",
+          "name": "SSH localhost"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "test -s '/home/mario/dev/n8n-automation/secrets/facts.md' && cat '/home/mario/dev/n8n-automation/secrets/facts.md'"
+      },
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        880,
+        520
+      ],
+      "id": "a7e2c91d-4c55-4f18-b6d0-8e3a1c5b7f22",
+      "name": "Read Facts Resume",
       "credentials": {
         "sshPassword": {
           "id": "nM6jdLaHV8O6GLPF",
@@ -2060,6 +2098,17 @@
       "main": [
         [
           {
+            "node": "Read Facts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Facts": {
+      "main": [
+        [
+          {
             "node": "Build Phase 1 Prompt",
             "type": "main",
             "index": 0
@@ -2299,6 +2348,17 @@
       ]
     },
     "Read Master Tex Resume": {
+      "main": [
+        [
+          {
+            "node": "Read Facts Resume",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Facts Resume": {
       "main": [
         [
           {
