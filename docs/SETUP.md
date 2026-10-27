@@ -142,7 +142,7 @@ Extension **Options**. Set webhook URL:
 - Active workflow: `http://localhost:5678/webhook/job-ingest`
 - Testing in editor: `http://localhost:5678/webhook-test/job-ingest`
 
-Then: open a job posting → click the extension → **Send job to n8n**.  
+Then: open a job posting → click the extension → **Send job to n8n**. The popup has no Find jobs button. The morning list is `python3 scripts/discover_jobs.py`, then `python3 scripts/ingest_new_jobs.py` (NEW unfiled rows only, stops at questions).  
 Popup shows `Scoring…` then `Skipped…` / `Already filed…` / `Needs Context…`.
 
 To allow a non-localhost n8n URL, add it to `host_permissions` in the browser’s `manifest.json` and reload/re-sign the extension.
@@ -204,4 +204,5 @@ After source changes: bump `version` in `firefox-extension/manifest.json`, re-si
 - [ ] Applications DB + Style & Learnings shared with the integration
 - [ ] Import latest `JD Flow.json`; Notion + SSH credentials attached
 - [ ] Workflow **Active**; extension uses `/webhook/job-ingest`
+- [ ] Morning list: `python3 scripts/discover_jobs.py` then `python3 scripts/ingest_new_jobs.py`
 - [ ] Chrome **or** Firefox extension installed; reload / re-sign after updates

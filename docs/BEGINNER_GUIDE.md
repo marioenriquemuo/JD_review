@@ -413,6 +413,17 @@ The URL was already in Notion.
 
 # Part C — Everyday operating instructions
 
+## Morning list
+
+There is no Find jobs button. From the project folder:
+
+```text
+python3 scripts/discover_jobs.py
+python3 scripts/ingest_new_jobs.py
+```
+
+The first command appends open roles to `secrets/discovery_latest.md`. The second posts only rows marked **NEW** that are not already in `secrets/discovery_filed.json` to `/webhook/job-ingest`. It stops at Needs Context. It does not start Phase 2.
+
 ## Recommended routine for each job
 
 1. Open the job posting tab.

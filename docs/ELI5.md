@@ -30,6 +30,8 @@ Imagine a post office:
 
 You click → Notion asks questions → you answer → Downloads gets real tailored `.tex` files.
 
+The morning list is not a button. `python3 scripts/discover_jobs.py` writes the list. `python3 scripts/ingest_new_jobs.py` sends only new unfiled rows into the first flow and stops at questions.
+
 ---
 
 ## Two n8n “doors” (important)

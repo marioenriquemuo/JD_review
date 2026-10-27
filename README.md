@@ -51,6 +51,12 @@ Optional, no Claude: `python3 scripts/stamp_cv.py ~/Downloads/<source>_CV.tex`
   copies that file onto the other three Operator Equity coordinator titles
   (header line only). It does not change Notion.
 
+Morning list, no extension button:
+  python3 scripts/discover_jobs.py
+  python3 scripts/ingest_new_jobs.py
+  posts each NEW row that is not in secrets/discovery_filed.json to /webhook/job-ingest.
+  It does not start Phase 2. Rows already marked already are left alone.
+
 Optional: set Notion Status to **Write Cover Letter** (exactly one row) → extension **Write cover letter**
   → POST /webhook/job-resume { write_letter: true }  (finds that row; does not re-run Phase 2)
   → cat patched CV + storytelling.md → Sonnet Phase 3 (Hook / Mechanism / Bridge / Proof / Close)
@@ -114,6 +120,7 @@ Title property: **Job Title**.
 | [`scripts/extract_pdf.py`](scripts/extract_pdf.py) | PDF bytes → `{ url, clean_md }` only |
 | [`scripts/assemble_tex.py`](scripts/assemble_tex.py) | `--cv-only` / `--letter-only` / `--number` / patch apply / repair itemize |
 | [`scripts/stamp_cv.py`](scripts/stamp_cv.py) | Copy one coordinator CV onto the other three Operator Equity titles |
+| [`scripts/ingest_new_jobs.py`](scripts/ingest_new_jobs.py) | POST NEW unfiled discovery rows to `/webhook/job-ingest` only |
 | [`scripts/distill_cv.py`](scripts/distill_cv.py) | Runtime `--verify-json` markdown + fact gate |
 | [`scripts/persist_run.py`](scripts/persist_run.py) | Save/load run JSON (`--write` merges onto existing) |
 | [`scripts/load_secret_ids.py`](scripts/load_secret_ids.py) | Print IDs + Claude key |
