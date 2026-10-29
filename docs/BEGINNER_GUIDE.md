@@ -431,8 +431,13 @@ The first command appends open board roles to `secrets/discovery_latest.md`. **M
 2. **Send job to n8n**.
 3. If **Needs Context**:
    - If Candidate notes say `- none`, the fact card already covers the JD. Continue when you want the CV.
-   - Otherwise answer only the new gaps in **Candidate Answers** (short, factual, no exaggeration).
-   - Click **Continue Phase 2** on one row.
+   - Otherwise run from the project folder (fills **Candidate Answers** from `secrets/facts.md`, asks only true gaps in the terminal, appends new facts, sets **Proceed Phase 2**; does not start Phase 2):
+
+     ```text
+     python3 scripts/answer_candidates.py
+     ```
+
+   - Leave **exactly one** row on **Proceed Phase 2**, then click **Continue Phase 2**.
 4. Compile the Downloads `_CV.tex` to PDF (`pdflatex`). Upload that PDF to the job site, not the `.tex`.
 5. Optional: **Write cover letter** — first set Notion Status to **Write Cover Letter** on that one row, then click the button. Compile `_CoverLetter.tex`.
 6. Review before applying. You are still responsible for accuracy. Confirm Education and Certifications auto-filled; field-of-study may still need a small manual tweak.
