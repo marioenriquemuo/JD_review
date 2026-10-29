@@ -1,0 +1,563 @@
+{
+  "id": "mail-discover",
+  "name": "Mail Discover",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -896,
+        208
+      ],
+      "id": "c1a0b001-0001-4000-8000-000000000001",
+      "name": "Manual Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "returnAll": true,
+        "filters": {
+          "q": "is:unread newer_than:7d",
+          "readStatus": "unread",
+          "receivedAfter": "={{ $now.minus({ days: 7 }).toISO() }}"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -640,
+        0
+      ],
+      "id": "c1a0b001-0001-4000-8000-000000000002",
+      "name": "Gmail Unread",
+      "webhookId": "06f3f767-0049-4508-b911-92008ebb1bc0",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "RApwWA7vffQtgcyD",
+          "name": "Gmail account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "messageId": "={{ $json.id }}",
+        "simple": false,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -400,
+        0
+      ],
+      "id": "c1a0b001-0001-4000-8000-000000000003",
+      "name": "Gmail Message",
+      "webhookId": "48538279-8546-49b2-89e4-926b8faee38e",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "RApwWA7vffQtgcyD",
+          "name": "Gmail account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function fileFor(id) {\n  let a = 2166136261, b = 2166136261;\n  for (let i = 0; i < id.length; i++) {\n    const c = id.charCodeAt(i);\n    a ^= c; a = Math.imul(a, 16777619);\n    b ^= c; b = Math.imul(b, 2246822519);\n  }\n  return (a >>> 0).toString(16).padStart(8, '0') + (b >>> 0).toString(16).padStart(8, '0') + '.json';\n}\nfunction decode(data) {\n  const pad = String(data).replace(/-/g, '+').replace(/_/g, '/');\n  return Buffer.from(pad, 'base64').toString('utf8');\n}\nfunction htmlFrom(msg) {\n  if (msg.html) return String(msg.html);\n  if (msg.textHtml) return String(msg.textHtml);\n  const chunks = [];\n  function walk(part) {\n    if (!part) return;\n    if (part.mimeType === 'text/html' && part.body && part.body.data) chunks.push(part.body.data);\n    (part.parts || []).forEach(walk);\n  }\n  walk(msg.payload || null);\n  if (!chunks.length && msg.payload && msg.payload.body && msg.payload.body.data) chunks.push(msg.payload.body.data);\n  if (chunks.length) return decode(chunks[0]);\n  return String(msg.text || msg.snippet || '');\n}\nfunction dateFrom(msg) {\n  if (msg.internalDate) return new Date(Number(msg.internalDate)).toISOString();\n  const headers = (msg.payload && msg.payload.headers) || [];\n  const row = headers.find((h) => String(h.name || '').toLowerCase() === 'date');\n  return row ? row.value : '';\n}\nconst msg = $input.item.json;\nconst id = String(msg.id || '');\nconst html = htmlFrom(msg);\nconst date = dateFrom(msg);\nfunction who(from) {\n  if (!from) return '';\n  if (typeof from === 'string') return from;\n  const addr = from.emailAddress || (from.value && from.value[0]) || from;\n  return String(addr.address || from.text || '');\n}\nconst payload = JSON.stringify({ id: id, box: 'gmail', html: html, date: date, subject: String(msg.subject || ''), from: who(msg.from) });\nconst file = fileFor(id);\nreturn { json: { id: id, box: 'gmail', file: file }, binary: { data: { data: Buffer.from(payload, 'utf8').toString('base64'), mimeType: 'application/json', fileName: file } } };\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        0
+      ],
+      "id": "c1a0b001-0001-4000-8000-000000000004",
+      "name": "Pack Gmail"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "path": "/home/mario/dev/n8n-automation/secrets/mail-drop/gmail",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        80,
+        0
+      ],
+      "id": "c1a0b001-0001-4000-8000-000000000016",
+      "name": "Drop Gmail",
+      "credentials": {
+        "sshPassword": {
+          "id": "rub2Wz5KAJFvIyea",
+          "name": "SSH Password account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "mkdir -p /home/mario/dev/n8n-automation/secrets/mail-drop/gmail && /home/mario/dev/n8n-automation/.venv/bin/python -u /home/mario/dev/n8n-automation/scripts/discover_mail.py --dir /home/mario/dev/n8n-automation/secrets/mail-drop/gmail"
+      },
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        304,
+        0
+      ],
+      "id": "c1a0b001-0001-4000-8000-000000000005",
+      "name": "Scan Gmail",
+      "executeOnce": true,
+      "credentials": {
+        "sshPassword": {
+          "id": "rub2Wz5KAJFvIyea",
+          "name": "SSH Password account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = String($json.stdout || '').trim();\nconst err = String($json.stderr || '').trim();\nif (Number($json.code || 0) !== 0) {\n  throw new Error('discover_mail.py exited ' + $json.code + ': ' + err.slice(-500));\n}\nif (!raw) {\n  if (err) throw new Error(err);\n  return [];\n}\nconst items = [];\nfor (const line of raw.split(/\\n/)) {\n  const trimmed = line.trim();\n  if (!trimmed) continue;\n  let parsed;\n  try {\n    parsed = JSON.parse(trimmed);\n  } catch (e) {\n    throw new Error(err || ('discover_mail.py returned no JSON. stdout=' + raw.slice(0, 200)));\n  }\n  items.push({\n    json: {\n      id: String(parsed.id || ''),\n      box: String(parsed.box || ''),\n      mark: parsed.mark === true,\n      added: Number(parsed.added || 0),\n    },\n  });\n}\nif (!items.length) {\n  throw new Error(err || ('discover_mail.py returned no JSON. stdout=' + raw.slice(0, 200)));\n}\nreturn items;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        240
+      ],
+      "id": "c1a0b001-0001-4000-8000-000000000006",
+      "name": "Read Gmail Scan"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "mark-is-true",
+              "leftValue": "={{ $json.mark }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        560,
+        0
+      ],
+      "id": "c1a0b001-0001-4000-8000-000000000007",
+      "name": "Gmail Job?"
+    },
+    {
+      "parameters": {
+        "operation": "markAsRead",
+        "messageId": "={{ $json.id }}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        800,
+        -80
+      ],
+      "id": "c1a0b001-0001-4000-8000-000000000008",
+      "name": "Mark Gmail Read",
+      "webhookId": "9b98eba4-ed42-4e4c-b594-2b2f6c6b4e9c",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "RApwWA7vffQtgcyD",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "returnAll": true,
+        "filtersUI": {
+          "values": {
+            "filters": {
+              "readStatus": "unread",
+              "receivedAfter": "={{ $now.minus({ days: 7 }).toISO() }}"
+            }
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        -640,
+        400
+      ],
+      "id": "c1a0b001-0001-4000-8000-000000000009",
+      "name": "Outlook Unread",
+      "webhookId": "f37e0b09-cc10-4a42-9007-f1e70243d3eb",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "AtD1euFwfN23R8Oo",
+          "name": "Microsoft Outlook account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "messageId": {
+          "mode": "id",
+          "value": "={{ $json.id }}"
+        },
+        "output": "raw",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        400
+      ],
+      "id": "c1a0b001-0001-4000-8000-000000000010",
+      "name": "Outlook Message",
+      "webhookId": "4c7afd44-1cb0-412a-8f2f-12d484fe2826",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "AtD1euFwfN23R8Oo",
+          "name": "Microsoft Outlook account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function fileFor(id) {\n  let a = 2166136261, b = 2166136261;\n  for (let i = 0; i < id.length; i++) {\n    const c = id.charCodeAt(i);\n    a ^= c; a = Math.imul(a, 16777619);\n    b ^= c; b = Math.imul(b, 2246822519);\n  }\n  return (a >>> 0).toString(16).padStart(8, '0') + (b >>> 0).toString(16).padStart(8, '0') + '.json';\n}\nconst msg = $input.item.json;\nconst id = String(msg.id || '');\nconst body = msg.body || {};\nconst html = String(body.content || msg.bodyPreview || '');\nconst date = String(msg.receivedDateTime || '');\nfunction who(from) {\n  if (!from) return '';\n  if (typeof from === 'string') return from;\n  const addr = from.emailAddress || (from.value && from.value[0]) || from;\n  return String(addr.address || from.text || '');\n}\nconst payload = JSON.stringify({ id: id, box: 'outlook', html: html, date: date, subject: String(msg.subject || ''), from: who(msg.from) });\nconst file = fileFor(id);\nreturn { json: { id: id, box: 'outlook', file: file }, binary: { data: { data: Buffer.from(payload, 'utf8').toString('base64'), mimeType: 'application/json', fileName: file } } };\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        400
+      ],
+      "id": "c1a0b001-0001-4000-8000-000000000011",
+      "name": "Pack Outlook"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "path": "/home/mario/dev/n8n-automation/secrets/mail-drop/outlook",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        80,
+        400
+      ],
+      "id": "c1a0b001-0001-4000-8000-000000000017",
+      "name": "Drop Outlook",
+      "credentials": {
+        "sshPassword": {
+          "id": "rub2Wz5KAJFvIyea",
+          "name": "SSH Password account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "mkdir -p /home/mario/dev/n8n-automation/secrets/mail-drop/outlook && /home/mario/dev/n8n-automation/.venv/bin/python -u /home/mario/dev/n8n-automation/scripts/discover_mail.py --dir /home/mario/dev/n8n-automation/secrets/mail-drop/outlook"
+      },
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        80,
+        608
+      ],
+      "id": "c1a0b001-0001-4000-8000-000000000012",
+      "name": "Scan Outlook",
+      "executeOnce": true,
+      "credentials": {
+        "sshPassword": {
+          "id": "rub2Wz5KAJFvIyea",
+          "name": "SSH Password account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = String($json.stdout || '').trim();\nconst err = String($json.stderr || '').trim();\nif (Number($json.code || 0) !== 0) {\n  throw new Error('discover_mail.py exited ' + $json.code + ': ' + err.slice(-500));\n}\nif (!raw) {\n  if (err) throw new Error(err);\n  return [];\n}\nconst items = [];\nfor (const line of raw.split(/\\n/)) {\n  const trimmed = line.trim();\n  if (!trimmed) continue;\n  let parsed;\n  try {\n    parsed = JSON.parse(trimmed);\n  } catch (e) {\n    throw new Error(err || ('discover_mail.py returned no JSON. stdout=' + raw.slice(0, 200)));\n  }\n  items.push({\n    json: {\n      id: String(parsed.id || ''),\n      box: String(parsed.box || ''),\n      mark: parsed.mark === true,\n      added: Number(parsed.added || 0),\n    },\n  });\n}\nif (!items.length) {\n  throw new Error(err || ('discover_mail.py returned no JSON. stdout=' + raw.slice(0, 200)));\n}\nreturn items;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        400
+      ],
+      "id": "c1a0b001-0001-4000-8000-000000000013",
+      "name": "Read Outlook Scan"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "mark-is-true",
+              "leftValue": "={{ $json.mark }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        560,
+        400
+      ],
+      "id": "c1a0b001-0001-4000-8000-000000000014",
+      "name": "Outlook Job?"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "messageId": {
+          "mode": "id",
+          "value": "={{ $json.id }}"
+        },
+        "updateFields": {
+          "isRead": true
+        }
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        800,
+        320
+      ],
+      "id": "c1a0b001-0001-4000-8000-000000000015",
+      "name": "Mark Outlook Read",
+      "webhookId": "1c624143-469b-4aa2-9312-f37592d80b15",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "AtD1euFwfN23R8Oo",
+          "name": "Microsoft Outlook account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Gmail Unread",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Outlook Unread",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Unread": {
+      "main": [
+        [
+          {
+            "node": "Gmail Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Message": {
+      "main": [
+        [
+          {
+            "node": "Pack Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pack Gmail": {
+      "main": [
+        [
+          {
+            "node": "Drop Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Drop Gmail": {
+      "main": [
+        [
+          {
+            "node": "Scan Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scan Gmail": {
+      "main": [
+        [
+          {
+            "node": "Read Gmail Scan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Gmail Scan": {
+      "main": [
+        [
+          {
+            "node": "Gmail Job?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Job?": {
+      "main": [
+        [
+          {
+            "node": "Mark Gmail Read",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Outlook Unread": {
+      "main": [
+        [
+          {
+            "node": "Outlook Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Outlook Message": {
+      "main": [
+        [
+          {
+            "node": "Pack Outlook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pack Outlook": {
+      "main": [
+        [
+          {
+            "node": "Drop Outlook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Drop Outlook": {
+      "main": [
+        [
+          {
+            "node": "Scan Outlook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scan Outlook": {
+      "main": [
+        [
+          {
+            "node": "Read Outlook Scan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Outlook Scan": {
+      "main": [
+        [
+          {
+            "node": "Outlook Job?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Outlook Job?": {
+      "main": [
+        [
+          {
+            "node": "Mark Outlook Read",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "active": false,
+  "versionId": "905417a5-badc-4ab4-bb4b-c0cad692f2c8",
+  "meta": {
+    "instanceId": "mail-discover-local"
+  }
+}

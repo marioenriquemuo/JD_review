@@ -53,8 +53,10 @@ Optional, no Claude: `python3 scripts/stamp_cv.py ~/Downloads/<source>_CV.tex`
 
 Morning list, no extension button:
   python3 scripts/discover_jobs.py
-  python3 scripts/ingest_new_jobs.py
-  posts each NEW row that is not in secrets/discovery_filed.json to /webhook/job-ingest.
+  # then Execute workflow on Mail Discover in n8n (unread Gmail/Outlook → discovery files only)
+  python3 scripts/ingest_new_jobs.py   # manual, after you accept the list
+  Mail Discover only updates secrets/discovery_*.* — it does not call job-ingest.
+  ingest posts each NEW row that is not in secrets/discovery_filed.json to /webhook/job-ingest.
   It does not start Phase 2. Rows already marked already are left alone.
 
 Optional: set Notion Status to **Write Cover Letter** (exactly one row) → extension **Write cover letter**
@@ -120,6 +122,7 @@ Title property: **Job Title**.
 | [`scripts/extract_pdf.py`](scripts/extract_pdf.py) | PDF bytes → `{ url, clean_md }` only |
 | [`scripts/assemble_tex.py`](scripts/assemble_tex.py) | `--cv-only` / `--letter-only` / `--number` / patch apply / repair itemize |
 | [`scripts/stamp_cv.py`](scripts/stamp_cv.py) | Copy one coordinator CV onto the other three Operator Equity titles |
+| [`scripts/discover_mail.py`](scripts/discover_mail.py) | Scan mail-drop JSON; append title matches to discovery files |
 | [`scripts/ingest_new_jobs.py`](scripts/ingest_new_jobs.py) | POST NEW unfiled discovery rows to `/webhook/job-ingest` only |
 | [`scripts/distill_cv.py`](scripts/distill_cv.py) | Runtime `--verify-json` markdown + fact gate |
 | [`scripts/persist_run.py`](scripts/persist_run.py) | Save/load run JSON (`--write` merges onto existing) |

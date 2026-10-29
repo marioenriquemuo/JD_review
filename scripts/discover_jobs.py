@@ -88,6 +88,27 @@ TITLE_RES = tuple(
         r"\bmedia buyer\b.{0,40}\boperations\b",
         r"\boperations\b.{0,40}\bmedia buyer\b",
         r"\bmarketing infrastructure\b",
+        # Spanish twins of the same title families
+        r"\boperaciones(?:\s+de)?\s+(?:marketing|medios|publicitarias?|campa[ñn]as?|crecimiento|datos)\b",
+        r"\bmarketing de (?:performance|resultados)\b",
+        r"\bmedios pagos?\b",
+        r"\bpauta digital\b",
+        r"\banal[íi]tica digital\b",
+        r"\banal[íi]tica de marketing\b",
+        r"\b(?:gerente|director|l[íi]der|jefe|coordinador)\b.{0,40}\banal[íi]tica\b",
+        r"\bmedici[óo]n de marketing\b",
+        r"\batribu(?:ci[óo]n|sion)\b",
+        r"\befectividad de marketing\b",
+        r"\bdatos de marketing\b",
+        r"\breportes? de marketing\b",
+        r"\b(?:gerente|director) de proyectos? de (?:marketing|medios)\b",
+        r"\bplaneaci[óo]n de medios\b",
+        r"\bcompra de medios\b.{0,40}\boperaciones\b",
+        r"\boperaciones\b.{0,40}\bcompra de medios\b",
+        r"\bcrecimiento de e-?commerce\b",
+        r"\boptimizaci[óo]n de conversi[óo]n\b",
+        r"\bagencia digital\b",
+        r"\bproducci[óo]n digital\b",
     )
 )
 KEEP_RE = re.compile(
@@ -854,6 +875,14 @@ def check():
         "Media Strategy & Operations Lead",
         "Media Buyer Operations",
         "Remote Marketing Infrastructure Consultant",
+        "Coordinador de Data y Analítica",
+        "Gerente de Operaciones de Marketing",
+        "Marketing de Performance",
+        "Pauta Digital Manager",
+        "Medición de Marketing",
+        "Planeación de Medios",
+        "Crecimiento de E-commerce",
+        "Agencia Digital Delivery",
     )
     missed = [title for title in targets if not title_ok(title)]
     assert not missed, missed
@@ -872,6 +901,12 @@ def check():
         "Growth Marketing Manager",
         "Senior Growth Marketing Manager - Home Services",
         "Data Engineer",
+        "Desarrollador Fullstack",
+        "Account Manager - E-commerce Marketing Agency",
+        "Paid Advertising Account Manager",
+        "Service Delivery Manager",
+        "Operations Associate",
+        "SEO Manager / DAM & SEO Manager",
     ):
         assert not title_ok(title), title
 

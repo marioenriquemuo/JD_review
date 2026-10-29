@@ -419,10 +419,11 @@ There is no Find jobs button. From the project folder:
 
 ```text
 python3 scripts/discover_jobs.py
-python3 scripts/ingest_new_jobs.py
+# then Execute workflow on Mail Discover in n8n
+python3 scripts/ingest_new_jobs.py   # manual, after you accept the list
 ```
 
-The first command appends open roles to `secrets/discovery_latest.md`. The second posts only rows marked **NEW** that are not already in `secrets/discovery_filed.json` to `/webhook/job-ingest`. It stops at Needs Context. It does not start Phase 2.
+The first command appends open board roles to `secrets/discovery_latest.md`. **Mail Discover** (manual Execute in n8n) reads unread Gmail and Outlook from the last 7 days and appends title-matching job links to the same discovery files; it does not call job-ingest or Notion. Then run `ingest_new_jobs.py` yourself: it posts only rows marked **NEW** that are not already in `secrets/discovery_filed.json` to `/webhook/job-ingest`. It stops at Needs Context. It does not start Phase 2.
 
 ## Recommended routine for each job
 

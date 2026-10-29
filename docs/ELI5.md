@@ -30,7 +30,7 @@ Imagine a post office:
 
 You click → Notion asks questions → you answer → Downloads gets real tailored `.tex` files.
 
-The morning list is not a button. `python3 scripts/discover_jobs.py` writes the list. `python3 scripts/ingest_new_jobs.py` sends only new unfiled rows into the first flow and stops at questions.
+The morning list is not a button. `python3 scripts/discover_jobs.py` writes board jobs. Execute **Mail Discover** in n8n to add matching unread email jobs to the same list (no Notion). Then run `python3 scripts/ingest_new_jobs.py` yourself when you want new unfiled rows sent into the first flow; it stops at questions.
 
 ---
 
