@@ -42,7 +42,7 @@ You: fill **Candidate Answers** → extension **Continue Phase 2**
   → Status=Generating
   → SSH cat secrets/facts.md again
   → Claude Sonnet Phase 2 (latex_cv_patches on numbered master; FACTS + this row's answers)
-  → assemble_tex.py --cv-only (apply patches + repair itemize) → ~/Downloads
+  → assemble_tex.py --cv-only (apply patches + repair itemize) → humanize_tex.py --kind cv → ~/Downloads
   → persist latex_cv_patches + cv_path
   → Notion Status=Ready to Apply + LaTex CV preview
   → popup: ready_to_apply + cv_path
@@ -62,7 +62,7 @@ Morning list, no extension button:
 Optional: set Notion Status to **Write Cover Letter** (exactly one row) → extension **Write cover letter**
   → POST /webhook/job-resume { write_letter: true }  (finds that row; does not re-run Phase 2)
   → cat patched CV + storytelling.md → Sonnet Phase 3 (Hook / Mechanism / Bridge / Proof / Close)
-  → assemble_tex.py --letter-only (body + Date/To/Company/Location/Position) → ~/Downloads *_CoverLetter.tex
+  → assemble_tex.py --letter-only (body + Date/To/Company/Location/Position) → humanize_tex.py --kind letter → ~/Downloads *_CoverLetter.tex
   → Notion LaTex Cover Letter preview (Status back to Ready to Apply)
 ```
 
@@ -121,6 +121,7 @@ Title property: **Job Title**.
 | [`JD Flow.json`](JD Flow.json) | n8n workflow export |
 | [`scripts/extract_pdf.py`](scripts/extract_pdf.py) | PDF bytes → `{ url, clean_md }` only |
 | [`scripts/assemble_tex.py`](scripts/assemble_tex.py) | `--cv-only` / `--letter-only` / `--number` / patch apply / repair itemize |
+| [`scripts/humanize_tex.py`](scripts/humanize_tex.py) | After assemble: human-text voice pass + Never-claim fallback |
 | [`scripts/stamp_cv.py`](scripts/stamp_cv.py) | Copy one coordinator CV onto the other three Operator Equity titles |
 | [`scripts/discover_mail.py`](scripts/discover_mail.py) | Scan mail-drop JSON; append title matches to discovery files |
 | [`scripts/ingest_new_jobs.py`](scripts/ingest_new_jobs.py) | POST NEW unfiled discovery rows to `/webhook/job-ingest` only |
@@ -138,4 +139,5 @@ Title property: **Job Title**.
 - Phase 2 may reorder **CERTIFICATIONS** to match the JD. Degree entries stay fixed. It must not merge EDUCATION / CERTIFICATIONS / LANGUAGES / SKILLS or turn education into nested bullets.
 - After you edit `secrets/master_cv.tex`, the next ingest re-distills it. No Notion Master CV paste.
 - If Phase 2 patches drop `\begin{itemize}` / `\end{itemize}`, `repair_lists` in `assemble_tex.py` puts them back. Check the first experience block after Continue.
+- After assemble, `humanize_tex.py` rewrites spans. A Never-claim hit replaces the Downloads CV with a copy of `secrets/master_cv.tex`; the letter reverts to the pre-humanize file.
 - Fit threshold is hard-coded at 70.

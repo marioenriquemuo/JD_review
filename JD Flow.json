@@ -1086,7 +1086,11 @@
     },
     {
       "parameters": {
-        "command": "={{ 'printf %s ' + JSON.stringify($json.write_b64) + \" | base64 -d | '/home/mario/dev/n8n-automation/.venv/bin/python' '/home/mario/dev/n8n-automation/scripts/assemble_tex.py' --master '/home/mario/dev/n8n-automation/secrets/master_cv.tex' --out-dir '/home/mario/Downloads' --cv-only\" }}"
+        "command": "={{ 'printf %s ' + JSON.stringify($json.write_b64) + \" | base64 -d | '/home/mario/dev/n8n-automation/.venv/bin/python' '/home/mario/dev/n8n-automation/scripts/assemble_tex.py' --master '/home/mario/dev/n8n-automation/secrets/master_cv.tex' --out-dir '/home/mario/Downloads' --cv-only | '/home/mario/dev/n8n-automation/.venv/bin/python' '/home/mario/dev/n8n-automation/scripts/humanize_tex.py' --kind cv\" }}",
+        "cwd": "/home/mario/dev/n8n-automation",
+        "options": {
+          "timeout": 300
+        }
       },
       "type": "n8n-nodes-base.ssh",
       "typeVersion": 1,
@@ -1571,7 +1575,11 @@
     },
     {
       "parameters": {
-        "command": "={{ 'printf %s ' + JSON.stringify($json.write_b64) + \" | base64 -d | '/home/mario/dev/n8n-automation/.venv/bin/python' '/home/mario/dev/n8n-automation/scripts/assemble_tex.py' --letter-only --letter '/home/mario/dev/n8n-automation/secrets/master_letter.tex' --out-dir '/home/mario/Downloads'\" }}"
+        "command": "={{ 'printf %s ' + JSON.stringify($json.write_b64) + \" | base64 -d | '/home/mario/dev/n8n-automation/.venv/bin/python' '/home/mario/dev/n8n-automation/scripts/assemble_tex.py' --letter-only --letter '/home/mario/dev/n8n-automation/secrets/master_letter.tex' --out-dir '/home/mario/Downloads' | '/home/mario/dev/n8n-automation/.venv/bin/python' '/home/mario/dev/n8n-automation/scripts/humanize_tex.py' --kind letter\" }}",
+        "cwd": "/home/mario/dev/n8n-automation",
+        "options": {
+          "timeout": 300
+        }
       },
       "type": "n8n-nodes-base.ssh",
       "typeVersion": 1,

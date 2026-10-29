@@ -24,9 +24,9 @@ Imagine a post office:
 6. **If score &lt; 70** = **Skipped**. Popup says skipped.
 7. **If score ≥ 70** = **Haiku Phase 1** reads `secrets/facts.md` and asks only gaps that are not already there (zero to five). Notion **Needs Context**. `- none` means you have nothing new to type.
 8. **You** fill **Candidate Answers** for this job only, then click **Continue Phase 2** on one row.
-9. **Sonnet Phase 2** returns line patches; Python writes the CV `.tex`. Continue stays CV-only.
+9. **Sonnet Phase 2** returns line patches; Python writes the CV `.tex`, then humanize. Continue stays CV-only. If Never claim still hits, Downloads gets a copy of the master CV.
 10. File lands in **Downloads**. Notion becomes **Ready to Apply** with a LaTeX CV preview.
-11. Optional: **Write cover letter** → Sonnet letter body → Python splices `master_letter.tex` → Downloads `_CoverLetter.tex`.
+11. Optional: **Write cover letter** → Sonnet letter body → Python splices `master_letter.tex` → humanize → Downloads `_CoverLetter.tex`.
 
 You click → Notion asks questions → you answer → Downloads gets real tailored `.tex` files.
 
@@ -166,11 +166,11 @@ Read left to right.
 | Read Master Tex Resume | `assemble_tex.py --number --cap 0`. |
 | Read Facts Resume | SSH. Same `secrets/facts.md` for Phase 2. |
 | Sonnet Phase 2 | Returns `latex_cv_patches` only. Uses the fact card and this row's answers. |
-| Write Full Tex | `assemble_tex.py --cv-only` (patches + repair itemize) → Downloads. |
+| Write Full Tex | `assemble_tex.py --cv-only` then `humanize_tex.py --kind cv` → Downloads. |
 | Persist Phase 2 Output | Merges `latex_cv_patches` + `cv_path` into the run JSON. |
 | Sonnet Phase 3 | Opt-in. Rewrites master letter body (hook, bridge, 3 themed bullets, close). |
 | Read Master Letter | `cat secrets/master_letter.tex` — structure template for Phase 3. |
-| Write Letter Tex | `assemble_tex.py --letter-only` → Downloads `_CoverLetter.tex`. |
+| Write Letter Tex | `assemble_tex.py --letter-only` then `humanize_tex.py --kind letter` → Downloads `_CoverLetter.tex`. |
 
 ---
 
