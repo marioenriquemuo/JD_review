@@ -44,7 +44,7 @@ You: fill **Candidate Answers** → extension **Continue Phase 2**
   → Claude Sonnet Phase 2 (latex_cv_patches on numbered master; FACTS + this row's answers)
   → assemble_tex.py --cv-only (apply patches + repair itemize) → humanize_tex.py --kind cv → ~/Downloads
   → persist latex_cv_patches + cv_path
-  → Notion Status=Ready to Apply + LaTex CV preview
+  → Notion Status=Ready to Apply + LaTex CV preview + CV File basename
   → popup: ready_to_apply + cv_path
 
 Optional, no Claude: `python3 scripts/stamp_cv.py ~/Downloads/<source>_CV.tex`
@@ -93,13 +93,14 @@ Title property: **Job Title**.
 | Location | rich_text | Location / remote |
 | Skills | rich_text | Comma-separated |
 | Fit Score | number | 0–100 |
-| Status | select | `Skipped`, `Needs Context`, `Generating`, `Proceed Phase 2`, `Ready to Apply`, `Write Cover Letter` |
+| Status | select | `Skipped`, `Needs Context`, `Generating`, `Proceed Phase 2`, `Ready to Apply`, `Write Cover Letter`, `Applied` |
 | Rationale | rich_text | Two-sentence Haiku reason |
 | Salary Range | rich_text | Number range or estimate |
 | Salary Flag | select | `extracted`, `UNVERIFIED Estimate` |
 | Candidate notes | rich_text | Phase 1 questions (seeded); on **Skipped**, Haiku gaps |
 | Candidate Answers | rich_text | Your answers to those questions |
 | LaTex CV | rich_text | Preview ≤1900 chars (full file in Downloads) |
+| CV File | rich_text | Downloads basename to upload (`Company_Title_CV.tex`) |
 | LaTex Cover Letter | rich_text | Preview after **Write cover letter** (empty until then) |
 
 ### Context pages / local secrets
@@ -123,12 +124,17 @@ Title property: **Job Title**.
 | [`scripts/assemble_tex.py`](scripts/assemble_tex.py) | `--cv-only` / `--letter-only` / `--number` / patch apply / repair itemize |
 | [`scripts/humanize_tex.py`](scripts/humanize_tex.py) | After assemble: human-text voice pass + Never-claim fallback |
 | [`scripts/stamp_cv.py`](scripts/stamp_cv.py) | Copy one coordinator CV onto the other three Operator Equity titles |
+| [`scripts/discover_jobs.py`](scripts/discover_jobs.py) | Poll public boards; write `secrets/discovery_latest.md` |
 | [`scripts/discover_mail.py`](scripts/discover_mail.py) | Scan mail-drop JSON; append title matches to discovery files |
 | [`scripts/ingest_new_jobs.py`](scripts/ingest_new_jobs.py) | POST NEW unfiled discovery rows to `/webhook/job-ingest` only |
+| [`scripts/answer_candidates.py`](scripts/answer_candidates.py) | Fill Candidate Answers from `secrets/facts.md`; set Proceed Phase 2 |
+| [`scripts/resume_phase2.py`](scripts/resume_phase2.py) | POST `/webhook/job-resume` for each Proceed Phase 2 row, one at a time |
+| [`scripts/backfill_cv_file.py`](scripts/backfill_cv_file.py) | Write CV basename onto existing rows; add Status option Applied |
 | [`scripts/distill_cv.py`](scripts/distill_cv.py) | Runtime `--verify-json` markdown + fact gate |
 | [`scripts/persist_run.py`](scripts/persist_run.py) | Save/load run JSON (`--write` merges onto existing) |
 | [`scripts/load_secret_ids.py`](scripts/load_secret_ids.py) | Print IDs + Claude key |
-| [`chrome-extension/`](chrome-extension/) | MV3 extension (popup shows skip / needs_context) |
+| [`chrome-extension/`](chrome-extension/) | Chrome MV3 (popup shows skip / needs_context) |
+| [`firefox-extension/`](firefox-extension/) | Same popup; install the signed `.xpi` |
 
 ## Assumptions
 

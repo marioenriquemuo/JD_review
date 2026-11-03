@@ -32,7 +32,7 @@ flowchart TB
         P2["Claude Sonnet<br/>Phase 2 latex_cv_patches"]
         W["SSH: assemble_tex --cv-only"]
         PS["Persist patches + cv_path"]
-        U["Notion: Ready to Apply<br/>LaTex CV preview"]
+        U["Notion: Ready to Apply<br/>LaTex CV preview + CV File"]
   end
  subgraph n8n_Letter["n8n Phase 3 letter - opt-in"]
         STU["Notion Status = Write Cover Letter"]

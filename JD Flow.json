@@ -1109,7 +1109,7 @@
     },
     {
       "parameters": {
-        "jsCode": "function cap(s) {\n  s = String(s || '');\n  return s.length <= 1900 ? s : s.slice(0, 1899) + '\\u2026';\n}\nconst j = $input.item.json;\nconst stdout = String(j.stdout || j.data || '');\nconst stderr = String(j.stderr || '');\nconst match = String(stdout).match(/\\{[\\s\\S]*\\}/);\nif (!match) {\n  throw new Error('assemble_tex --cv-only returned no JSON. stdout=' + stdout.slice(0, 200) + ' stderr=' + stderr.slice(0, 300));\n}\nconst parsed = JSON.parse(match[0]);\nif (parsed.error) throw new Error(parsed.error + (stderr ? ' | stderr=' + stderr.slice(0, 200) : ''));\nconst prev = $('Parse Phase 2').first().json;\nif (!String(parsed.cv_path || '').trim()) throw new Error('assemble_tex returned no cv_path');\nconst paths = 'CV file: ' + parsed.cv_path;\nconst persist = {\n  page_id: prev.page_id,\n  latex_cv_patches: prev.latex_cv_patches,\n  cv_path: parsed.cv_path,\n  company: prev.company || '',\n  job_title: prev.job_title || ''\n};\nreturn { json: Object.assign({}, prev, {\n  cv_path: parsed.cv_path,\n  letter_path: parsed.letter_path || '',\n  paths_md: paths,\n  latex_cv: cap(parsed.cv_preview || ''),\n  latex_cover_letter: '',\n  persist_b64: Buffer.from(JSON.stringify(persist), 'utf8').toString('base64')\n}) };\n"
+        "jsCode": "function cap(s) {\n  s = String(s || '');\n  return s.length <= 1900 ? s : s.slice(0, 1899) + '\\u2026';\n}\nconst j = $input.item.json;\nconst stdout = String(j.stdout || j.data || '');\nconst stderr = String(j.stderr || '');\nconst match = String(stdout).match(/\\{[\\s\\S]*\\}/);\nif (!match) {\n  throw new Error('assemble_tex --cv-only returned no JSON. stdout=' + stdout.slice(0, 200) + ' stderr=' + stderr.slice(0, 300));\n}\nconst parsed = JSON.parse(match[0]);\nif (parsed.error) throw new Error(parsed.error + (stderr ? ' | stderr=' + stderr.slice(0, 200) : ''));\nconst prev = $('Parse Phase 2').first().json;\nif (!String(parsed.cv_path || '').trim()) throw new Error('assemble_tex returned no cv_path');\nconst paths = 'CV file: ' + parsed.cv_path;\nconst persist = {\n  page_id: prev.page_id,\n  latex_cv_patches: prev.latex_cv_patches,\n  cv_path: parsed.cv_path,\n  company: prev.company || '',\n  job_title: prev.job_title || ''\n};\nreturn { json: Object.assign({}, prev, {\n  cv_path: parsed.cv_path,\n  cv_file: String(parsed.cv_path).split('/').pop(),\n  letter_path: parsed.letter_path || '',\n  paths_md: paths,\n  latex_cv: cap(parsed.cv_preview || ''),\n  latex_cover_letter: '',\n  persist_b64: Buffer.from(JSON.stringify(persist), 'utf8').toString('base64')\n}) };\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1139,6 +1139,10 @@
             {
               "key": "LaTex CV|rich_text",
               "textContent": "={{ $json.latex_cv }}"
+            },
+            {
+              "key": "CV File|rich_text",
+              "textContent": "={{ $json.cv_file }}"
             }
           ]
         },

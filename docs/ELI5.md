@@ -6,7 +6,7 @@ You already have:
 
 - n8n installed and running
 - Docker ready
-- This project folder: `/home/mario/Documents/n8n/Nuevo trabajo`
+- This project folder: `/home/mario/dev/n8n-automation`
 
 You do **not** need to install n8n again.
 
@@ -45,38 +45,13 @@ The Chrome extension default is the **live** door. While we set things up, keep 
 
 ---
 
-## If n8n runs on the machine vs inside Docker
+## Where the files live
 
-The **Clean HTML** node runs a command on the **same computer n8n is using**.
+`docker-compose.yml` runs n8n in Docker and mounts `/home/mario/dev` at `/files/dev`.
 
-### A. n8n is a normal program on Linux (this machine already was)
+Page HTML is cleaned by the Code node **Parse Clean MD**. It does not call `clean_html.py`.
 
-The command should stay:
-
-```text
-/home/mario/Documents/n8n/Nuevo trabajo/.venv/bin/python "/home/mario/Documents/n8n/Nuevo trabajo/scripts/clean_html.py" --b64 '{{ $json.b64 }}'
-```
-
-Docker can still be installed. You just are not running n8n *inside* a container.
-
-### B. n8n is a Docker container
-
-The container cannot see your home folder unless you **mount** it.
-
-In `docker-compose.yml` (or `docker run -v`), mount the project, for example:
-
-```yaml
-volumes:
-  - /home/mario/Documents/n8n/Nuevo trabajo:/data/jd-flow
-```
-
-Then change **Clean HTML** to:
-
-```text
-/data/jd-flow/.venv/bin/python "/data/jd-flow/scripts/clean_html.py" --b64 '{{ $json.b64 }}'
-```
-
-`.venv` is a Linux venv. It only works if the container is also Linux **and** the Python inside `.venv` matches that OS. If Execute Command fails inside Docker, say so in chat; we point the command at the container’s `python3` or we install `beautifulsoup4` + `html2text` in the image.
+PDF extract and the secret-file reads are SSH nodes. They run on the host as `/home/mario/dev/n8n-automation/.venv/bin/python`. Leave those paths as host paths.
 
 ---
 
@@ -108,16 +83,17 @@ Database title property name: **Job Title** (type **Title**).
 | Location | Text | — |
 | Skills | Text | — |
 | Fit Score | Number | number format is fine |
-| Status | Select | `Skipped`, `Needs Context`, `Generating`, `Proceed Phase 2`, `Ready to Apply`, `Write Cover Letter` |
+| Status | Select | `Skipped`, `Needs Context`, `Generating`, `Proceed Phase 2`, `Ready to Apply`, `Write Cover Letter`, `Applied` |
 | Rationale | Text | — |
 | Salary Range | Text | — |
 | Salary Flag | Select | `extracted`, `UNVERIFIED Estimate` |
 | Candidate notes | Text | Phase 1 questions (seeded) |
 | Candidate Answers | Text | Your replies |
 | LaTex CV | Text | Preview ≤1900 chars (full file in Downloads) |
+| CV File | Text | Downloads basename (`Company_Title_CV.tex`) |
 | LaTex Cover Letter | Text | Preview after **Write cover letter** |
 
-**LaTex CV** is a preview only. Phase 2 writes the full `.tex` to Downloads. Cover letter is a second click after Ready to Apply.
+**LaTex CV** is a preview only. Phase 2 writes the full `.tex` to Downloads and stores the filename in **CV File**. Cover letter is a second click after Ready to Apply. Old rows: `python3 scripts/backfill_cv_file.py`.
 
 ---
 
@@ -141,8 +117,8 @@ Read left to right.
 | Node | Plain English |
 | --- | --- |
 | Webhook | The mailbox. POST JSON `{ "url", "html" }`. **Waits** and answers skipped / duplicate / needs_context. |
-| Pack Ingest | Packs HTML into base64 so the shell command does not break. |
-| Clean HTML | Code node. Strips nav/scripts. Makes Markdown (`url` + `clean_md`). |
+| Pack Ingest | Pulls `url`, `html`, and `pdf_b64` out of the webhook body. |
+| Parse Clean MD | Code node. Strips nav/scripts. Makes Markdown (`url` + `clean_md`). |
 | Load Secret IDs | SSH. Reads `secrets/notion_ids.json`. |
 | Search Job URL | Asks Notion: any row with this Job URL? |
 | Is Duplicate? | If Notion returned a page `id` → duplicate. |
@@ -188,7 +164,7 @@ In the left list, click **JD Flow**.
 You should see a long chain of nodes and a sticky note on the left.
 
 If it is missing: **… menu → Import from File** → choose  
-`/home/mario/Documents/n8n/Nuevo trabajo/JD Flow.json`
+`/home/mario/dev/n8n-automation/JD Flow.json`
 
 Leave the **Active** toggle **off**.
 
@@ -223,7 +199,7 @@ In Notion, **New page** → type `/database` → **Table – Full page**. Name i
 
 Add the properties from the table above. Names must match **exactly** (including spaces and spelling): `Job URL`, `Fit Score`, `Salary Flag`, `LaTex CV`, `LaTex Cover Letter`, etc.
 
-Status options: `Skipped`, `Needs Context`, `Generating`, `Proceed Phase 2`, `Ready to Apply`, `Write Cover Letter`.  
+Status options: `Skipped`, `Needs Context`, `Generating`, `Proceed Phase 2`, `Ready to Apply`, `Write Cover Letter`, `Applied`.  
 Salary Flag options: `extracted` and `UNVERIFIED Estimate`.
 
 ### Step 8 — Create Style & Learnings and the local master CV
@@ -235,8 +211,8 @@ Haiku distills `secrets/master_cv.tex` at runtime (`--verify-json`). After you e
 Copy the original CV `.tex` locally. Do **not** paste the `.tex` into n8n:
 
 ```bash
-mkdir -p /home/mario/Documents/n8n/Nuevo trabajo/secrets
-cp /path/to/your.tex /home/mario/Documents/n8n/Nuevo trabajo/secrets/master_cv.tex
+mkdir -p /home/mario/dev/n8n-automation/secrets
+cp /path/to/your.tex /home/mario/dev/n8n-automation/secrets/master_cv.tex
 ```
 
 Continue Phase 2 writes:
@@ -246,8 +222,8 @@ Continue Phase 2 writes:
 **Write cover letter** (after Ready to Apply) also needs:
 
 ```bash
-cp /path/to/letter.tex /home/mario/Documents/n8n/Nuevo trabajo/secrets/master_letter.tex
-cp /path/to/storytelling.md /home/mario/Documents/n8n/Nuevo trabajo/secrets/storytelling.md
+cp /path/to/letter.tex /home/mario/dev/n8n-automation/secrets/master_letter.tex
+cp /path/to/storytelling.md /home/mario/dev/n8n-automation/secrets/storytelling.md
 ```
 
 `master_letter.tex` should contain `% LETTER_BODY` / `% END_LETTER_BODY` markers. Letter file:
@@ -270,11 +246,9 @@ Nodes that need Notion:
 - Create Needs Context
 - Update Ready to Apply (and other resume Notion nodes)
 
-### Step 10 — Confirm Clean HTML
+### Step 10 — Confirm Parse Clean MD
 
-This n8n build does **not** include the Execute Command node. **Clean HTML** is a **Code** node (JavaScript) that strips nav/scripts. No Docker Python path is required.
-
-If you still see a node with a **?** and “Install this node”, delete it and use a Code node named **Clean HTML** instead (see the chat walkthrough).
+**Parse Clean MD** is a Code node. It strips nav and scripts in JavaScript. SSH nodes (Extract PDF, Load Secret IDs, Distill, assemble) use the host path `/home/mario/dev/n8n-automation`. Do not point them at a path inside the container.
 
 ### Step 11 — Load the browser extension
 
@@ -295,7 +269,7 @@ Then either:
 ```bash
 curl -sS -X POST http://localhost:5678/webhook-test/job-ingest \
   -H 'Content-Type: application/json' \
-  -d @"/home/mario/Documents/n8n/Nuevo trabajo/tests/sample_ingest.json"
+  -d @"/home/mario/dev/n8n-automation/tests/sample_ingest.json"
 ```
 
 or open a job page and click the extension **Send job to n8n**.
@@ -323,7 +297,7 @@ You can now send jobs without clicking Test workflow first.
 | What you see | Likely cause |
 | --- | --- |
 | Webhook 404 | Workflow not Active, or you did not click **Test workflow** for the test URL |
-| Clean HTML failed | Python path wrong (Docker not mounted) or `bs4` missing |
+| Parse Clean MD / Extract PDF failed | SSH host path wrong, or the PDF has no selectable text |
 | Notion 404 / unauthorized | Page/DB not shared with the integration, or wrong ID |
 | Notion property error | Property name/type does not match the table (e.g. `richText` vs Text) |
 | Haiku/Sonnet 401 | `anthropic_api_key` missing/wrong in `secrets/notion_ids.json` |

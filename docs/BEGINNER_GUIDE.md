@@ -35,7 +35,7 @@ Think of a small post office:
 Checklist — have all of these ready:
 
 - [ ] A computer with this project folder already on disk  
-  Example path: `/home/mario/Documents/n8n/Nuevo trabajo`
+  Example path: `/home/mario/dev/n8n-automation`
 - [ ] **n8n** installed and able to open in the browser (usually `http://localhost:5678`)
 - [ ] **Google Chrome** (or Chromium)
 - [ ] A **Notion** account
@@ -139,6 +139,7 @@ Click **+** to add each property. Names must match **exactly**:
 | Candidate notes | Text | Questions from the AI (auto-filled) |
 | Candidate Answers | Text | **You type answers here** |
 | LaTex CV | Text | Short preview only |
+| CV File | Text | Exact Downloads filename to upload |
 | LaTex Cover Letter | Text | Short preview only |
 
 ### 3.3 Status options
@@ -151,6 +152,7 @@ Open the **Status** property → Edit options. Create these exact options:
 - `Proceed Phase 2` (optional / legacy; the extension button is preferred)
 - `Ready to Apply`
 - `Write Cover Letter`
+- `Applied`
 
 ### 3.4 Salary Flag options
 
@@ -216,7 +218,7 @@ Your project has a private folder named `secrets` (it should not be uploaded to 
 
 1. Open a file manager and go to:
 
-`/home/mario/Documents/n8n/Nuevo trabajo/secrets`
+`/home/mario/dev/n8n-automation/secrets`
 
 2. Create or edit the file: `notion_ids.json`
 
@@ -235,14 +237,14 @@ Your project has a private folder named `secrets` (it should not be uploaded to 
 
 5. Also place your master resume LaTeX here:
 
-`/home/mario/Documents/n8n/Nuevo trabajo/secrets/master_cv.tex`
+`/home/mario/dev/n8n-automation/secrets/master_cv.tex`
 
    That file must keep **EDUCATION**, **CERTIFICATIONS**, **LANGUAGES**, and **SKILLS** as four `\section*` titles (never one combined list). Use ASCII hyphens in dates (`2014 - 2015`) and keep the `lmodern` + `cmap` packages so job-site PDF parsers can read words like Effective / Certificate.
 
 6. For cover letters, also place:
 
-   - `/home/mario/Documents/n8n/Nuevo trabajo/secrets/master_letter.tex` (with `% LETTER_BODY` / `% END_LETTER_BODY`)
-   - `/home/mario/Documents/n8n/Nuevo trabajo/secrets/storytelling.md`
+   - `/home/mario/dev/n8n-automation/secrets/master_letter.tex` (with `% LETTER_BODY` / `% END_LETTER_BODY`)
+   - `/home/mario/dev/n8n-automation/secrets/storytelling.md`
 
 ---
 
@@ -253,7 +255,7 @@ Open a terminal and run these commands one by one.
 Replace the path if your folder is different.
 
 ```bash
-PROJECT="/home/mario/Documents/n8n/Nuevo trabajo"
+PROJECT="/home/mario/dev/n8n-automation"
 python3 -m venv "$PROJECT/.venv"
 "$PROJECT/.venv/bin/pip" install beautifulsoup4 html2text pypdf
 ```
@@ -308,7 +310,7 @@ ssh localhost
 1. In n8n: **Workflows** → **Import from File**.
 2. Choose:
 
-`/home/mario/Documents/n8n/Nuevo trabajo/JD Flow.json`
+`/home/mario/dev/n8n-automation/JD Flow.json`
 
 3. Open the imported workflow named **JD Flow**.
 4. Open **Sonnet Phase 2** and confirm the prompt contains `latex_cv_patches` and tells it to keep EDUCATION, CERTIFICATIONS, LANGUAGES, and SKILLS as separate sections.
@@ -441,6 +443,7 @@ The first command appends open board roles to `secrets/discovery_latest.md`. **M
 4. Compile the Downloads `_CV.tex` to PDF (`pdflatex`). Upload that PDF to the job site, not the `.tex`.
 5. Optional: **Write cover letter** — first set Notion Status to **Write Cover Letter** on that one row, then click the button. Compile `_CoverLetter.tex`.
 6. Review before applying. You are still responsible for accuracy. Confirm Education and Certifications auto-filled; field-of-study may still need a small manual tweak.
+7. After you submit, set Status to **Applied**. Filter **Ready to Apply** for what is left. **CV File** is the Downloads filename to upload.
 
 ## What each Notion Status means
 
@@ -451,6 +454,7 @@ The first command appends open board roles to `secrets/discovery_latest.md`. **M
 | Generating | Phase 2 or letter write is in progress |
 | Ready to Apply | Files generated; review and apply |
 | Write Cover Letter | You marked this row for a letter; then click **Write cover letter** |
+| Applied | You submitted this application |
 | Proceed Phase 2 | Old manual trigger; prefer the extension button |
 
 ## Where your answers go

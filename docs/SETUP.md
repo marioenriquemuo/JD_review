@@ -4,13 +4,13 @@ Do these in order. Do not put API keys in the repo.
 
 Replace `PROJECT` with:
 
-`/home/mario/Documents/n8n/Nuevo trabajo`
+`/home/mario/dev/n8n-automation`
 
 ---
 
 ## 1. Python libraries
 
-Debian/Ubuntu blocks system `pip`. Use a project venv (this is what the n8n Execute Command node calls):
+Debian/Ubuntu blocks system `pip`. Use a project venv. n8n SSH nodes call this interpreter:
 
 ```bash
 python3 -m venv "$PROJECT/.venv"
@@ -81,7 +81,7 @@ Put the key in `$PROJECT/secrets/notion_ids.json` as `anthropic_api_key`. Claude
 
 1. [notion.so/my-integrations](https://www.notion.so/my-integrations) → **New integration** (internal). Copy the token.
 2. Create database **Applications** with the properties in [README.md](../README.md) (title = Job Title).
-3. **Status** select must include exactly: `Skipped`, `Needs Context`, `Generating`, `Proceed Phase 2`, `Ready to Apply`, `Write Cover Letter`.
+3. **Status** select must include exactly: `Skipped`, `Needs Context`, `Generating`, `Proceed Phase 2`, `Ready to Apply`, `Write Cover Letter`, `Applied`. After you submit on the job site, set Status to **Applied**. Filter **Ready to Apply** for what is left.
 4. Add **Candidate notes** (Text / rich_text) if missing.
 5. Create page **Style & Learnings**. Paste tone rules (optional distill `--csv` draft). Share the Applications DB and this page with the integration. A Notion Master CV page is unused (source of truth is `secrets/master_cv.tex`).
 6. Share the database and the Style page with the integration (**Connect to**).
@@ -100,19 +100,10 @@ Select the Notion credential on every Notion node. Select **SSH localhost** on L
 ## 4. n8n (self-hosted, this machine)
 
 1. Import [`JD Flow.json`](../JD Flow.json): **Workflows → Import from File**. If **JD Flow** is already listed, open **Sonnet Phase 2** and confirm the system prompt contains `latex_cv_patches` and `Preserve EDUCATION, CERTIFICATIONS, LANGUAGES, and SKILLS as separate sections.` If that is missing, import the file again, re-attach credentials, Save.
-2. Confirm **Execute Command** on **Clean HTML** points at the venv interpreter:
-
-```text
-/home/mario/Documents/n8n/Nuevo trabajo/.venv/bin/python "/home/mario/Documents/n8n/Nuevo trabajo/scripts/clean_html.py" --b64 '{{ $json.b64 }}'
-```
-
-If n8n runs in Docker, mount `PROJECT` (including `.venv`) into the container or change the command. The n8n process user must be able to execute that venv Python.
-
+2. **Parse Clean MD** is a Code node in the export. It turns page HTML into markdown. PDF bytes go through SSH **Extract PDF** (`extract_pdf.py` on the venv). Do not add an Execute Command node for `clean_html.py`. `docker-compose.yml` runs n8n in Docker and mounts `/home/mario/dev` at `/files/dev`. Workflow commands still use SSH localhost and the host path `/home/mario/dev/n8n-automation`.
 3. Attach credentials (step 2–3). Confirm `secrets/notion_ids.json` exists (IDs load via SSH).
 4. **Webhook** node: production URL is `http://localhost:5678/webhook/job-ingest`. Inactive workflows use `http://localhost:5678/webhook-test/job-ingest` and require **Test workflow** in the editor.
 5. Save. Set **Active** only after credentials and the secrets file are set.
-
-If Execute Command is blocked in your n8n install, swap **Clean HTML** for a Code node that shells out the same script, or enable the Python task runner and paste the body of `clean_html.py` (allowlist `bs4`, `html2text`, `re`, `json`, `argparse`, `sys`, `base64`). Prefer Execute Command on local n8n.
 
 ### First test POST (no extension)
 
@@ -199,7 +190,8 @@ After source changes: bump `version` in `firefox-extension/manifest.json`, re-si
 - [ ] `pdftotext` of the compiled PDF shows those four headings and `Effective` / `Certificate` / `Proficient`
 - [ ] **Sonnet Phase 2** prompt includes `latex_cv_patches` and Preserve EDUCATION… (re-import `JD Flow.json` if not)
 - [ ] `anthropic_api_key` in `secrets/notion_ids.json`; spend cap set in Anthropic console
-- [ ] Applications DB Status options include Needs Context / Proceed Phase 2 / Generating
+- [ ] Applications DB has **CV File** (text). `python3 scripts/backfill_cv_file.py` fills old rows and adds Status **Applied** if it is missing
+- [ ] Applications DB Status options include Needs Context / Proceed Phase 2 / Generating / Applied
 - [ ] **Candidate notes** property exists
 - [ ] Applications DB + Style & Learnings shared with the integration
 - [ ] Import latest `JD Flow.json`; Notion + SSH credentials attached
