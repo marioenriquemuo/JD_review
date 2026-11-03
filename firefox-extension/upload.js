@@ -23,6 +23,26 @@ function formatStatus(body) {
     if (rationale) line += "\n" + rationale;
     return line;
   }
+  if (status === "held") {
+    const fit = body.fit_score != null ? body.fit_score : "?";
+    const company = body.company || "";
+    const title = body.job_title || "";
+    const who = [company, title].filter(Boolean).join(" — ");
+    let line = "Held (fit " + fit + ").";
+    if (who) line += " " + who;
+    if (body.rationale) line += "\n" + body.rationale;
+    line += "\nNo file yet. Set this row to Proceed Phase 2, then run python3 scripts/resume_phase2.py.";
+    return line;
+  }
+  if (status === "proceed") {
+    const fit = body.fit_score != null ? body.fit_score : "?";
+    const company = body.company || "";
+    const title = body.job_title || "";
+    const who = [company, title].filter(Boolean).join(" — ");
+    let line = "Queued (fit " + fit + "). Run python3 scripts/resume_phase2.py.";
+    if (who) line = who + "\n" + line;
+    return line;
+  }
   if (status === "needs_context") {
     const company = body.company || "";
     const title = body.job_title || "";
@@ -55,7 +75,10 @@ function handleIngestResult(result) {
   }
   if (
     result.body &&
-    (result.body.status === "needs_context" || result.body.status === "duplicate")
+    (result.body.status === "needs_context" ||
+      result.body.status === "duplicate" ||
+      result.body.status === "held" ||
+      result.body.status === "proceed")
   ) {
     rememberResume(result.body);
   }

@@ -17,20 +17,20 @@ You do **not** need to install n8n again.
 Imagine a post office:
 
 1. **Browser extension** (Chrome or Firefox) = you drop a letter (the job page) in the slot.
-2. **n8n webhook** = the slot. It **waits** for scoring, then tells the popup skipped / duplicate / needs context.
+2. **n8n webhook** = the slot. It **waits** for scoring, then tells the popup skipped / duplicate / held / queued.
 3. **Parse Clean MD** = throws away ads/menus and keeps the job text.
 4. **Notion search** = “Did we already file this exact job URL?” If yes, stop. Costs nothing.
 5. **Haiku** = cheap intern who scores fit 0–100.
 6. **If score &lt; 70** = **Skipped**. Popup says skipped.
-7. **If score ≥ 70** = **Haiku Phase 1** reads `secrets/facts.md` and asks only gaps that are not already there (zero to five). Notion **Needs Context**. `- none` means you have nothing new to type.
-8. **You** fill **Candidate Answers** for this job only, then click **Continue Phase 2** on one row.
-9. **Sonnet Phase 2** returns line patches; Python writes the CV `.tex`, then humanize. Continue stays CV-only. If Never claim still hits, Downloads gets a copy of the master CV.
+7. **If score is 70–79** = Notion **Held**. No file. Notes stay `- none`.
+8. **If score is 80 or above** = Notion **Proceed Phase 2**. Run `python3 scripts/resume_phase2.py`.
+9. **Sonnet Phase 2** returns line patches from the master CV and `secrets/facts.md`. Python writes the CV `.tex`, then humanize. If Never claim still hits, Downloads gets a copy of the master CV.
 10. File lands in **Downloads**. Notion becomes **Ready to Apply** with a LaTeX CV preview.
 11. Optional: **Write cover letter** → Sonnet letter body → Python splices `master_letter.tex` → humanize → Downloads `_CoverLetter.tex`.
 
-You click → Notion asks questions → you answer → Downloads gets real tailored `.tex` files.
+You click → a high score queues a file → you review the `.tex` before you send it.
 
-The morning list is not a button. `python3 scripts/discover_jobs.py` writes board jobs. Execute **Mail Discover** in n8n to add matching unread email jobs to the same list (no Notion). Then run `python3 scripts/ingest_new_jobs.py` yourself when you want new unfiled rows sent into the first flow; it stops at questions.
+The morning list is not a button. `python3 scripts/discover_jobs.py` writes board jobs. Execute **Mail Discover** in n8n to add matching unread email jobs to the same list (no Notion). Then `python3 scripts/ingest_new_jobs.py`, then `python3 scripts/answer_candidates.py`, then `python3 scripts/resume_phase2.py`. The running n8n workflow still returns needs_context. Haiku is given `secrets/facts.md` and still writes questions. `answer_candidates.py` is the step that applies the fact card and only then sets Proceed Phase 2. Re-import `JD Flow.json` before you drop that step. After the import, Held is `resume_phase2.py --held`, and scores of 80 or above skip the questions.
 
 ---
 
@@ -83,7 +83,7 @@ Database title property name: **Job Title** (type **Title**).
 | Location | Text | — |
 | Skills | Text | — |
 | Fit Score | Number | number format is fine |
-| Status | Select | `Skipped`, `Needs Context`, `Generating`, `Proceed Phase 2`, `Ready to Apply`, `Write Cover Letter`, `Applied` |
+| Status | Select | `Skipped`, `Needs Context`, `Generating`, `Held`, `Proceed Phase 2`, `Ready to Apply`, `Write Cover Letter`, `Applied` |
 | Rationale | Text | — |
 | Salary Range | Text | — |
 | Salary Flag | Select | `extracted`, `UNVERIFIED Estimate` |
@@ -131,11 +131,10 @@ Read left to right.
 | Log Skipped | New Notion row, Status = Skipped. |
 | Get Style Learnings | Downloads style rules (only if fit is high). |
 | Flatten Style | One `style_rules` string. |
-| Read Facts | SSH. `cat secrets/facts.md`. Empty or missing file stops the run. |
-| Build Phase 1 Prompt | Derived CV markdown + fact card + JD + style. |
-| Haiku Phase 1 | Gap audit. Questions JSON may be empty. |
-| Create Needs Context | New Notion row, Status = Needs Context. |
-| Persist Run State | Saves Phase 1 JSON under `secrets/runs/`. |
+| Band Fit | `WRITE_AT = 80`. 70–79 → Held. 80 or above → Proceed Phase 2. |
+| Create Needs Context | New Notion row. Status comes from Band Fit. Candidate notes = `- none`. |
+| Persist Run State | Saves the thin run under `secrets/runs/` (no question list). |
+| Haiku Phase 1 | Still on the canvas. Not wired from Band Fit. |
 | Webhook Resume | Continue Phase 2 or **Write cover letter** (`write_letter: true`). |
 | Letter by Status? | Letter click searches Status = Write Cover Letter (exactly one row). |
 | Write Letter? | After Merge Run State: false = Phase 2 CV; true = Phase 3 letter (no P2 rerun). |
@@ -199,7 +198,7 @@ In Notion, **New page** → type `/database` → **Table – Full page**. Name i
 
 Add the properties from the table above. Names must match **exactly** (including spaces and spelling): `Job URL`, `Fit Score`, `Salary Flag`, `LaTex CV`, `LaTex Cover Letter`, etc.
 
-Status options: `Skipped`, `Needs Context`, `Generating`, `Proceed Phase 2`, `Ready to Apply`, `Write Cover Letter`, `Applied`.  
+Status options: `Skipped`, `Needs Context`, `Generating`, `Held`, `Proceed Phase 2`, `Ready to Apply`, `Write Cover Letter`, `Applied`.  
 Salary Flag options: `extracted` and `UNVERIFIED Estimate`.
 
 ### Step 8 — Create Style & Learnings and the local master CV
@@ -274,10 +273,10 @@ curl -sS -X POST http://localhost:5678/webhook-test/job-ingest \
 
 or open a job page and click the extension **Send job to n8n**.
 
-Expect `{ "status": "skipped" }` or `{ "status": "needs_context" }` (or the popup showing those).  
+Expect `{ "status": "skipped" }`, `{ "status": "held" }`, or `{ "status": "proceed" }` (or the popup showing those).  
 Then n8n **Executions**: green = good; red = open the failed node.
 
-First new URL → Distill + Haiku, then **Skipped** or **Needs Context** in Notion.  
+First new URL → Distill + Haiku, then **Skipped**, **Held**, or **Proceed Phase 2** in Notion.  
 Same URL again → duplicate, no Claude call.
 
 ### Step 13 — Turn Active on

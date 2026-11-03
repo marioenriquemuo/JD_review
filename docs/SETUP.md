@@ -81,7 +81,7 @@ Put the key in `$PROJECT/secrets/notion_ids.json` as `anthropic_api_key`. Claude
 
 1. [notion.so/my-integrations](https://www.notion.so/my-integrations) → **New integration** (internal). Copy the token.
 2. Create database **Applications** with the properties in [README.md](../README.md) (title = Job Title).
-3. **Status** select must include exactly: `Skipped`, `Needs Context`, `Generating`, `Proceed Phase 2`, `Ready to Apply`, `Write Cover Letter`, `Applied`. After you submit on the job site, set Status to **Applied**. Filter **Ready to Apply** for what is left.
+3. **Status** select must include exactly: `Skipped`, `Needs Context`, `Generating`, `Held`, `Proceed Phase 2`, `Ready to Apply`, `Write Cover Letter`, `Applied`. After you submit on the job site, set Status to **Applied**. Filter **Ready to Apply** for what is left. `python3 scripts/backfill_cv_file.py --schema` adds **Held** and **Applied** if they are missing.
 4. Add **Candidate notes** (Text / rich_text) if missing.
 5. Create page **Style & Learnings**. Paste tone rules (optional distill `--csv` draft). Share the Applications DB and this page with the integration. A Notion Master CV page is unused (source of truth is `secrets/master_cv.tex`).
 6. Share the database and the Style page with the integration (**Connect to**).
@@ -113,11 +113,11 @@ curl -sS -X POST http://localhost:5678/webhook-test/job-ingest \
   -d @"$PROJECT/tests/sample_ingest.json"
 ```
 
-Expect `{ "status": "skipped" }` or `{ "status": "needs_context" }` (the webhook **waits**; it is not instant `accepted`). Then open **Executions**:
+Expect `{ "status": "skipped" }`, `{ "status": "held" }`, or `{ "status": "proceed" }` (the webhook **waits**; it is not instant `accepted`). Then open **Executions**:
 
-- First run: popup shows `skipped` or `needs_context`. Notion **Skipped** or **Needs Context**.
+- First run: popup shows `skipped`, `held`, or `proceed`. Notion **Skipped**, **Held**, or **Proceed Phase 2**.
 - Same `url` again: popup `Already filed.`
-- After **Candidate Answers** + extension **Continue Phase 2**: Downloads `{company}_{title}_CV.tex` and Notion **Ready to Apply**.
+- After `python3 scripts/resume_phase2.py` on a **Proceed Phase 2** row: Downloads `{company}_{title}_CV.tex` and Notion **Ready to Apply**.
 - After **Write cover letter**: Downloads `{company}_{title}_CoverLetter.tex`; Status stays **Ready to Apply**. Fails with Continue Phase 2 first if you skipped Phase 2.
 
 ---
@@ -133,8 +133,8 @@ Extension **Options**. Set webhook URL:
 - Active workflow: `http://localhost:5678/webhook/job-ingest`
 - Testing in editor: `http://localhost:5678/webhook-test/job-ingest`
 
-Then: open a job posting → click the extension → **Send job to n8n**. The popup has no Find jobs button. The morning list is `python3 scripts/discover_jobs.py`, then Execute **Mail Discover** in n8n (discovery files only), then manually `python3 scripts/ingest_new_jobs.py` (NEW unfiled rows only, stops at questions).  
-Popup shows `Scoring…` then `Skipped…` / `Already filed…` / `Needs Context…`.
+Then: open a job posting → click the extension → **Send job to n8n**. The popup has no Find jobs button. The morning list is `python3 scripts/discover_jobs.py`, then Execute **Mail Discover** in n8n (discovery files only), then `python3 scripts/ingest_new_jobs.py`, then `python3 scripts/answer_candidates.py`, then `python3 scripts/resume_phase2.py`.  
+The running workflow still shows `Needs Context`. `answer_candidates.py` applies `secrets/facts.md` to those questions. Held / Queued appear only after you re-import `JD Flow.json`.
 
 To allow a non-localhost n8n URL, add it to `host_permissions` in the browser’s `manifest.json` and reload/re-sign the extension.
 
@@ -190,12 +190,12 @@ After source changes: bump `version` in `firefox-extension/manifest.json`, re-si
 - [ ] `pdftotext` of the compiled PDF shows those four headings and `Effective` / `Certificate` / `Proficient`
 - [ ] **Sonnet Phase 2** prompt includes `latex_cv_patches` and Preserve EDUCATION… (re-import `JD Flow.json` if not)
 - [ ] `anthropic_api_key` in `secrets/notion_ids.json`; spend cap set in Anthropic console
-- [ ] Applications DB has **CV File** (text). `python3 scripts/backfill_cv_file.py` fills old rows and adds Status **Applied** if it is missing
-- [ ] Applications DB Status options include Needs Context / Proceed Phase 2 / Generating / Applied
+- [ ] Applications DB has **CV File** (text). `python3 scripts/backfill_cv_file.py` fills old rows
+- [ ] `python3 scripts/backfill_cv_file.py --schema` has added **Held** and **Applied**. **Needs Context** is still there.
 - [ ] **Candidate notes** property exists
 - [ ] Applications DB + Style & Learnings shared with the integration
 - [ ] Import latest `JD Flow.json`; Notion + SSH credentials attached
 - [ ] Workflow **Active**; extension uses `/webhook/job-ingest`
-- [ ] Morning list: `python3 scripts/discover_jobs.py` → Execute Mail Discover → manual `python3 scripts/ingest_new_jobs.py`
+- [ ] Morning list: `discover_jobs.py` → Mail Discover → `ingest_new_jobs.py` → `answer_candidates.py` → `resume_phase2.py` (drop `answer_candidates.py` only after re-importing `JD Flow.json`)
 - [ ] Mail Discover imported (inactive); Gmail, Outlook, SSH credentials attached
 - [ ] Chrome **or** Firefox extension installed; reload / re-sign after updates

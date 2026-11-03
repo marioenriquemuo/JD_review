@@ -710,58 +710,22 @@
             },
             {
               "key": "Status|select",
-              "selectValue": "Needs Context"
+              "selectValue": "={{ $json.notion_status }}"
             },
             {
               "key": "Rationale|rich_text",
               "textContent": "={{ $json.rationale }}"
             },
             {
-              "key": "Salary Range|rich_text",
-              "textContent": "={{ $json.salary_range }}"
-            },
-            {
-              "key": "Salary Flag|select",
-              "selectValue": "={{ $json.salary_flag }}"
-            },
-            {
               "key": "Candidate notes|rich_text",
-              "textContent": "={{ $json.candidate_notes_seed }}"
+              "textContent": "- none"
             }
           ]
         },
         "blockUi": {
           "blockValues": [
             {
-              "type": "heading_2",
-              "textContent": "Critical Missing Keywords"
-            },
-            {
-              "textContent": "={{ $json.body_keywords }}"
-            },
-            {
-              "type": "heading_2",
-              "textContent": "Impact Alignment"
-            },
-            {
-              "textContent": "={{ $json.body_impact }}"
-            },
-            {
-              "type": "heading_2",
-              "textContent": "Strategic Positioning"
-            },
-            {
-              "textContent": "={{ $json.body_positioning }}"
-            },
-            {
-              "type": "heading_2",
-              "textContent": "Questions for you"
-            },
-            {
-              "textContent": "={{ $json.body_questions }}"
-            },
-            {
-              "textContent": "={{ $json.body_footer }}"
+              "textContent": "- none"
             }
           ]
         },
@@ -784,7 +748,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const audit = $('Parse Phase 1').first().json;\nconst page = $json;\nconst page_id = String(page.id || page.pageId || '').replace(/-/g, '').toLowerCase();\nif (!/^[0-9a-f]{32}$/.test(page_id)) {\n  throw new Error('Create Needs Context returned no usable page id: ' + String(page.id || page.pageId || ''));\n}\nconst run = {\n  page_id: page_id,\n  url: audit.url,\n  clean_md: audit.clean_md,\n  company: audit.company,\n  job_title: audit.job_title,\n  location: audit.location,\n  skills: audit.skills,\n  fit_score: audit.fit_score,\n  rationale: audit.rationale,\n  gaps: audit.gaps,\n  salary_range: audit.salary_range,\n  salary_flag: audit.salary_flag,\n  critical_missing_keywords: audit.critical_missing_keywords,\n  impact_alignment: audit.impact_alignment,\n  strategic_positioning: audit.strategic_positioning,\n  questions: audit.questions,\n  audit_md: audit.audit_md,\n  style_rules: audit.style_rules,\n  usage_triage: audit.usage_triage || {},\n  usage_phase1: audit.usage_phase1 || {}\n};\nreturn { json: Object.assign({}, audit, {\n  page_id: page_id,\n  run_b64: Buffer.from(JSON.stringify(run), 'utf8').toString('base64')\n}) };\n"
+        "jsCode": "const src = $('Band Fit').first().json;\nconst page = $json;\nconst page_id = String(page.id || page.pageId || '').replace(/-/g, '').toLowerCase();\nif (!/^[0-9a-f]{32}$/.test(page_id)) {\n  throw new Error('Create Needs Context returned no usable page id: ' + String(page.id || page.pageId || ''));\n}\nconst run = {\n  page_id: page_id,\n  url: src.url,\n  clean_md: src.clean_md,\n  company: src.company,\n  job_title: src.job_title,\n  location: src.location || '',\n  skills: src.skills || '',\n  fit_score: src.fit_score,\n  rationale: src.rationale || '',\n  gaps: '',\n  salary_range: '',\n  salary_flag: '',\n  critical_missing_keywords: [],\n  impact_alignment: [],\n  strategic_positioning: '',\n  questions: [],\n  audit_md: '',\n  style_rules: src.style_rules || '',\n  usage_triage: src.usage_triage || {},\n  usage_phase1: {}\n};\nreturn { json: Object.assign({}, src, {\n  page_id: page_id,\n  webhook_status: src.webhook_status,\n  run_b64: Buffer.from(JSON.stringify(run), 'utf8').toString('base64')\n}) };"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -816,7 +780,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const j = $('Pack Run State').first().json;\nreturn { json: {\n  status: 'needs_context',\n  fit_score: j.fit_score,\n  company: j.company || '',\n  job_title: j.job_title || '',\n  page_id: j.page_id,\n  url: j.url || '',\n  usage_triage: j.usage_triage || {},\n  usage_phase1: j.usage_phase1 || {}\n} };"
+        "jsCode": "const j = $('Pack Run State').first().json;\nreturn { json: {\n  status: j.webhook_status,\n  fit_score: j.fit_score,\n  company: j.company || '',\n  job_title: j.job_title || '',\n  rationale: j.rationale || '',\n  page_id: j.page_id,\n  url: j.url || ''\n} };"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1861,6 +1825,20 @@
           "name": "SSH localhost"
         }
       }
+    },
+    {
+      "parameters": {
+        "jsCode": "const WRITE_AT = 80;\nconst prev = $input.item.json;\nconst fit = Number(prev.fit_score);\nconst proceed = fit >= WRITE_AT;\nreturn { json: Object.assign({}, prev, {\n  notion_status: proceed ? 'Proceed Phase 2' : 'Held',\n  webhook_status: proceed ? 'proceed' : 'held',\n  candidate_notes_seed: '- none'\n}) };",
+        "mode": "runOnceForEachItem"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2860,
+        0
+      ],
+      "id": "b4a1f0e2-7c33-4d18-9a60-6e2c8b71d4a5",
+      "name": "Band Fit"
     }
   ],
   "pinData": {},
@@ -2110,7 +2088,7 @@
       "main": [
         [
           {
-            "node": "Read Facts",
+            "node": "Band Fit",
             "type": "main",
             "index": 0
           }
@@ -2152,13 +2130,7 @@
     },
     "Parse Phase 1": {
       "main": [
-        [
-          {
-            "node": "Create Needs Context",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        []
       ]
     },
     "Create Needs Context": {
@@ -2740,6 +2712,17 @@
         [
           {
             "node": "Pack Duplicate Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Band Fit": {
+      "main": [
+        [
+          {
+            "node": "Create Needs Context",
             "type": "main",
             "index": 0
           }

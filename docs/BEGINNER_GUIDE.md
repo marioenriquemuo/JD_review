@@ -55,12 +55,10 @@ After setup, your daily work is only this:
 1. Open the job page in Chrome, or have a text PDF of the JD
 2. Click extension → “Send job to n8n”  (web posting)
    or “Upload PDF”                      (PDF job description)
-3. If the job is a good fit → Notion shows questions
-4. Type your answers in Notion column “Candidate Answers”
-5. Click extension → “Continue Phase 2”
-6. Wait until the popup says Ready to Apply
-7. Open the .tex files in Downloads
-8. If you want a letter: click “Write cover letter”
+3. Fit 80 or above → run `python3 scripts/resume_phase2.py`
+4. Fit 70–79 stays Held. Promote one row to Proceed Phase 2, then run that command again.
+5. Open the .tex files in Downloads and review them before you send.
+6. If you want a letter: click “Write cover letter”
 ```
 
 **Upload PDF** works only if the PDF has selectable text. Scanned/image PDFs are not supported.
@@ -71,7 +69,9 @@ Possible popup results after **Send job**:
 | --- | --- | --- |
 | Skipped (fit …) | Job is a weak match | Nothing — or improve your Master CV later |
 | Already filed… | This job URL was sent before | Click **Continue Phase 2** if you still need the CV |
-| Needs Context… | Good enough fit; questions are ready | Fill **Candidate Answers**, then **Continue Phase 2** |
+| Held (fit …) | Fit 70–79. No file yet. | Set that row to **Proceed Phase 2**, then `python3 scripts/resume_phase2.py` |
+| Queued (fit …) | Fit 80 or above. File is not written yet. | `python3 scripts/resume_phase2.py` |
+| Needs Context… | Old row that still has questions | `python3 scripts/answer_candidates.py`, then **Continue Phase 2** |
 
 ---
 
@@ -149,7 +149,8 @@ Open the **Status** property → Edit options. Create these exact options:
 - `Skipped`
 - `Needs Context`
 - `Generating`
-- `Proceed Phase 2` (optional / legacy; the extension button is preferred)
+- `Held`
+- `Proceed Phase 2`
 - `Ready to Apply`
 - `Write Cover Letter`
 - `Applied`
@@ -387,21 +388,23 @@ Do **not** install `firefox-extension.zip` or a renamed unsigned `.xpi` — Fire
 That means fit score was below 70. Check Notion: a **Skipped** row should exist.  
 **Candidate notes** on that row lists the gaps Haiku did not find in the Master CV. Treat those as a ticket: add only true facts, then delete the row and send the job again.
 
-### If you see Needs Context
+### If you see Queued
 
-Success for Phase 1.
+Fit is 80 or above. Notion Status is **Proceed Phase 2**. Candidate notes are `- none`.
 
-1. Open Notion → Applications.
-2. Open the new row.
-3. Read **Candidate notes** / page body questions.
-4. Type honest answers in **Candidate Answers**.
-5. Click the extension again → **Continue Phase 2**.
-6. Wait (can take one or a few minutes).
-7. Popup should show **Ready to Apply** and file paths.
-8. Check:
+1. Run `python3 scripts/resume_phase2.py`.
+2. Wait (can take one or a few minutes).
+3. Popup or the script prints the CV path.
+4. Check:
    - Notion Status = `Ready to Apply`
    - Files in `/home/mario/Downloads/` ending with `_CV.tex`
    - Optional: click **Write cover letter** for `_CoverLetter.tex`
+
+### If you see Held
+
+Fit is 70–79. No file yet. To write one, set that row to **Proceed Phase 2** and run `python3 scripts/resume_phase2.py`.
+
+Old **Needs Context** rows still use `python3 scripts/answer_candidates.py`, then **Continue Phase 2**.
 
 ### If you see Already filed
 
@@ -422,44 +425,44 @@ There is no Find jobs button. From the project folder:
 ```text
 python3 scripts/discover_jobs.py
 # then Execute workflow on Mail Discover in n8n
-python3 scripts/ingest_new_jobs.py   # manual, after you accept the list
+python3 scripts/ingest_new_jobs.py
+python3 scripts/answer_candidates.py
+python3 scripts/resume_phase2.py
 ```
 
-The first command appends open board roles to `secrets/discovery_latest.md`. **Mail Discover** (manual Execute in n8n) reads unread Gmail and Outlook from the last 7 days and appends title-matching job links to the same discovery files; it does not call job-ingest or Notion. Then run `ingest_new_jobs.py` yourself: it posts only rows marked **NEW** that are not already in `secrets/discovery_filed.json` to `/webhook/job-ingest`. It stops at Needs Context. It does not start Phase 2.
+The first command appends open board roles to `secrets/discovery_latest.md`. **Mail Discover** (manual Execute in n8n) reads unread Gmail and Outlook from the last 7 days and appends title-matching job links to the same discovery files; it does not call job-ingest or Notion. Then run `ingest_new_jobs.py`: it posts only rows marked **NEW** that are not already in `secrets/discovery_filed.json` to `/webhook/job-ingest`.
+
+The n8n workflow that is running still marks fit 70 or above as **Needs Context** and still writes questions, even when `secrets/facts.md` was sent to Haiku. `answer_candidates.py` is the step that reads that file, fills **Candidate Answers**, asks you only what is missing, and sets **Proceed Phase 2**. `resume_phase2.py` writes the CV. Skip `answer_candidates.py` and the queue stays empty.
+
+Re-import [`JD Flow.json`](../JD Flow.json) to turn on Band Fit. After that import, 70–79 is **Held** and 80 or above is **Proceed Phase 2** with notes `- none`. Then `answer_candidates.py` is only for leftover **Needs Context** rows, and you can print Held rows with `python3 scripts/resume_phase2.py --held`. After five mornings, if you promote more than half of those Held rows, set `WRITE_AT` in Band Fit back to 70.
 
 ## Recommended routine for each job
 
 1. Open the job posting tab.
 2. **Send job to n8n**.
-3. If **Needs Context**:
-   - If Candidate notes say `- none`, the fact card already covers the JD. Continue when you want the CV.
-   - Otherwise run from the project folder (fills **Candidate Answers** from `secrets/facts.md`, asks only true gaps in the terminal, appends new facts, sets **Proceed Phase 2**; does not start Phase 2):
-
-     ```text
-     python3 scripts/answer_candidates.py
-     ```
-
-   - Leave **exactly one** row on **Proceed Phase 2**, then click **Continue Phase 2**.
-4. Compile the Downloads `_CV.tex` to PDF (`pdflatex`). Upload that PDF to the job site, not the `.tex`.
-5. Optional: **Write cover letter** — first set Notion Status to **Write Cover Letter** on that one row, then click the button. Compile `_CoverLetter.tex`.
-6. Review before applying. You are still responsible for accuracy. Confirm Education and Certifications auto-filled; field-of-study may still need a small manual tweak.
-7. After you submit, set Status to **Applied**. Filter **Ready to Apply** for what is left. **CV File** is the Downloads filename to upload.
+3. If the popup says **Needs Context**, run `python3 scripts/answer_candidates.py`, then `python3 scripts/resume_phase2.py`.
+4. After you re-import `JD Flow.json`: **Queued** goes straight to `resume_phase2.py`. **Held** (fit 70–79) waits unless you set that one row to **Proceed Phase 2**.
+5. Compile the Downloads `_CV.tex` to PDF (`pdflatex`). Upload that PDF to the job site, not the `.tex`.
+6. Optional: **Write cover letter** — first set Notion Status to **Write Cover Letter** on that one row, then click the button. Compile `_CoverLetter.tex`.
+7. Review before applying. You are still responsible for accuracy. Confirm Education and Certifications auto-filled; field-of-study may still need a small manual tweak.
+8. After you submit, set Status to **Applied**. Filter **Ready to Apply** for what is left. **CV File** is the Downloads filename to upload.
 
 ## What each Notion Status means
 
 | Status | Meaning |
 | --- | --- |
 | Skipped | Weak fit; no tailored CV generated |
-| Needs Context | Waiting for your answers |
-| Generating | Phase 2 or letter write is in progress |
+| Needs Context | Old row waiting on answers. Use `answer_candidates.py`. |
+| Generating | A CV write is in progress, or waiting its turn |
+| Held | Fit 70–79. No file until you set **Proceed Phase 2**. |
 | Ready to Apply | Files generated; review and apply |
 | Write Cover Letter | You marked this row for a letter; then click **Write cover letter** |
 | Applied | You submitted this application |
-| Proceed Phase 2 | Old manual trigger; prefer the extension button |
+| Proceed Phase 2 | Queued for `resume_phase2.py` |
 
 ## Where your answers go
 
-- **Candidate notes** = questions still missing after `secrets/facts.md`. `- none` means nothing new.
+- **Candidate notes** on a new row are `- none`. Old **Needs Context** rows may still list questions.
 - **Candidate Answers** = facts for this job only. Phase 2 also reads `secrets/facts.md`.
 - Lines under **Never claim** in that file stay off the CV.
 - After one coordinator CV is in Downloads, `python3 scripts/stamp_cv.py ~/Downloads/<source>_CV.tex` writes the other three Operator Equity titles. Notion status does not change.

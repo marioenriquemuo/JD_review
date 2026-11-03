@@ -3,6 +3,7 @@
 
 import json
 import re
+import sqlite3
 import sys
 import urllib.error
 import urllib.request
@@ -12,8 +13,29 @@ from discover_jobs import REPORT_PATH, kept_blocks, write_json
 
 ROOT = Path(__file__).resolve().parents[1]
 FILED_PATH = ROOT / "secrets" / "discovery_filed.json"
+N8N_DB = Path("/home/mario/external_storage/n8n_data/database.sqlite")
 WEBHOOK = "http://127.0.0.1:5678/webhook/job-ingest"
 UA = {"User-Agent": "discover-jobs"}
+
+
+def flow_has_band(nodes_text):
+    text = nodes_text or ""
+    return "Band Fit" in text and "WRITE_AT" in text
+
+
+def require_live_band():
+    if not N8N_DB.is_file():
+        raise SystemExit("n8n database missing at %s" % N8N_DB)
+    con = sqlite3.connect("file:%s?mode=ro" % N8N_DB, uri=True)
+    row = con.execute(
+        "SELECT nodes FROM workflow_entity WHERE name=? AND active=1",
+        ("JD Flow",),
+    ).fetchone()
+    if row is None or not flow_has_band(row[0]):
+        raise SystemExit(
+            "Active n8n workflow JD Flow does not include Band Fit. "
+            "Re-import JD Flow.json, re-attach Notion and SSH credentials, set Active, then run ingest again."
+        )
 
 
 # --- Report rows ---
@@ -117,6 +139,7 @@ def post_ingest(url, html):
 # --- Run ---
 
 def run():
+    require_live_band()
     report = REPORT_PATH.read_text(encoding="utf-8") if REPORT_PATH.exists() else ""
     filed = {}
     if FILED_PATH.exists():
@@ -161,6 +184,8 @@ def check():
         "  https://example.com/b",
     ])
     assert new_jobs(sample) == [{"ats": "wwr", "url": "https://example.com/b"}]
+    assert flow_has_band('{"name":"Band Fit"}\nconst WRITE_AT = 80;')
+    assert not flow_has_band('status: \'needs_context\'')
     print("check ok")
 
 

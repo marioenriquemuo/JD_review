@@ -5,6 +5,7 @@ Does not change Status.
 
 Usage:
   python3 scripts/backfill_cv_file.py
+  python3 scripts/backfill_cv_file.py --schema
   python3 scripts/backfill_cv_file.py --check
 """
 
@@ -49,6 +50,10 @@ def runs_with_cv():
     return rows
 
 
+def missing_status(names):
+    return [name for name in ("Applied", "Held") if name not in names]
+
+
 def ensure_schema(token, db_id):
     db = notion(token, "/databases/" + db_id)
     props = db.get("properties") or {}
@@ -67,8 +72,14 @@ def ensure_schema(token, db_id):
     if status.get("type") != "select":
         raise SystemExit("Status is not a select")
     options = list((status.get("select") or {}).get("options") or [])
-    if any(opt.get("name") == "Applied" for opt in options):
-        print("Status option Applied already present")
+    names = {opt.get("name") for opt in options}
+    missing = missing_status(names)
+    for name in ("Applied", "Held"):
+        if name in names:
+            print("Status option %s already present" % name)
+    if not missing:
+        if "Needs Context" not in names:
+            raise SystemExit("Status option Needs Context is missing")
         return
     kept = []
     for opt in options:
@@ -78,14 +89,18 @@ def ensure_schema(token, db_id):
         if opt.get("color"):
             item["color"] = opt["color"]
         kept.append(item)
-    kept.append({"name": "Applied", "color": "green"})
+    colors = {"Applied": "green", "Held": "yellow"}
+    for name in missing:
+        kept.append({"name": name, "color": colors[name]})
     notion(
         token,
         "/databases/" + db_id,
         {"properties": {"Status": {"select": {"options": kept}}}},
         method="PATCH",
     )
-    print("added Status option Applied")
+    print("added Status option %s" % ", ".join(missing))
+    if "Needs Context" not in names:
+        raise SystemExit("Status option Needs Context is missing")
 
 
 def patch_page(token, page_id, filename):
@@ -108,7 +123,11 @@ def patch_page(token, page_id, filename):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
+    parser.add_argument("--schema", action="store_true")
     args = parser.parse_args()
+    if args.schema:
+        ensure_schema(notion_token(), applications_db_id())
+        return
     if args.check:
         got = cv_file_name(
             "/home/mario/Downloads/BairesDev_Technical_Growth_Marketing_Manager_CV_2.tex"
@@ -121,6 +140,8 @@ def main():
             except ValueError:
                 continue
             raise SystemExit("expected ValueError for %r" % (bad,))
+        assert missing_status({"Needs Context", "Applied"}) == ["Held"]
+        assert missing_status({"Needs Context", "Applied", "Held"}) == []
         print("ok")
         return
 

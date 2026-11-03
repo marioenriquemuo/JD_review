@@ -16,11 +16,11 @@ flowchart TB
         G["Notion: Log Skipped"]
         RS["Respond skipped"]
         STY["Notion: Get Style Learnings"]
-        RF["SSH: cat secrets/facts.md"]
-        P1["Claude Haiku<br/>Phase 1 audit<br/>0 to 5 new questions"]
-        NC["Notion: Needs Context<br/>+ Candidate notes questions"]
+        BF{"Band Fit<br/>WRITE_AT = 80"}
+        HELD["Notion: Held<br/>notes - none"]
+        GO["Notion: Proceed Phase 2<br/>notes - none"]
         PR["SSH: Persist run JSON"]
-        RN["Respond needs_context"]
+        RN["Respond held or proceed"]
   end
  subgraph n8n_Resume["n8n Resume - Phase 2 CV-only"]
         T["Webhook /job-resume"]
@@ -72,16 +72,17 @@ flowchart TB
     G --> RS
     RS --> B
     F -- YES --> STY
-    STY --> RF
-    FACTS --> RF
-    RF --> P1
-    P1 --> NC
-    NC --> PR
+    STY --> BF
+    BF -- "70 to 79" --> HELD
+    BF -- "80 or more" --> GO
+    HELD --> PR
+    GO --> PR
     PR --> RUNS
     PR --> RN
     RN --> B
-    NC --> K
-    user["You fill Candidate Answers<br/>click Continue Phase 2"] --> T
+    HELD --> K
+    GO --> K
+    user["You set Held to Proceed Phase 2<br/>or the row is already queued<br/>python3 scripts/resume_phase2.py"] --> T
     T --> GEN
     GEN --> LR
     RUNS --> LR
