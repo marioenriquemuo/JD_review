@@ -1,5 +1,8 @@
 [
+  {"ats": "ashby", "slug": "buffer", "name": "Buffer"},
+  {"ats": "ashby", "slug": "Deel", "name": "Deel"},
   {"ats": "ashby", "slug": "demandbase", "name": "Demandbase"},
+  {"ats": "ashby", "slug": "hubstaff", "name": "Hubstaff"},
   {"ats": "ashby", "slug": "iterable", "name": "Iterable"},
   {"ats": "ashby", "slug": "jellyfish", "name": "Jellyfish"},
   {"ats": "ashby", "slug": "quantcast", "name": "Quantcast"},
@@ -10,6 +13,7 @@
   {"ats": "greenhouse", "slug": "applovin", "name": "AppLovin"},
   {"ats": "greenhouse", "slug": "appsflyer", "name": "AppsFlyer"},
   {"ats": "greenhouse", "slug": "attentive", "name": "Attentive"},
+  {"ats": "greenhouse", "slug": "automatticcareers", "name": "Automattic"},
   {"ats": "greenhouse", "slug": "awin", "name": "Awin"},
   {"ats": "greenhouse", "slug": "bloomreach", "name": "Bloomreach"},
   {"ats": "greenhouse", "slug": "brainlabs", "name": "Brainlabs"},
@@ -18,6 +22,7 @@
   {"ats": "greenhouse", "slug": "customerio", "name": "Customer.io"},
   {"ats": "greenhouse", "slug": "deepintent", "name": "DeepIntent"},
   {"ats": "greenhouse", "slug": "dept", "name": "DEPT"},
+  {"ats": "greenhouse", "slug": "gitlab", "name": "GitLab"},
   {"ats": "greenhouse", "slug": "gumgum", "name": "GumGum"},
   {"ats": "greenhouse", "slug": "impact", "name": "impact.com"},
   {"ats": "greenhouse", "slug": "inmarket", "name": "InMarket"},
@@ -44,11 +49,14 @@
   {"ats": "greenhouse", "slug": "yotpo", "name": "Yotpo"},
   {"ats": "lever", "slug": "basis", "name": "Basis"},
   {"ats": "lever", "slug": "contentsquare", "name": "Contentsquare"},
+  {"ats": "lever", "slug": "getlabs", "name": "Getlabs"},
   {"ats": "lever", "slug": "openx", "name": "OpenX"},
   {"ats": "lever", "slug": "seerinteractive", "name": "Seer Interactive"},
   {"ats": "lever", "slug": "wpromote", "name": "Wpromote"},
   {"ats": "jazzhr", "slug": "operatorequity", "name": "Entrepreneur Cooperative"},
   {"ats": "workable", "slug": "search", "name": "Workable"},
   {"ats": "wwr", "slug": "search", "name": "We Work Remotely"},
-  {"ats": "remotive", "slug": "search", "name": "Remotive"}
+  {"ats": "remotive", "slug": "search", "name": "Remotive"},
+  {"ats": "remote", "slug": "openings", "name": "Remote"},
+  {"ats": "vacantes", "slug": "sitemap", "name": "vacantes.lat"}
 ]

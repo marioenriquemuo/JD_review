@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Poll Greenhouse, Lever, Ashby, JazzHR, and remote feeds. Write a local job list."""
+"""Poll Greenhouse, Lever, Ashby, JazzHR, Remote, vacantes.lat, and remote feeds."""
 
 import html
 import json
@@ -627,6 +627,139 @@ def remotive_jobs(board):
     return rows
 
 
+# ponytail: openings list is title + location. Description is the apply JSON at ingest.
+REMOTE_LISTING_RE = re.compile(
+    r'\\"title\\":\\"((?:\\u[0-9a-fA-F]{4}|[^"\\])*)\\",\\"href\\":\\"(https://apply\.remote\.com/jobs/[0-9a-f-]{36})\\",\\"locations\\":(\[(?:\\u[0-9a-fA-F]{4}|\\"|[^"\]])*\])'
+)
+
+
+def remote_listings(page):
+    rows = []
+    seen = set()
+    for title_raw, url, locs_raw in REMOTE_LISTING_RE.findall(page or ""):
+        if url in seen:
+            continue
+        seen.add(url)
+        title = json.loads('"' + title_raw + '"').strip()
+        locations = json.loads(locs_raw.replace('\\"', '"'))
+        location = ", ".join(str(item).strip() for item in locations if str(item).strip())
+        if title:
+            rows.append((title, url, location))
+    return rows
+
+
+def remote_jobs(board):
+    rows = []
+    for title, url, location in remote_listings(get_text("https://remote.com/openings")):
+        rows.append({
+            "title": title,
+            "company": board["name"],
+            "url": url,
+            "posted": None,
+            "location": location,
+            "text": "",
+            "pay": "unknown",
+            "detail_url": "",
+            "ats": "remote",
+        })
+    print(f"remote: {len(rows)}")
+    return rows
+
+
+def vacantes_slug(url):
+    parts = urllib.parse.urlparse(url).path.strip("/").split("/")
+    if len(parts) < 4 or parts[0] != "empleos":
+        return ""
+    slug = urllib.parse.unquote(parts[2])
+    return slug.rsplit("-en-", 1)[0].replace("-", " ").strip()
+
+
+def vacantes_location(location):
+    if not isinstance(location, dict):
+        return ""
+    address = location.get("address") or {}
+    if not isinstance(address, dict):
+        return ""
+    parts = [address.get(key) for key in ("addressLocality", "addressRegion", "addressCountry")]
+    return ", ".join(str(part).strip() for part in parts if isinstance(part, str) and part.strip())
+
+
+def vacantes_place(data):
+    parts = []
+    if data.get("jobLocationType") == "TELECOMMUTE":
+        parts.append("Remote")
+    req = data.get("applicantLocationRequirements")
+    for item in req if isinstance(req, list) else [req]:
+        if isinstance(item, dict):
+            name = item.get("name")
+            if isinstance(name, str) and name.strip():
+                parts.append(name.strip())
+    address = vacantes_location(data.get("jobLocation"))
+    if address:
+        parts.append(address)
+    return ", ".join(dict.fromkeys(parts))
+
+
+def vacantes_posting(page):
+    match = re.search(r'<script type="application/ld\+json">(.*?)</script>', page or "", re.S | re.I)
+    if not match:
+        return None
+    data = json.loads(match.group(1))
+    if isinstance(data, list):
+        data = next((item for item in data if isinstance(item, dict) and item.get("@type") == "JobPosting"), None)
+    if not isinstance(data, dict) or data.get("@type") != "JobPosting":
+        return None
+    return data
+
+
+def vacantes_from(page, url):
+    data = vacantes_posting(page)
+    if not data:
+        return None
+    title = str(data.get("title") or "").strip()
+    if not title_ok(title):
+        return None
+    org = data.get("hiringOrganization") or {}
+    company = org.get("name") if isinstance(org, dict) else ""
+    text = to_plain(data.get("description") or "")
+    return {
+        "title": title,
+        "company": str(company or "vacantes.lat").strip(),
+        "url": url,
+        "posted": parse_dt(data.get("datePosted")),
+        "location": vacantes_place(data),
+        "text": text,
+        "pay": pay_label(text),
+        "detail_url": "",
+        "ats": "vacantes",
+    }
+
+
+def vacantes_fetch(url):
+    try:
+        return vacantes_from(get_text(url), url)
+    except (urllib.error.URLError, RuntimeError, json.JSONDecodeError, TimeoutError, OSError) as exc:
+        print(f"skip vacantes {url}: {exc}", file=sys.stderr)
+        return None
+
+
+def vacantes_jobs(board):
+    root = ET.fromstring(get_text("https://vacantes.lat/sitemap.xml"))
+    urls = []
+    for loc in root.iter("{http://www.sitemaps.org/schemas/sitemap/0.9}loc"):
+        url = (loc.text or "").strip()
+        if title_ok(vacantes_slug(url)):
+            urls.append(url)
+    # ponytail: one page per slug hit. Fetch the page if a real title is only in the body.
+    rows = []
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        for row in pool.map(vacantes_fetch, urls):
+            if row:
+                rows.append(row)
+    print(f"vacantes: {len(rows)}")
+    return rows
+
+
 def fetch_board(board):
     ats = board["ats"]
     if ats == "greenhouse":
@@ -643,6 +776,10 @@ def fetch_board(board):
         return wwr_jobs(board)
     if ats == "remotive":
         return remotive_jobs(board)
+    if ats == "remote":
+        return remote_jobs(board)
+    if ats == "vacantes":
+        return vacantes_jobs(board)
     raise RuntimeError(f"unknown ats {ats}")
 
 
@@ -1013,6 +1150,35 @@ def check():
     assert block_urls(kept_blocks(sample)) == ["https://example.com/a", "https://example.com/b"]
     keyed = kept_blocks("- already | x | **Media Buyer Operations** | Acme\n  https://example.com/a\n")
     assert block_role_keys(keyed) == {("acme", "media buyer operations")}
+    remote_sample = (
+        r'\"title\":\"Lifecycle Specialist, Employee Relations \u0026 Transitions\",'
+        r'\"href\":\"https://apply.remote.com/jobs/02856f59-84b1-4634-a508-05082b509e4f\",'
+        r'\"locations\":[\"LATAM, NORAM\"]'
+    )
+    assert remote_listings(remote_sample) == [(
+        "Lifecycle Specialist, Employee Relations & Transitions",
+        "https://apply.remote.com/jobs/02856f59-84b1-4634-a508-05082b509e4f",
+        "LATAM, NORAM",
+    )]
+    assert vacantes_slug(
+        "https://vacantes.lat/empleos/colombia/paid-media-specialist-en-rehire/abc"
+    ) == "paid media specialist"
+    assert vacantes_slug("https://example.com/nope") == ""
+    vacantes_page = (
+        '<script type="application/ld+json">{"@type":"JobPosting","title":"Paid Media Specialist",'
+        '"datePosted":"2026-10-13","hiringOrganization":{"name":"Rehire"},'
+        '"jobLocation":{"address":{"addressCountry":"CO"}},'
+        '"description":"<p>Remote LATAM contractor</p>"}</script>'
+    )
+    vacantes_row = vacantes_from(vacantes_page, "https://vacantes.lat/empleos/colombia/x/abc")
+    assert vacantes_row["company"] == "Rehire"
+    assert vacantes_row["location"] == "CO"
+    assert vacantes_place({
+        "jobLocationType": "TELECOMMUTE",
+        "applicantLocationRequirements": {"name": "Colombia"},
+    }) == "Remote, Colombia"
+    assert vacantes_row["posted"].date().isoformat() == "2026-10-13"
+    assert "LATAM" in vacantes_row["text"]
     print("check ok")
 
 

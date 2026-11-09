@@ -113,7 +113,23 @@ def ashby_html(url):
     raise RuntimeError("ashby job not on the board")
 
 
+def remote_html(url):
+    match = re.search(r"apply\.remote\.com/jobs/([0-9a-f-]{36})", url)
+    if not match:
+        raise RuntimeError("remote url has no id")
+    data = json.loads(fetch(
+        "https://apply.remote.com/api/public/jobs/" + match.group(1),
+        "application/json",
+    ))
+    job = data.get("job") if isinstance(data, dict) else None
+    if not isinstance(job, dict):
+        raise RuntimeError("unexpected remote job payload")
+    return as_html(job.get("description") or "")
+
+
 def job_html(ats, url):
+    if ats == "remote":
+        return remote_html(url)
     if ats == "workable":
         return workable_html(url)
     if ats == "lever":
