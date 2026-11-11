@@ -82,8 +82,8 @@
     },
     {
       "parameters": {
-        "jsCode": "const j = $input.item.json;\nconst payload = { url: j.url || '', pdf_b64: j.pdf_b64 || '' };\nreturn { json: { pdf_payload_b64: Buffer.from(JSON.stringify(payload), 'utf8').toString('base64') } };",
-        "mode": "runOnceForEachItem"
+        "jsCode": "const itemsIn = $input.all();\nconst size = 80000; // ponytail: bash -c dies at 128KB; split the payload instead\nconst items = [];\nfor (let n = 0; n < itemsIn.length; n++) {\n  const j = itemsIn[n].json;\n  const payload = JSON.stringify({ url: j.url || '', pdf_b64: j.pdf_b64 || '' });\n  const b64 = Buffer.from(payload, 'utf8').toString('base64');\n  const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);\n  const pdf_path = '/home/mario/dev/n8n-automation/secrets/incoming/pdf-' + id + '.b64';\n  if (!b64) throw new Error('empty pdf payload');\n  for (let i = 0; i < b64.length; i += size) {\n    items.push({\n      json: {\n        pdf_path: pdf_path,\n        chunk: b64.slice(i, i + size),\n        first: i === 0,\n        last: i + size >= b64.length,\n      },\n    });\n  }\n}\nreturn items;\n",
+        "mode": "runOnceForAllItems"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -96,7 +96,7 @@
     },
     {
       "parameters": {
-        "command": "={{ 'echo ' + JSON.stringify($json.pdf_payload_b64) + \" | base64 -d | '/home/mario/dev/n8n-automation/.venv/bin/python' '/home/mario/dev/n8n-automation/scripts/extract_pdf.py'\" }}"
+        "command": "={{ 'mkdir -p /home/mario/dev/n8n-automation/secrets/incoming && printf %s ' + JSON.stringify($json.chunk) + ($json.first ? ' > ' : ' >> ') + JSON.stringify($json.pdf_path) + ($json.last ? (' && base64 -d ' + JSON.stringify($json.pdf_path) + \" | '/home/mario/dev/n8n-automation/.venv/bin/python' '/home/mario/dev/n8n-automation/scripts/extract_pdf.py'; rm -f \" + JSON.stringify($json.pdf_path)) : \" && echo '{\\\"partial\\\":true}'\") }}"
       },
       "type": "n8n-nodes-base.ssh",
       "typeVersion": 1,
@@ -115,7 +115,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const raw = String($json.stdout || $json.data || '').trim();\nconst match = raw.match(/\\{[\\s\\S]*\\}/);\nif (!match) {\n  throw new Error('extract_pdf.py returned no JSON. stdout=' + raw.slice(0, 200));\n}\nconst parsed = JSON.parse(match[0]);\nconst clean_md = String(parsed.clean_md || '').trim();\nif (!clean_md) {\n  throw new Error('PDF had no extractable text (scanned PDFs are not supported)');\n}\nreturn { json: { url: parsed.url || '', clean_md: clean_md } };",
+        "jsCode": "const raw = String($json.stdout || '').trim();\nconst err = String($json.stderr || '').trim();\nif (raw === '{\"partial\":true}') return null;\nconst match = raw.match(/\\{[\\s\\S]*\\}/);\nif (!match) {\n  throw new Error(err || ('extract_pdf.py returned no JSON. code=' + $json.code + ' stdout=' + raw.slice(0, 200)));\n}\nconst parsed = JSON.parse(match[0]);\nconst clean_md = String(parsed.clean_md || '').trim();\nif (!clean_md) {\n  throw new Error(err || 'PDF had no extractable text (scanned PDFs are not supported)');\n}\nreturn { json: { url: parsed.url || '', clean_md: clean_md } };\n",
         "mode": "runOnceForEachItem"
       },
       "type": "n8n-nodes-base.code",
