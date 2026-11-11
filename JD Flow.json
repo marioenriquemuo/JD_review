@@ -968,7 +968,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 4000, thinking: { type: 'disabled' }, system: \"You are an Executive Career Strategist. PHASE 2: Return line-range patches for the numbered MASTER LATEX CV. Integrate Candidate Answers and Phase 1 audit findings. Rewrite the candidate's own line in the same register. Do not paste a JD requirement into a bullet. Keep metrics already in the master CV. Edit the bold header title line under the name, summary text, experience bullet text, and bullet order only. Patch the bold header title only when the target title uses a function and seniority already in the CV. If it would invent either, leave the header unchanged. Do not invent seniority or a function. Do not change the name or contact line. If you change the header title, the bold role that opens the professional summary must match it. If no line can be edited without inventing, return an empty latex_cv_patches array and a skip_reason string, and no other text. Do not copy the preamble. Do not switch templates. Preserve EDUCATION, CERTIFICATIONS, LANGUAGES, and SKILLS as separate sections. Never merge them. Never turn education into nested bullets. Cert order may follow the JD; degree entries stay fixed. Do not lie. Do not include anything the candidate has not explicitly said. Only use the MASTER LATEX CV, FACTS, and Candidate Answers. A line under Never claim must not appear on the CV, even if the job description asks for it. If Candidate Answers are empty, rewrite/reorder using only facts already in the master CV and FACTS to better match JD keywords that are already evidenced \\u2014 never invent. Output ONLY a JSON object, no markdown fences. Keys: latex_cv_patches (array of {start_line integer, end_line integer, latex string}). When that array is empty, also include skip_reason (one sentence). start_line/end_line match the L000 labels. Do not include the L000 prefix in latex. Escape LaTeX special characters ($, &, %, #, _).\", messages: [{ role: 'user', content: $json.phase2_user }] }) }}",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 4000, thinking: { type: 'disabled' }, system: \"You are an Executive Career Strategist. PHASE 2: Return line-range patches for the numbered MASTER LATEX CV. Integrate Candidate Answers and Phase 1 audit findings. Rewrite the candidate's own line in the same register. Do not paste a JD requirement into a bullet. Keep metrics already in the master CV. Edit the bold header title line under the name, summary text, experience bullet text, and bullet order only. Patch the bold header title only when the target title uses a function and seniority already in the CV. If it would invent either, leave the header unchanged. Do not invent seniority or a function. Do not change the name or contact line. If you change the header title, the bold role that opens the professional summary must match it. Always return latex_cv_patches. If the target title would invent a function or seniority, leave the header unchanged and still patch the summary and bullets so overlap already in the CV is easier to see. Never return an empty latex_cv_patches array. Do not copy the preamble. Do not switch templates. Preserve EDUCATION, CERTIFICATIONS, LANGUAGES, and SKILLS as separate sections. Never merge them. Never turn education into nested bullets. Cert order may follow the JD; degree entries stay fixed. Do not lie. Do not include anything the candidate has not explicitly said. Only use the MASTER LATEX CV, FACTS, and Candidate Answers. A line under Never claim must not appear on the CV, even if the job description asks for it. If Candidate Answers are empty, rewrite/reorder using only facts already in the master CV and FACTS to better match JD keywords that are already evidenced \\u2014 never invent. Output ONLY a JSON object, no markdown fences. Keys: latex_cv_patches (array of {start_line integer, end_line integer, latex string}). start_line/end_line match the L000 labels. Do not include the L000 prefix in latex. Escape LaTeX special characters ($, &, %, #, _).\", messages: [{ role: 'user', content: $json.phase2_user }] }) }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -985,7 +985,7 @@
     },
     {
       "parameters": {
-        "jsCode": "function repairJson(s) {\n  let out = '';\n  let inString = false;\n  let escaped = false;\n  for (let i = 0; i < s.length; i++) {\n    const c = s[i];\n    const code = s.charCodeAt(i);\n    if (!inString) {\n      if (c === '\"') inString = true;\n      out += c;\n      continue;\n    }\n    if (escaped) {\n      out += c;\n      escaped = false;\n      continue;\n    }\n    if (c === '\\\\') {\n      out += c;\n      escaped = true;\n      continue;\n    }\n    if (c === '\"') {\n      out += c;\n      inString = false;\n      continue;\n    }\n    if (code < 32) {\n      if (c === '\\n') out += '\\\\n';\n      else if (c === '\\r') out += '\\\\r';\n      else if (c === '\\t') out += '\\\\t';\n      else out += '\\\\u' + ('0000' + code.toString(16)).slice(-4);\n      continue;\n    }\n    out += c;\n  }\n  return out;\n}\nconst item = $input.item.json;\nconst content = item.content;\nconst textBlock = Array.isArray(content) ? content.find(function (b) { return b && b.type === 'text' && b.text; }) : null;\nconst text = (textBlock && textBlock.text) || '';\nconst match = String(text).match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('Sonnet Phase 2 did not return JSON');\nconst parsed = JSON.parse(repairJson(match[0]));\nlet patches = parsed.latex_cv_patches || [];\nif (!Array.isArray(patches)) patches = [patches];\npatches = patches.filter(function (p) { return p && String(p.latex || '').trim(); });\nif (!patches.length) {\n  const why = String(parsed.skip_reason || '').trim() || String(text).slice(match.index + match[0].length).trim().slice(0, 400) || 'Phase 2 latex_cv_patches empty';\n  const skipped = $('Build Phase 2 Prompt').first().json;\n  const usage = item.usage || {};\n  return { json: Object.assign({}, skipped, {\n    skipped: true,\n    skip_reason: why.slice(0, 1900),\n    latex_cv_patches: [],\n    usage_phase2: { input_tokens: Number(usage.input_tokens) || 0, output_tokens: Number(usage.output_tokens) || 0 }\n  }) };\n}\nconst prev = $('Build Phase 2 Prompt').first().json;\nconst payload = {\n  latex_cv_patches: patches,\n  company: prev.company || '',\n  job_title: prev.job_title || ''\n};\nconst write_b64 = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64');\nconst usage = item.usage || {};\nreturn { json: Object.assign({}, prev, {\n  latex_cv_patches: patches,\n  write_b64: write_b64,\n  usage_phase2: { input_tokens: Number(usage.input_tokens) || 0, output_tokens: Number(usage.output_tokens) || 0 }\n}) };\n"
+        "jsCode": "function repairJson(s) {\n  let out = '';\n  let inString = false;\n  let escaped = false;\n  for (let i = 0; i < s.length; i++) {\n    const c = s[i];\n    const code = s.charCodeAt(i);\n    if (!inString) {\n      if (c === '\"') inString = true;\n      out += c;\n      continue;\n    }\n    if (escaped) {\n      out += c;\n      escaped = false;\n      continue;\n    }\n    if (c === '\\\\') {\n      out += c;\n      escaped = true;\n      continue;\n    }\n    if (c === '\"') {\n      out += c;\n      inString = false;\n      continue;\n    }\n    if (code < 32) {\n      if (c === '\\n') out += '\\\\n';\n      else if (c === '\\r') out += '\\\\r';\n      else if (c === '\\t') out += '\\\\t';\n      else out += '\\\\u' + ('0000' + code.toString(16)).slice(-4);\n      continue;\n    }\n    out += c;\n  }\n  return out;\n}\nconst item = $input.item.json;\nconst content = item.content;\nconst textBlock = Array.isArray(content) ? content.find(function (b) { return b && b.type === 'text' && b.text; }) : null;\nconst text = (textBlock && textBlock.text) || '';\nconst match = String(text).match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('Sonnet Phase 2 did not return JSON');\nconst parsed = JSON.parse(repairJson(match[0]));\nlet patches = parsed.latex_cv_patches || [];\nif (!Array.isArray(patches)) patches = [patches];\npatches = patches.filter(function (p) { return p && String(p.latex || '').trim(); });\nconst prev = $('Build Phase 2 Prompt').first().json;\nconst payload = {\n  latex_cv_patches: patches,\n  company: prev.company || '',\n  job_title: prev.job_title || ''\n};\nconst write_b64 = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64');\nconst usage = item.usage || {};\nreturn { json: Object.assign({}, prev, {\n  latex_cv_patches: patches,\n  write_b64: write_b64,\n  usage_phase2: { input_tokens: Number(usage.input_tokens) || 0, output_tokens: Number(usage.output_tokens) || 0 }\n}) };\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1839,97 +1839,6 @@
       ],
       "id": "b4a1f0e2-7c33-4d18-9a60-6e2c8b71d4a5",
       "name": "Band Fit"
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "loose",
-            "version": 2
-          },
-          "conditions": [
-            {
-              "id": "phase2-skip",
-              "leftValue": "={{ $json.skipped }}",
-              "rightValue": true,
-              "operator": {
-                "type": "boolean",
-                "operation": "true",
-                "singleValue": true
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "position": [
-        1760,
-        520
-      ],
-      "id": "d7099e1f-945f-45ee-831c-179442b0de93",
-      "name": "Phase 2 Skip?"
-    },
-    {
-      "parameters": {
-        "resource": "databasePage",
-        "operation": "update",
-        "pageId": {
-          "__rl": true,
-          "value": "={{ $json.page_id }}",
-          "mode": "id"
-        },
-        "simple": false,
-        "propertiesUi": {
-          "propertyValues": [
-            {
-              "key": "Status|select",
-              "selectValue": "Held"
-            },
-            {
-              "key": "Rationale|rich_text",
-              "textContent": "={{ $json.skip_reason }}"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.notion",
-      "typeVersion": 2.2,
-      "position": [
-        1980,
-        360
-      ],
-      "id": "478f2834-a208-4b1f-9d3f-363d1ddb3e3b",
-      "name": "Mark Phase 2 Held",
-      "credentials": {
-        "notionApi": {
-          "id": "g7AsJ3BGJB9oJZyx",
-          "name": "Notion account"
-        }
-      },
-      "retryOnFail": true,
-      "maxTries": 2,
-      "waitBetweenTries": 5000
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ JSON.stringify({ status: 'skipped', message: $('Parse Phase 2').first().json.skip_reason, company: $('Parse Phase 2').first().json.company || '', job_title: $('Parse Phase 2').first().json.job_title || '', page_id: $('Parse Phase 2').first().json.page_id || '' }) }}",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.1,
-      "position": [
-        2200,
-        360
-      ],
-      "id": "0ecf862c-db29-4577-833b-32a4b8e34b0e",
-      "name": "Respond Phase 2 Skip"
     }
   ],
   "pinData": {},
@@ -2360,7 +2269,7 @@
       "main": [
         [
           {
-            "node": "Phase 2 Skip?",
+            "node": "Write Full Tex",
             "type": "main",
             "index": 0
           }
@@ -2814,35 +2723,6 @@
         [
           {
             "node": "Create Needs Context",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Phase 2 Skip?": {
-      "main": [
-        [
-          {
-            "node": "Mark Phase 2 Held",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Write Full Tex",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Mark Phase 2 Held": {
-      "main": [
-        [
-          {
-            "node": "Respond Phase 2 Skip",
             "type": "main",
             "index": 0
           }
