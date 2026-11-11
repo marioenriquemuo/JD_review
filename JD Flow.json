@@ -108,8 +108,8 @@
       "name": "Extract PDF",
       "credentials": {
         "sshPassword": {
-          "id": "nM6jdLaHV8O6GLPF",
-          "name": "SSH localhost"
+          "id": "rub2Wz5KAJFvIyea",
+          "name": "SSH Password account"
         }
       }
     },
@@ -141,8 +141,8 @@
       "name": "Load Secret IDs",
       "credentials": {
         "sshPassword": {
-          "id": "nM6jdLaHV8O6GLPF",
-          "name": "SSH localhost"
+          "id": "rub2Wz5KAJFvIyea",
+          "name": "SSH Password account"
         }
       }
     },
@@ -186,7 +186,7 @@
       "alwaysOutputData": true,
       "credentials": {
         "notionApi": {
-          "id": "PVbozrs4FE83DBwK",
+          "id": "g7AsJ3BGJB9oJZyx",
           "name": "Notion account"
         }
       },
@@ -255,8 +255,8 @@
       "name": "Persist Duplicate Run",
       "credentials": {
         "sshPassword": {
-          "id": "nM6jdLaHV8O6GLPF",
-          "name": "SSH localhost"
+          "id": "rub2Wz5KAJFvIyea",
+          "name": "SSH Password account"
         }
       }
     },
@@ -289,8 +289,8 @@
       "name": "Distill Master CV",
       "credentials": {
         "sshPassword": {
-          "id": "nM6jdLaHV8O6GLPF",
-          "name": "SSH localhost"
+          "id": "rub2Wz5KAJFvIyea",
+          "name": "SSH Password account"
         }
       }
     },
@@ -464,7 +464,7 @@
       "name": "Log Skipped",
       "credentials": {
         "notionApi": {
-          "id": "PVbozrs4FE83DBwK",
+          "id": "g7AsJ3BGJB9oJZyx",
           "name": "Notion account"
         }
       }
@@ -496,8 +496,8 @@
       "name": "Persist Skip Run",
       "credentials": {
         "sshPassword": {
-          "id": "nM6jdLaHV8O6GLPF",
-          "name": "SSH localhost"
+          "id": "rub2Wz5KAJFvIyea",
+          "name": "SSH Password account"
         }
       }
     },
@@ -552,7 +552,7 @@
       "alwaysOutputData": true,
       "credentials": {
         "notionApi": {
-          "id": "PVbozrs4FE83DBwK",
+          "id": "g7AsJ3BGJB9oJZyx",
           "name": "Notion account"
         }
       },
@@ -587,8 +587,8 @@
       "name": "Read Master Tex",
       "credentials": {
         "sshPassword": {
-          "id": "nM6jdLaHV8O6GLPF",
-          "name": "SSH localhost"
+          "id": "rub2Wz5KAJFvIyea",
+          "name": "SSH Password account"
         }
       }
     },
@@ -606,8 +606,8 @@
       "name": "Read Facts",
       "credentials": {
         "sshPassword": {
-          "id": "nM6jdLaHV8O6GLPF",
-          "name": "SSH localhost"
+          "id": "rub2Wz5KAJFvIyea",
+          "name": "SSH Password account"
         }
       }
     },
@@ -741,7 +741,7 @@
       "name": "Create Needs Context",
       "credentials": {
         "notionApi": {
-          "id": "PVbozrs4FE83DBwK",
+          "id": "g7AsJ3BGJB9oJZyx",
           "name": "Notion account"
         }
       }
@@ -773,8 +773,8 @@
       "name": "Persist Run State",
       "credentials": {
         "sshPassword": {
-          "id": "nM6jdLaHV8O6GLPF",
-          "name": "SSH localhost"
+          "id": "rub2Wz5KAJFvIyea",
+          "name": "SSH Password account"
         }
       }
     },
@@ -840,7 +840,7 @@
       "name": "Set Generating",
       "credentials": {
         "notionApi": {
-          "id": "PVbozrs4FE83DBwK",
+          "id": "g7AsJ3BGJB9oJZyx",
           "name": "Notion account"
         }
       },
@@ -862,8 +862,8 @@
       "name": "Load Secret IDs Resume",
       "credentials": {
         "sshPassword": {
-          "id": "nM6jdLaHV8O6GLPF",
-          "name": "SSH localhost"
+          "id": "rub2Wz5KAJFvIyea",
+          "name": "SSH Password account"
         }
       }
     },
@@ -894,8 +894,8 @@
       "name": "Load Run State",
       "credentials": {
         "sshPassword": {
-          "id": "nM6jdLaHV8O6GLPF",
-          "name": "SSH localhost"
+          "id": "rub2Wz5KAJFvIyea",
+          "name": "SSH Password account"
         }
       }
     },
@@ -926,8 +926,8 @@
       "name": "Read Storytelling",
       "credentials": {
         "sshPassword": {
-          "id": "nM6jdLaHV8O6GLPF",
-          "name": "SSH localhost"
+          "id": "rub2Wz5KAJFvIyea",
+          "name": "SSH Password account"
         }
       }
     },
@@ -985,7 +985,7 @@
     },
     {
       "parameters": {
-        "jsCode": "function repairJson(s) {\n  let out = '';\n  let inString = false;\n  let escaped = false;\n  for (let i = 0; i < s.length; i++) {\n    const c = s[i];\n    const code = s.charCodeAt(i);\n    if (!inString) {\n      if (c === '\"') inString = true;\n      out += c;\n      continue;\n    }\n    if (escaped) {\n      out += c;\n      escaped = false;\n      continue;\n    }\n    if (c === '\\\\') {\n      out += c;\n      escaped = true;\n      continue;\n    }\n    if (c === '\"') {\n      out += c;\n      inString = false;\n      continue;\n    }\n    if (code < 32) {\n      if (c === '\\n') out += '\\\\n';\n      else if (c === '\\r') out += '\\\\r';\n      else if (c === '\\t') out += '\\\\t';\n      else out += '\\\\u' + ('0000' + code.toString(16)).slice(-4);\n      continue;\n    }\n    out += c;\n  }\n  return out;\n}\nconst item = $input.item.json;\nconst content = item.content;\nconst textBlock = Array.isArray(content) ? content.find(function (b) { return b && b.type === 'text' && b.text; }) : null;\nconst text = (textBlock && textBlock.text) || '';\nconst match = String(text).match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('Sonnet Phase 2 did not return JSON');\nconst parsed = JSON.parse(repairJson(match[0]));\nlet patches = parsed.latex_cv_patches || [];\nif (!Array.isArray(patches)) patches = [patches];\npatches = patches.filter(function (p) { return p && String(p.latex || '').trim(); });\nif (!patches.length) { const why = String(parsed.skip_reason || '').trim() || String(text).slice(match.index + match[0].length).trim().slice(0, 400); throw new Error(why || 'Phase 2 latex_cv_patches empty'); }\nconst prev = $('Build Phase 2 Prompt').first().json;\nconst payload = {\n  latex_cv_patches: patches,\n  company: prev.company || '',\n  job_title: prev.job_title || ''\n};\nconst write_b64 = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64');\nconst usage = item.usage || {};\nreturn { json: Object.assign({}, prev, {\n  latex_cv_patches: patches,\n  write_b64: write_b64,\n  usage_phase2: { input_tokens: Number(usage.input_tokens) || 0, output_tokens: Number(usage.output_tokens) || 0 }\n}) };\n"
+        "jsCode": "function repairJson(s) {\n  let out = '';\n  let inString = false;\n  let escaped = false;\n  for (let i = 0; i < s.length; i++) {\n    const c = s[i];\n    const code = s.charCodeAt(i);\n    if (!inString) {\n      if (c === '\"') inString = true;\n      out += c;\n      continue;\n    }\n    if (escaped) {\n      out += c;\n      escaped = false;\n      continue;\n    }\n    if (c === '\\\\') {\n      out += c;\n      escaped = true;\n      continue;\n    }\n    if (c === '\"') {\n      out += c;\n      inString = false;\n      continue;\n    }\n    if (code < 32) {\n      if (c === '\\n') out += '\\\\n';\n      else if (c === '\\r') out += '\\\\r';\n      else if (c === '\\t') out += '\\\\t';\n      else out += '\\\\u' + ('0000' + code.toString(16)).slice(-4);\n      continue;\n    }\n    out += c;\n  }\n  return out;\n}\nconst item = $input.item.json;\nconst content = item.content;\nconst textBlock = Array.isArray(content) ? content.find(function (b) { return b && b.type === 'text' && b.text; }) : null;\nconst text = (textBlock && textBlock.text) || '';\nconst match = String(text).match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('Sonnet Phase 2 did not return JSON');\nconst parsed = JSON.parse(repairJson(match[0]));\nlet patches = parsed.latex_cv_patches || [];\nif (!Array.isArray(patches)) patches = [patches];\npatches = patches.filter(function (p) { return p && String(p.latex || '').trim(); });\nif (!patches.length) {\n  const why = String(parsed.skip_reason || '').trim() || String(text).slice(match.index + match[0].length).trim().slice(0, 400) || 'Phase 2 latex_cv_patches empty';\n  const skipped = $('Build Phase 2 Prompt').first().json;\n  const usage = item.usage || {};\n  return { json: Object.assign({}, skipped, {\n    skipped: true,\n    skip_reason: why.slice(0, 1900),\n    latex_cv_patches: [],\n    usage_phase2: { input_tokens: Number(usage.input_tokens) || 0, output_tokens: Number(usage.output_tokens) || 0 }\n  }) };\n}\nconst prev = $('Build Phase 2 Prompt').first().json;\nconst payload = {\n  latex_cv_patches: patches,\n  company: prev.company || '',\n  job_title: prev.job_title || ''\n};\nconst write_b64 = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64');\nconst usage = item.usage || {};\nreturn { json: Object.assign({}, prev, {\n  latex_cv_patches: patches,\n  write_b64: write_b64,\n  usage_phase2: { input_tokens: Number(usage.input_tokens) || 0, output_tokens: Number(usage.output_tokens) || 0 }\n}) };\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1066,8 +1066,8 @@
       "name": "Write Full Tex",
       "credentials": {
         "sshPassword": {
-          "id": "nM6jdLaHV8O6GLPF",
-          "name": "SSH localhost"
+          "id": "rub2Wz5KAJFvIyea",
+          "name": "SSH Password account"
         }
       }
     },
@@ -1122,7 +1122,7 @@
       "name": "Update Ready to Apply",
       "credentials": {
         "notionApi": {
-          "id": "PVbozrs4FE83DBwK",
+          "id": "g7AsJ3BGJB9oJZyx",
           "name": "Notion account"
         }
       },
@@ -1175,7 +1175,7 @@
       "name": "Append Tex Preview",
       "credentials": {
         "notionApi": {
-          "id": "PVbozrs4FE83DBwK",
+          "id": "g7AsJ3BGJB9oJZyx",
           "name": "Notion account"
         }
       }
@@ -1209,8 +1209,8 @@
       "name": "Read Master Tex Resume",
       "credentials": {
         "sshPassword": {
-          "id": "nM6jdLaHV8O6GLPF",
-          "name": "SSH localhost"
+          "id": "rub2Wz5KAJFvIyea",
+          "name": "SSH Password account"
         }
       }
     },
@@ -1228,8 +1228,8 @@
       "name": "Read Facts Resume",
       "credentials": {
         "sshPassword": {
-          "id": "nM6jdLaHV8O6GLPF",
-          "name": "SSH localhost"
+          "id": "rub2Wz5KAJFvIyea",
+          "name": "SSH Password account"
         }
       }
     },
@@ -1302,7 +1302,7 @@
       "alwaysOutputData": true,
       "credentials": {
         "notionApi": {
-          "id": "PVbozrs4FE83DBwK",
+          "id": "g7AsJ3BGJB9oJZyx",
           "name": "Notion account"
         }
       },
@@ -1442,7 +1442,7 @@
       "name": "Get Resume Page By Id",
       "credentials": {
         "notionApi": {
-          "id": "PVbozrs4FE83DBwK",
+          "id": "g7AsJ3BGJB9oJZyx",
           "name": "Notion account"
         }
       },
@@ -1523,8 +1523,8 @@
       "name": "Read Patched CV",
       "credentials": {
         "sshPassword": {
-          "id": "nM6jdLaHV8O6GLPF",
-          "name": "SSH localhost"
+          "id": "rub2Wz5KAJFvIyea",
+          "name": "SSH Password account"
         }
       }
     },
@@ -1559,8 +1559,8 @@
       "name": "Write Letter Tex",
       "credentials": {
         "sshPassword": {
-          "id": "nM6jdLaHV8O6GLPF",
-          "name": "SSH localhost"
+          "id": "rub2Wz5KAJFvIyea",
+          "name": "SSH Password account"
         }
       }
     },
@@ -1611,7 +1611,7 @@
       "name": "Update Cover Letter",
       "credentials": {
         "notionApi": {
-          "id": "PVbozrs4FE83DBwK",
+          "id": "g7AsJ3BGJB9oJZyx",
           "name": "Notion account"
         }
       },
@@ -1657,7 +1657,7 @@
       "name": "Append Letter Preview",
       "credentials": {
         "notionApi": {
-          "id": "PVbozrs4FE83DBwK",
+          "id": "g7AsJ3BGJB9oJZyx",
           "name": "Notion account"
         }
       }
@@ -1676,8 +1676,8 @@
       "name": "Persist Phase 2 Output",
       "credentials": {
         "sshPassword": {
-          "id": "nM6jdLaHV8O6GLPF",
-          "name": "SSH localhost"
+          "id": "rub2Wz5KAJFvIyea",
+          "name": "SSH Password account"
         }
       }
     },
@@ -1753,7 +1753,7 @@
       "alwaysOutputData": true,
       "credentials": {
         "notionApi": {
-          "id": "PVbozrs4FE83DBwK",
+          "id": "g7AsJ3BGJB9oJZyx",
           "name": "Notion account"
         }
       },
@@ -1821,8 +1821,8 @@
       "name": "Read Master Letter",
       "credentials": {
         "sshPassword": {
-          "id": "nM6jdLaHV8O6GLPF",
-          "name": "SSH localhost"
+          "id": "rub2Wz5KAJFvIyea",
+          "name": "SSH Password account"
         }
       }
     },
@@ -1839,6 +1839,97 @@
       ],
       "id": "b4a1f0e2-7c33-4d18-9a60-6e2c8b71d4a5",
       "name": "Band Fit"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "phase2-skip",
+              "leftValue": "={{ $json.skipped }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1760,
+        520
+      ],
+      "id": "d7099e1f-945f-45ee-831c-179442b0de93",
+      "name": "Phase 2 Skip?"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $json.page_id }}",
+          "mode": "id"
+        },
+        "simple": false,
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Status|select",
+              "selectValue": "Held"
+            },
+            {
+              "key": "Rationale|rich_text",
+              "textContent": "={{ $json.skip_reason }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        1980,
+        360
+      ],
+      "id": "478f2834-a208-4b1f-9d3f-363d1ddb3e3b",
+      "name": "Mark Phase 2 Held",
+      "credentials": {
+        "notionApi": {
+          "id": "g7AsJ3BGJB9oJZyx",
+          "name": "Notion account"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'skipped', message: $('Parse Phase 2').first().json.skip_reason, company: $('Parse Phase 2').first().json.company || '', job_title: $('Parse Phase 2').first().json.job_title || '', page_id: $('Parse Phase 2').first().json.page_id || '' }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2200,
+        360
+      ],
+      "id": "0ecf862c-db29-4577-833b-32a4b8e34b0e",
+      "name": "Respond Phase 2 Skip"
     }
   ],
   "pinData": {},
@@ -2269,7 +2360,7 @@
       "main": [
         [
           {
-            "node": "Write Full Tex",
+            "node": "Phase 2 Skip?",
             "type": "main",
             "index": 0
           }
@@ -2723,6 +2814,35 @@
         [
           {
             "node": "Create Needs Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Phase 2 Skip?": {
+      "main": [
+        [
+          {
+            "node": "Mark Phase 2 Held",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Write Full Tex",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Phase 2 Held": {
+      "main": [
+        [
+          {
+            "node": "Respond Phase 2 Skip",
             "type": "main",
             "index": 0
           }
